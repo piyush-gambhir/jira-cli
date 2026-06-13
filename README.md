@@ -1,34 +1,58 @@
-# jira-cli
+# Jira CLI
 
 A fast, scriptable command-line interface for **Jira** — Cloud and Server/Data Center — over the
 REST API. Manage issues, JQL search, transitions, comments, worklogs, attachments, links, boards
-and sprints from your terminal, with first-class JSON/YAML output for scripts and coding agents.
+and sprints from your terminal.
 
-> This is an independent, open wrapper over the Jira REST API. It is **not** affiliated with
-> Atlassian and is unrelated to Atlassian's official `acli`.
+Designed for both human operators and coding agents. All list/get commands support `-o json` and
+`-o yaml` for machine-readable output.
+
+[![Go Version](https://img.shields.io/github/go-mod/go-version/piyush-gambhir/jira-cli)](https://go.dev/)
+[![Release](https://img.shields.io/github/v/release/piyush-gambhir/jira-cli)](https://github.com/piyush-gambhir/jira-cli/releases)
+[![License](https://img.shields.io/github/license/piyush-gambhir/jira-cli)](LICENSE)
+[![CI](https://github.com/piyush-gambhir/jira-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/piyush-gambhir/jira-cli/actions/workflows/ci.yml)
+
+> Independent open-source wrapper over the Jira REST API. Not affiliated with Atlassian and unrelated
+> to Atlassian's official `acli`.
 
 ## Features
 
-- **Every auth method**: Cloud API token (default), scoped API token, OAuth 2.0 (3LO) with browser
-  login + auto-refresh, Server/DC personal access token, and username/password. See
-  [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
-- **Issues**: search (JQL), list, get, create, edit, delete, assign, transition.
-- **Around issues**: comments, worklogs, attachments (upload/download), links, watchers, votes.
-- **Projects, users, fields**, and **Agile** boards / sprints / epics.
-- **ADF-aware**: descriptions/comments are sent as Atlassian Document Format; `--markdown` supported.
-- **Agent-friendly**: `-o json|yaml`, `--read-only` safety mode, `--no-input`, env-var config,
-  clean stderr/stdout separation, automatic 429 backoff.
-- Multiple named **profiles** with `flags > env > config` precedence.
+- **Every auth method** — Cloud API token (default), scoped API token, OAuth 2.0 (3LO) browser login
+  with auto-refresh, Server/DC personal access token, and username/password. See [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
+- **Issues** — JQL search, list, get, create, edit, delete, assign, transition.
+- **Around issues** — comments, worklogs, attachments (upload/download), links, watchers, votes.
+- **Projects, users, fields** and **Agile** boards / sprints / epics.
+- **ADF-aware** — descriptions and comments are sent as Atlassian Document Format; `--markdown` supported.
+- **Agent-friendly** — `-o json|yaml`, `--read-only` safety mode, `--no-input`, env-var config,
+  clean stdout/stderr separation, automatic rate-limit (429) backoff.
+- **Cross-platform** — macOS, Linux, Windows (amd64 and arm64). Multiple named profiles.
 
-## Install
+## Installation
+
+### Download a release
+
+Prebuilt binaries for every platform are attached to each
+[GitHub Release](https://github.com/piyush-gambhir/jira-cli/releases). Download the archive for your
+OS/arch, extract, and put `jira` on your `PATH`:
 
 ```bash
-# From source (Go 1.22+)
-git clone https://github.com/piyush-gambhir/jira-cli
-cd jira-cli && make install        # or: ./install.sh
+# example (macOS arm64) — adjust the version/asset name
+curl -sSL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_Darwin_arm64.tar.gz | tar xz
+sudo mv jira /usr/local/bin/
+```
 
-# Or directly
+### go install
+
+```bash
 go install github.com/piyush-gambhir/jira-cli@latest
+```
+
+### From source
+
+```bash
+git clone https://github.com/piyush-gambhir/jira-cli.git
+cd jira-cli
+make install          # or: ./install.sh   (installs to $GOBIN / $GOPATH/bin)
 ```
 
 The binary is `jira`.
@@ -64,32 +88,23 @@ jira issue comment ABC-123 --body "On it"
 
 ```bash
 jira auth login --type pat --site https://jira.company.com --token "$PAT"
-jira auth login --type oauth2 --client-id "$ID" --client-secret "$SECRET"
-jira auth list
-jira auth use staging
+jira auth login --type oauth2 --client-id "$ID" --client-secret "$SECRET" --scope-preset admin
+jira auth list   ;   jira auth use staging   ;   jira auth logout --name staging
 ```
 
-### For end users (after publishing)
+OAuth scopes are selectable: `--scope-preset read|write|admin|all` (or an interactive picker), plus
+granular `--scope`. See [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
 
-The CLI ships with **no embedded credentials** — every user authenticates to **their own** Jira
-account. The simplest path needs nothing from the maintainer: install, then `jira auth login` and
-paste your own API token (create one at id.atlassian.com in ~30s). OAuth is optional and "bring your
-own app" by default.
+### For end users
 
-Maintainers who want **one-command browser login** for end users (no per-user app registration) can
-publish a build with a built-in OAuth app baked in:
-
-```bash
-JIRA_OAUTH_CLIENT_ID=… JIRA_OAUTH_CLIENT_SECRET=… make build
-```
-
-Each user still logs into their own account in the browser; only the app identity and rate-limit
-quota are shared. The secret lives only in the released binary, not in source. See
-[docs/CREDENTIALS.md](docs/CREDENTIALS.md#distributing-a-branded-build-built-in-oauth-app) for the tradeoffs.
+The CLI ships with **no embedded credentials** — everyone authenticates to **their own** Jira account.
+The simplest path needs nothing from the maintainer: install, run `jira auth login`, and paste your own
+API token (id.atlassian.com, ~30s). OAuth is optional and bring-your-own-app by default.
 
 ## Output
 
-`-o table` (default), `-o json`, `-o yaml`. Informational messages go to stderr; data goes to stdout.
+`-o table` (default), `-o json`, `-o yaml`. Informational messages go to stderr; data goes to stdout,
+so `jira ... -o json | jq` is always safe.
 
 ## Documentation
 
@@ -100,11 +115,33 @@ quota are shared. The secret lives only in the released binary, not in source. S
   [search/JQL/projects/users](jira/references/search-jql-projects-users.md),
   [agile/ADF/conventions](jira/references/agile-adf-conventions.md)
 
-## Configuration
+## Releasing (maintainers)
 
-Profiles live in `~/.config/jira-cli/config.yaml` (mode 0600). Override per-invocation with flags
-(`--site`, `--email`, `--token`, `--profile`, …) or environment variables (`JIRA_SITE`, `JIRA_EMAIL`,
-`JIRA_TOKEN`, …). Precedence: **flags > env > config**.
+Releases are built by [GoReleaser](https://goreleaser.com) via GitHub Actions on any `v*` tag — see
+[`.github/workflows/release.yml`](.github/workflows/release.yml) and [`.goreleaser.yaml`](.goreleaser.yaml).
+
+```bash
+git tag -s v0.1.0 -m "v0.1.0"     # signed tag
+git push origin v0.1.0            # -> CI builds cross-platform binaries + checksums and publishes a Release
+```
+
+To ship a build with a **built-in OAuth app** (so users can browser-login with no app registration),
+add repo secrets `JIRA_OAUTH_CLIENT_ID` / `JIRA_OAUTH_CLIENT_SECRET` (Settings → Secrets and variables
+→ Actions). They're injected via `-ldflags` and never stored in source. Locally, the same values live
+in a gitignored `.env`, consumed by `make build`, `./install.sh`, and `./scripts/release.sh`. Without
+them, builds ship credential-free (API token / BYO OAuth).
+
+## Development
+
+```bash
+make build     # -> bin/jira
+make test      # go test -race ./...
+make vet
+make fmt       # gofmt -s -w .
+```
+
+Commits and tags are **signed and required** — the repository enforces a "require signed commits" ruleset
+on GitHub, and local config (`commit.gpgsign`, `tag.gpgsign`) signs by default. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

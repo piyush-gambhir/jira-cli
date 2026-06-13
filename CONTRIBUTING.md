@@ -48,3 +48,17 @@ workflows change, update the `SKILL.md` front-matter `description` too.
 ## Commits
 
 Conventional, imperative commit subjects (e.g. `feat(issue): add bulk create`).
+
+**Signed commits are mandatory.** The repository enforces a GitHub ruleset that rejects any unsigned
+push, so every commit (and tag) must carry a valid signature. Configure signing once:
+
+```bash
+# SSH signing (simplest; no GPG needed). Use a key you've added to GitHub as a *signing* key.
+git config --global gpg.format ssh
+git config --global user.signingkey ~/.ssh/<your_key>.pub
+git config --global commit.gpgsign true
+git config --global tag.gpgsign true
+```
+
+Then commit normally — git signs automatically. Don't use `--no-gpg-sign`; the push will be rejected.
+Tag releases with `git tag -s vX.Y.Z -m "vX.Y.Z"`.
