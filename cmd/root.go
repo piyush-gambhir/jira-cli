@@ -18,6 +18,11 @@ import (
 
 const repoSlug = "piyush-gambhir/jira-cli"
 
+// groupDispatcherKey marks command groups whose only job is to dispatch to a
+// sub-command (or print help). PersistentPreRunE uses it to skip client setup
+// for them — set by enforceGroupNoArgs, never on a command with its own RunE.
+const groupDispatcherKey = "jira.groupDispatcher"
+
 var (
 	// Global flags
 	outputFormat   string
@@ -104,9 +109,11 @@ All list/get commands support -o json and -o yaml for machine-readable output.`,
 		if cmd.Parent() != nil && cmd.Parent().Name() == "auth" {
 			return loadConfigOnly()
 		}
-		// Group/dispatcher commands (anything with sub-commands) only show help
-		// or hand off to a child; they never need an authenticated client.
-		if cmd.HasSubCommands() {
+		// Pure dispatcher groups (issue, project, ...) only show help or reject an
+		// unknown sub-command, so they need no client. Commands that have their own
+		// run function still get one even if they also have sub-commands — e.g.
+		// `jira status`, which reports the live connection.
+		if cmd.Annotations[groupDispatcherKey] == "true" {
 			return nil
 		}
 		if !cmd.Runnable() {
@@ -300,6 +307,10 @@ func init() {
 // otherwise look like success — bad for scripts and agents.
 func enforceGroupNoArgs(c *cobra.Command) {
 	if c.HasSubCommands() && c.Run == nil && c.RunE == nil {
+		if c.Annotations == nil {
+			c.Annotations = map[string]string{}
+		}
+		c.Annotations[groupDispatcherKey] = "true"
 		c.RunE = func(cmd *cobra.Command, args []string) error {
 			if len(args) > 0 {
 				return fmt.Errorf("unknown command %q for %q\nRun '%s --help' for available commands", args[0], cmd.CommandPath(), cmd.CommandPath())
