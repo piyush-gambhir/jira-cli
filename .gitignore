@@ -8,3 +8,9 @@
 .env
 .env.local
 
+# Cloudflare Pages deploy creds / wrangler state. Never commit.
+/.wrangler/
+.env.deploy
+.env.deploy.*
+!.env.deploy.example
+
