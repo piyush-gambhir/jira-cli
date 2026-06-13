@@ -11,6 +11,7 @@ func newEpicCmd() *cobra.Command {
 		Short:   "Inspect epics and their issues (Agile)",
 	}
 	cmd.AddCommand(newEpicGetCmd(), newEpicIssuesCmd())
+	cmd.AddCommand(newEpicUpdateCmd(), newEpicAddIssuesCmd(), newEpicRemoveIssuesCmd())
 	return cmd
 }
 

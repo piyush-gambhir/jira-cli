@@ -26,6 +26,14 @@ manage:jira-project scope — choose the "admin" or "all" scope preset at login)
 		newProjectCreateCmd(),
 		newProjectUpdateCmd(),
 		newProjectDeleteCmd(),
+		newProjectStatusesCmd(),
+		newProjectArchiveCmd(),
+		newProjectRestoreCmd(),
+		newProjectRolesCmd(),
+		newProjectRoleCmd(),
+		newProjectCategoriesCmd(),
+		newProjectCategoryCreateCmd(),
+		newProjectCategoryDeleteCmd(),
 	)
 	return cmd
 }

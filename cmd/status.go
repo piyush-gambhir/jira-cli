@@ -18,7 +18,7 @@ type statusResult struct {
 }
 
 func newStatusCmd() *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show site connectivity and authentication status",
 		Args:  cobra.NoArgs,
@@ -54,4 +54,6 @@ func newStatusCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.AddCommand(newStatusListCmd(), newStatusGetCmd())
+	return cmd
 }

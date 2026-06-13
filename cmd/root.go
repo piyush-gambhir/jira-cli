@@ -179,7 +179,11 @@ func resolveProfile(cmd *cobra.Command) (config.Profile, error) {
 		InsecureSet: cmd.Flags().Changed("insecure"),
 	}
 
-	activeProfileName = profileFlag
+	effProfile := profileFlag
+	if effProfile == "" {
+		effProfile = os.Getenv("JIRA_PROFILE")
+	}
+	activeProfileName = effProfile
 	if activeProfileName == "" {
 		activeProfileName = cfg.CurrentProfile
 	}
@@ -187,7 +191,7 @@ func resolveProfile(cmd *cobra.Command) (config.Profile, error) {
 		activeProfileName = "default"
 	}
 
-	profile, err := config.ResolveAuth(flags, os.LookupEnv, cfg, profileFlag)
+	profile, err := config.ResolveAuth(flags, os.LookupEnv, cfg, effProfile)
 	if err != nil {
 		return config.Profile{}, fmt.Errorf("resolving auth: %w", err)
 	}
@@ -279,4 +283,6 @@ func init() {
 	rootCmd.AddCommand(newPermissionCmd())
 	rootCmd.AddCommand(newJQLCmd())
 	rootCmd.AddCommand(newWebhookCmd())
+	rootCmd.AddCommand(newBacklogCmd())
+	rootCmd.AddCommand(newServerInfoCmd())
 }

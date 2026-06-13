@@ -17,6 +17,7 @@ func newBoardCmd() *cobra.Command {
 		Short:   "List boards and their issues (Agile)",
 	}
 	cmd.AddCommand(newBoardListCmd(), newBoardGetCmd(), newBoardIssuesCmd(), newBoardBacklogCmd())
+	cmd.AddCommand(newBoardCreateCmd(), newBoardDeleteCmd(), newBoardConfigCmd(), newBoardEpicsCmd())
 	return cmd
 }
 

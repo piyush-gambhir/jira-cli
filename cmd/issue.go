@@ -50,6 +50,29 @@ Examples:
 		newIssueVoteCmd(),
 		newIssueUnvoteCmd(),
 		newIssueVotesCmd(),
+		// metadata & history
+		newIssueCreateMetaCmd(),
+		newIssueEditMetaCmd(),
+		newIssueChangelogCmd(),
+		// comment / worklog edit-delete-get
+		newIssueCommentGetCmd(),
+		newIssueCommentEditCmd(),
+		newIssueCommentDeleteCmd(),
+		newIssueWorklogGetCmd(),
+		newIssueWorklogEditCmd(),
+		newIssueWorklogDeleteCmd(),
+		// links / attachments / remote links / properties / notify
+		newIssueLinkDeleteCmd(),
+		newIssueAttachmentDeleteCmd(),
+		newIssueAttachmentMetaCmd(),
+		newIssueRemoteLinksCmd(),
+		newIssueRemoteLinkAddCmd(),
+		newIssueRemoteLinkDeleteCmd(),
+		newIssuePropertyListCmd(),
+		newIssuePropertyGetCmd(),
+		newIssuePropertySetCmd(),
+		newIssuePropertyDeleteCmd(),
+		newIssueNotifyCmd(),
 	)
 	return cmd
 }

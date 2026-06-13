@@ -29,5 +29,7 @@ Examples:
 	cmd.AddCommand(newAuthListCmd())
 	cmd.AddCommand(newAuthUseCmd())
 	cmd.AddCommand(newAuthLogoutCmd())
+	cmd.AddCommand(newAuthCurrentCmd())
+	cmd.AddCommand(newAuthRenameCmd())
 	return cmd
 }

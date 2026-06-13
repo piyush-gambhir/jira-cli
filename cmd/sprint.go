@@ -17,6 +17,7 @@ func newSprintCmd() *cobra.Command {
 		Short:   "List, inspect, and create sprints (Agile)",
 	}
 	cmd.AddCommand(newSprintListCmd(), newSprintGetCmd(), newSprintCreateCmd(), newSprintIssuesCmd())
+	cmd.AddCommand(newSprintStartCmd(), newSprintCloseCmd(), newSprintUpdateCmd(), newSprintDeleteCmd(), newSprintAddIssuesCmd())
 	return cmd
 }
 

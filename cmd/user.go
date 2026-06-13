@@ -16,6 +16,7 @@ func newUserCmd() *cobra.Command {
 		Short:   "Find and inspect users",
 	}
 	cmd.AddCommand(newUserSearchCmd(), newUserGetCmd())
+	cmd.AddCommand(newUserListCmd(), newUserBulkCmd(), newUserAssignableCmd(), newUserGroupsCmd())
 	return cmd
 }
 
