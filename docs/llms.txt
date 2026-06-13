@@ -1,0 +1,783 @@
+# Jira CLI
+
+> A fast, scriptable command-line interface for Jira (Cloud and Server/Data Center) over the REST API. Manage issues, JQL search, transitions, comments, worklogs, attachments, links, boards, sprints, epics, projects, versions, users, groups, permissions, filters, dashboards, webhooks and more from your terminal. Designed for both humans and coding agents — every list/get command supports `-o json` and `-o yaml`.
+
+This is the canonical machine-readable manual for the `jira` command-line tool. It is intended to give an LLM or coding agent everything needed to drive the CLI correctly with zero prior knowledge. The command surface below is taken directly from the tool's source (the Cobra command definitions in `cmd/`).
+
+## About
+
+- **Binary name:** `jira`
+- **What it is:** An independent, open-source command-line wrapper over the Jira REST API. It speaks the Jira Cloud platform API (v3) and the Server/Data Center API (v2), plus the Jira Software (Agile) API for boards/sprints/epics.
+- **Unaffiliated:** This is an independent / unofficial project. It is **not** affiliated with, endorsed by, or sponsored by Atlassian, and it is unrelated to Atlassian's official `acli`.
+- **Supported platforms:** macOS, Linux, and Windows, on both `amd64` and `arm64` (Windows arm64 is not built). Written in Go (requires Go 1.22+ to build from source).
+- **Design goals:** Agent-friendly. Machine-readable output (`-o json|yaml`), a `--read-only` safety mode, a `--no-input` mode that disables all prompts, env-var configuration, and clean stdout/stderr separation (data on stdout, informational messages on stderr).
+
+## Links
+
+- Home: https://jira-cli.pages.dev/
+- Source: https://github.com/piyush-gambhir/jira-cli
+- Issues: https://github.com/piyush-gambhir/jira-cli/issues
+- Privacy: https://jira-cli.pages.dev/privacy-policy
+- Terms: https://jira-cli.pages.dev/terms-of-service
+- Contact: https://jira-cli.pages.dev/contact
+
+## Install
+
+The binary is `jira`. There is no Homebrew/Scoop/apt package; install one of these ways.
+
+### Download a prebuilt release
+
+Prebuilt binaries for every supported platform (linux/darwin/windows × amd64/arm64, except windows/arm64) are attached to each GitHub Release as `.tar.gz` archives (`.zip` on Windows), named `jira-cli_<Os>_<Arch>`. Download the archive for your OS/arch, extract, and put `jira` on your `PATH`.
+
+```bash
+# example (macOS arm64) — adjust the version/asset name for your platform
+curl -sSL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_Darwin_arm64.tar.gz | tar xz
+sudo mv jira /usr/local/bin/
+```
+
+### go install
+
+```bash
+go install github.com/piyush-gambhir/jira-cli@latest
+```
+
+### From source
+
+```bash
+git clone https://github.com/piyush-gambhir/jira-cli.git
+cd jira-cli
+make install          # or: ./install.sh   (installs to $GOBIN / $GOPATH/bin)
+```
+
+Other Make targets: `make build` (→ `bin/jira`), `make test` (`go test -race ./...`), `make vet`, `make fmt`, `make tidy`, `make clean`.
+
+Note on OAuth: released binaries may ship with a built-in OAuth 2.0 app baked in via `-ldflags` (so `jira auth login` can browser-login with no app registration). A plain `go build`/`go install` does **not** include an app — with a source build either use an API token (`jira auth login --type api_token`) or pass your own `--client-id`/`--client-secret`.
+
+## Authentication
+
+There are five auth methods, all selected with `jira auth login --type <method>`. The auth type is stored per profile in the config file. Use `jira auth login --help` for the in-tool reference.
+
+| `--type` value | Aliases accepted | Deployment | Credential | Notes |
+|---|---|---|---|---|
+| `oauth2` (default) | `oauth`, `3lo` | Cloud | OAuth 2.0 (3LO) browser login | Loopback browser flow on `http://localhost:<port>/callback`; refresh tokens auto-rotate; an app may be baked into released binaries |
+| `api_token` | `apitoken`, `token`, `api` | Cloud | email + API token | Token from https://id.atlassian.com/manage-profile/security/api-tokens; no app needed |
+| `scoped` | `scoped_token` | Cloud | email + scoped API token | Resolves the site's `cloudId` and routes via the `api.atlassian.com` gateway |
+| `pat` | — | Server/DC | bearer personal access token | Jira 8.14+ |
+| `basic` | `password` | Server/DC | username + password | Legacy; watch for CAPTCHA lockout |
+
+The stored `auth_type` values are: `oauth2`, `api_token`, `scoped_token`, `pat`, `basic`. If a profile has no `auth_type`, it defaults to `api_token`. (Note: the `--type` flag itself defaults to `oauth2`, so a bare `jira auth login` performs the browser OAuth flow.)
+
+### Logging in
+
+```bash
+# Browser OAuth — the default. (Released branded binaries: zero prompts, just click Accept.)
+jira auth login
+
+# API token instead (no app needed) — prompts for site, email, API token
+jira auth login --type api_token
+
+# Non-interactive (CI/agents) — supply everything via flags
+jira auth login --type api_token --site https://acme.atlassian.net --email me@acme.com --token "$JIRA_TOKEN"
+
+# Server/DC with a personal access token
+jira auth login --type pat --site https://jira.company.com --token "$PAT"
+
+# Server/DC basic auth (username + password)
+jira auth login --type basic --site https://jira.company.com --user jdoe --password "$PW"
+
+# OAuth 2.0 (3LO) with your own app (bring-your-own-app)
+jira auth login --type oauth2 --client-id "$ID" --client-secret "$SECRET" --scope-preset admin
+```
+
+Inputs may be supplied via flags (`--site`, `--email`, `--token`, `--user`, `--password`); any missing required value is prompted for unless `--no-input` is set. After a successful login the profile is saved and the connection is tested by calling `myself`; if it's the first profile it becomes the current one.
+
+### OAuth scopes
+
+For `--type oauth2` you choose how much access to grant:
+
+- `--scope-preset read|write|admin|all` — an interactive picker is shown if omitted and the session is interactive; non-interactive (`--no-input`) defaults to `write`; branded (embedded-app) builds default to `all`.
+- `--scope <scope>` adds an individual scope on top of the preset (repeatable).
+- `--scopes "<space-separated>"` is a raw override that wins over the preset/`--scope`.
+- `offline_access` is always added automatically (so refresh works).
+
+Preset → scopes (classic Jira OAuth 2.0 / 3LO scopes):
+
+| Preset | Scopes |
+|---|---|
+| `read` | `read:jira-user`, `read:jira-work` |
+| `write` (default) | `read:jira-user`, `read:jira-work`, `write:jira-work` |
+| `admin` | the above + `manage:jira-project`, `manage:jira-configuration` |
+| `all` | the above + `manage:jira-webhook`, `manage:jira-data-provider` |
+
+Your app's Permissions in the Atlassian developer console must include whatever scopes you request. `project`/`group`/`webhook` management commands need the `admin` or `all` preset over OAuth.
+
+### Managing profiles
+
+```bash
+jira auth list                  # list profiles (alias: ls); the current one is marked *
+jira auth current               # show the active profile
+jira auth use staging           # set the active profile
+jira auth rename old new         # rename a profile
+jira auth logout --name staging  # remove a profile and its stored credentials (defaults to the current profile)
+```
+
+### Config file path
+
+- `~/.config/jira-cli/config.yaml` (XDG-aware: honors `$XDG_CONFIG_HOME` → `$XDG_CONFIG_HOME/jira-cli/config.yaml`).
+- Created with directory mode `0700` and file mode `0600`; written atomically (temp file + rename).
+- Stores all profiles, the current profile, and defaults. Secrets (tokens, refresh tokens, passwords) live in this file.
+
+### Environment variables
+
+All optional. Useful for CI/agents (no `auth login` needed if `JIRA_SITE` + credentials are set):
+
+- `JIRA_SITE` — base URL, e.g. `https://acme.atlassian.net` (Cloud) or `https://jira.host` (Server/DC)
+- `JIRA_EMAIL` — Atlassian account email (Cloud api_token/scoped_token)
+- `JIRA_TOKEN` — API token (Cloud) or PAT (Server/DC)
+- `JIRA_USER` — username (Server/DC basic auth)
+- `JIRA_PASSWORD` — password (Server/DC basic auth)
+- `JIRA_AUTH_TYPE` — one of `oauth2`, `api_token`, `scoped_token`, `pat`, `basic`
+- `JIRA_CLOUD_ID` — cloudId for the scoped_token/oauth2 gateway routing
+- `JIRA_API_VERSION` — platform REST API version: `3` (Cloud) or `2` (Server/DC)
+- `JIRA_INSECURE` — skip TLS certificate verification (bool)
+- `JIRA_READ_ONLY` — block all mutating commands (bool; agent safety)
+- `JIRA_OAUTH_CLIENT_ID`, `JIRA_OAUTH_CLIENT_SECRET` — OAuth app credentials
+- `JIRA_OAUTH_ACCESS_TOKEN`, `JIRA_OAUTH_REFRESH_TOKEN`, `JIRA_SCOPES` — OAuth token material / scopes
+- `JIRA_PROFILE` — select the active profile (same as `--profile`)
+- `JIRA_NO_INPUT` — disable interactive prompts (bool; same as `--no-input`)
+- `JIRA_QUIET` — suppress informational output (bool; same as `--quiet`)
+
+Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); for `JIRA_NO_INPUT`/`JIRA_QUIET` any non-empty value other than `0`/`false` is treated as true.
+
+### Precedence order
+
+**CLI flags > environment variables > config profile.** For example, `--site` overrides `JIRA_SITE`, which overrides the profile's `site`. For `--read-only`, an explicit flag overrides the profile's `read_only` setting.
+
+## Global flags
+
+These persistent flags work on every command:
+
+- `-o, --output <table|json|yaml>` — output format (default `table`; falls back to the profile's `defaults.output` if set)
+- `--profile <name>` — configuration profile to use (also `JIRA_PROFILE`)
+- `-s, --site <url>` — Jira site URL override
+- `-e, --email <email>` — Atlassian account email override (Cloud)
+- `-t, --token <token>` — API token / PAT override
+- `-u, --user <username>` — username override (Server/DC basic auth)
+- `--api-version <2|3>` — platform REST API version override
+- `-k, --insecure` — skip TLS certificate verification
+- `--no-color` — registered for compatibility but currently a no-op: the tool emits no ANSI color (the table formatter outputs plain text), so there is nothing to disable
+- `-v, --verbose` — verbose HTTP logging to stderr
+- `--read-only` — block write operations (safety mode for agents); a write command run in read-only mode errors out before making any request
+- `--no-input` — disable all interactive prompts (for CI/agents); destructive commands then require `--yes`
+- `-q, --quiet` — suppress informational (stderr) output
+- `-h, --help` — help for any command
+
+## Commands
+
+All commands accept the global flags above. Commands that mutate Jira are marked **[mutates]** — they are blocked when `--read-only` (or the profile's `read_only`) is active. Destructive commands accept `--yes` to skip the confirmation prompt; under `--no-input` they require `--yes` (otherwise they error rather than prompt). Common short flags: `-n` = `--limit`, `-p` = `--project`, `-b` = `--board`, `-d` = `--description`, `-a` = `--assignee`, `-l` = `--label`, `-j` = `--jql`, `-o` = `--output`.
+
+Note `jira version` (the CLI's own version) is distinct from the `jira release` group (Jira project versions / "Releases").
+
+### Top-level commands
+
+```
+jira version
+```
+Print the CLI version, formatted `jira version <v> (commit: <c>, built: <t>)`. No auth required.
+
+```
+jira update
+```
+Check for a newer release of the CLI on GitHub. No auth required.
+
+```
+jira whoami
+```
+Show the authenticated user (accountId, name, email, active, timezone).
+
+```
+jira status
+```
+Show site connectivity and authentication status (site, server version, deployment type, authenticated bool, user). Exits nonzero if not authenticated.
+
+```
+jira serverinfo
+```
+Show Jira instance metadata (base URL, version, deployment type, build number, server time).
+
+```
+jira completion <bash|zsh|fish|powershell>
+```
+Generate a shell completion script (provided by Cobra). No auth required.
+
+Example:
+```bash
+jira whoami -o json
+jira status -o json
+```
+
+### auth — authentication profiles
+
+```
+jira auth login [flags]
+```
+**[mutates config]** Authenticate to a Jira site and save a profile. Flags: `--type` (default `oauth2`), `--name` (profile name, default `default`), `--site`/`-s`, `--email`/`-e`, `--token`/`-t`, `--user`/`-u`, `--password`, `--client-id`, `--client-secret`, `--scopes`, `--scope-preset`, `--scope` (repeatable), `--port` (OAuth callback port, default 8765).
+
+```
+jira auth list             # alias: ls
+jira auth current
+jira auth use <profile>
+jira auth rename <oldName> <newName>
+jira auth logout [--name <profile>]
+```
+List / show-current / switch / rename / remove profiles. See "Managing profiles" above.
+
+Example:
+```bash
+jira auth login --type pat --site https://jira.company.com --token "$PAT"
+jira auth use staging
+```
+
+### issue — create, query, and manage issues
+
+Group aliases: `issues`, `i`.
+
+#### Search & list
+
+```
+jira issue list [flags]
+```
+List issues using simple filters (builds a JQL query for you). Flags: `-p, --project`, `--status`, `--assignee`, `--mine`, `--type`, `--label`, `-n, --limit` (default 50), `--all`, `--fields`. With no filters it defaults to `assignee = currentUser()`; results are ordered `ORDER BY updated DESC`. The JQL it builds is echoed to stderr.
+
+```
+jira issue search [jql] [flags]
+```
+Run a raw JQL query (Cloud uses the enhanced `/search/jql` cursor paging; Server/DC uses classic search). JQL via positional arg or `--jql`/`-j` (required). Flags: `-n, --limit` (default 50), `--all`, `--fields`, `--count` (return only the approximate match count).
+
+Examples:
+```bash
+jira issue list --mine
+jira issue list -p ABC --status "In Progress" -o json
+jira issue search "project = ABC AND statusCategory != Done ORDER BY updated DESC" -o json
+jira issue search --jql "assignee = currentUser() AND resolution IS EMPTY" --all
+jira issue search "project = ABC" --count
+```
+
+#### Get / create / edit / delete
+
+```
+jira issue get <key> [flags]
+```
+Get an issue. Flags: `--fields` (comma-separated), `--expand` (e.g. `renderedFields,changelog`). In `table` mode prints a formatted detail view; with `-o json|yaml` returns the raw issue.
+
+```
+jira issue create [flags]
+```
+**[mutates]** Create an issue. `-p, --project`, `--type`, and `--summary` are required. Flags: `-d, --description`, `--priority`, `-a, --assignee`, `-l, --label` (repeatable), `--parent` (parent key, for subtasks), `--markdown` (interpret description as lightweight markdown), `--field name=value` (repeatable, arbitrary fields incl. custom fields).
+
+```
+jira issue edit <key> [flags]
+```
+**[mutates]** Edit fields. Flags: `--summary`, `-d, --description`, `--priority`, `-a, --assignee`, `--add-label` (repeatable), `--remove-label` (repeatable), `--markdown`, `--no-notify` (don't email watchers). At least one change must be supplied.
+
+```
+jira issue delete <key> [flags]
+```
+**[mutates]** Delete an issue. Flags: `--delete-subtasks`, `--yes`.
+
+Examples:
+```bash
+jira issue get ABC-123 --fields summary,status,assignee --expand changelog
+jira issue create -p ABC --type Task --summary "Set up CI" -d "Details" -a me@acme.com -l urgent
+jira issue create -p ABC --type Task --summary "X" --field customfield_10010=5
+jira issue edit ABC-123 --summary "New title" --add-label triaged --remove-label blocker
+jira issue delete ABC-123 --yes
+```
+
+#### Assign & transition
+
+```
+jira issue assign <key> --to <user>
+```
+**[mutates]** Assign an issue. `--to` (required) accepts an email, display name, `@me`, `id:<accountId>`, `default` (project default assignee), or `none`/`unassign`/`null` to clear.
+
+```
+jira issue transitions <key>
+```
+List the transitions available for an issue (id, name, target status).
+
+```
+jira issue transition <key> <status-or-transition> [flags]
+```
+**[mutates]** (alias: `move`) Transition an issue. The second argument matches a target status name or a transition name (case-insensitive). Flags: `--resolution`, `--comment`, `--markdown`.
+
+Examples:
+```bash
+jira issue transitions ABC-123
+jira issue transition ABC-123 "In Progress"
+jira issue transition ABC-123 Done --resolution Fixed --comment "Shipped"
+jira issue assign ABC-123 --to @me
+```
+
+#### Comments
+
+```
+jira issue comment <key> -b <body> [--markdown]             # [mutates] add a comment (--body required)
+jira issue comments <key> [-n <limit>]                      # list comments (default 50)
+jira issue comment-get <key> <commentId>                    # get one comment
+jira issue comment-edit <key> <commentId> -b <body> [--markdown]   # [mutates] (--body required)
+jira issue comment-delete <key> <commentId> [--yes]         # [mutates]
+```
+
+#### Worklogs
+
+```
+jira issue worklog <key> --time <t> [flags]                 # [mutates] log work; --time required
+jira issue worklogs <key> [-n <limit>]                      # list worklogs (default 50)
+jira issue worklog-get <key> <worklogId>                    # get one worklog
+jira issue worklog-edit <key> <worklogId> [flags]           # [mutates]
+jira issue worklog-delete <key> <worklogId> [flags]         # [mutates]
+```
+`worklog` flags: `--time` (e.g. `"3h 30m"`, required), `--comment`, `--started` (ISO 8601), `--adjust` (`auto|leave|new|manual`), `--new-estimate`, `--markdown`. `worklog-edit` flags: `--time`, `--comment`, `--started`, `--markdown` (at least one required). `worklog-delete` flags: `--adjust`, `--new-estimate`, `--increase-by`, `--yes`.
+
+Examples:
+```bash
+jira issue comment ABC-123 --body "On it"
+jira issue worklog ABC-123 --time "2h 30m" --comment review --started "2026-06-13T09:00:00.000+0000"
+```
+
+#### Attachments
+
+```
+jira issue attach <key> <file>...                           # [mutates] upload one or more files
+jira issue attachments <key>                                # list attachments
+jira issue download <attachmentId> [--out <path>]           # download by id (default = original filename)
+jira issue attachment-meta <attachmentId>                   # metadata for one attachment
+jira issue attachment-delete <attachmentId> [--yes]         # [mutates]
+```
+
+#### Links (issue links + remote/web links)
+
+```
+jira issue link <fromKey> <toKey> --type <type> [--comment <c> [--markdown]]    # [mutates]
+jira issue link-types                                       # list available link types
+jira issue link-delete <linkId> [--yes]                     # [mutates]
+jira issue remote-links <key>                               # list remote (web) links
+jira issue remote-link-add <key> --url <url> --title <t> [--summary <s>]        # [mutates] (--url & --title required)
+jira issue remote-link-delete <key> <linkId> [--yes]        # [mutates]
+```
+`link` creates `<fromKey> <type-outward> <toKey>` (e.g. `--type Blocks` → "fromKey Blocks toKey").
+
+#### Watchers & votes
+
+```
+jira issue watch <key> [--user <u>]      # [mutates] watch (or add another watcher; defaults to you)
+jira issue unwatch <key> [--user <u>]    # [mutates] stop watching (or remove a watcher; defaults to you)
+jira issue watchers <key>                # list watchers
+jira issue vote <key>                    # [mutates] vote for the issue
+jira issue unvote <key>                  # [mutates] remove your vote
+jira issue votes <key>                   # show vote count and voters
+```
+
+#### Metadata, history & properties
+
+```
+jira issue createmeta <projectKey> [--type <id|name>]   # creatable types, or a type's create-screen fields
+jira issue editmeta <key>                               # fields editable on the edit screen
+jira issue changelog <key> [-n <limit>]                 # change history (default 50)
+jira issue property-list <key>                          # list property keys
+jira issue property-get <key> <propKey>                 # get a property value
+jira issue property-set <key> <propKey> <jsonValue>     # [mutates] set a property (raw JSON value)
+jira issue property-delete <key> <propKey> [--yes]      # [mutates]
+```
+
+Example:
+```bash
+jira issue createmeta ABC --type Bug -o json
+jira issue property-set ABC-123 my.meta '{"reviewed":true,"by":"qa"}'
+```
+
+#### Notify
+
+```
+jira issue notify <key> --subject <s> --body <b> [flags]
+```
+**[mutates]** Email a notification about an issue. `--subject` and `--body` required. Flags: `--to` (comma-separated audience: any of `reporter,assignee,watchers,voters`), `--users` (comma-separated accountIds), `--markdown` (send body as HTML instead of plain text). At least one recipient is required.
+
+Example:
+```bash
+jira issue notify ABC-123 --subject "Heads up" --body "please review" --to assignee,watchers
+```
+
+### project — list, inspect, and manage projects
+
+Group alias: `projects`. Create/update/delete require project-admin permission (and over OAuth, the `admin`/`all` scope preset).
+
+```
+jira project list [--query <q>] [-n <limit>]            # list projects (default limit 50)
+jira project get <idOrKey>                              # get a project
+jira project create [flags]                             # [mutates] --key and --name required
+jira project update <idOrKey> [flags]                   # [mutates]
+jira project delete <idOrKey> [--enable-undo] [--yes]   # [mutates]
+jira project statuses <idOrKey>                         # statuses per issue type
+jira project archive <idOrKey> [--yes]                  # [mutates]
+jira project restore <idOrKey>                          # [mutates] restore archived/trashed project
+jira project roles <idOrKey>                            # list project roles
+jira project role <idOrKey> <roleId>                    # show a role and its members
+jira project categories                                 # list project categories
+jira project category-create --name <n> [-d <desc>]     # [mutates]
+jira project category-delete <id> [--yes]               # [mutates]
+```
+`create` flags: `--key` (required), `--name` (required), `--type` (`software|service_desk|business`, default `software`), `--lead` (default `@me`), `--template` (projectTemplateKey), `-d, --description`, `--field name=value` (repeatable). `update` flags: `--name`, `-d, --description`, `--lead`, `--field`.
+
+Examples:
+```bash
+jira project list --query mobile -o json
+jira project create --key MOB --name "Mobile" --lead @me --template com.pyxis.greenhopper.jira:gh-simplified-agility-kanban
+jira project delete ABC --enable-undo --yes
+```
+
+### user — find and inspect users
+
+Group alias: `users`. Jira identifies users by accountId (GDPR). Commands that take a user reference accept email / display name / `@me` (or `me`) / `id:<accountId>`.
+
+```
+jira user search <query> [-n <limit>]                   # search by name or email
+jira user get <accountId>                               # get a user by accountId
+jira user list [-n <limit>]                             # list all users on the site
+jira user bulk --account-id <id> [--account-id ...]     # get multiple users in one request (repeatable flag)
+jira user assignable [query] [flags]                    # users assignable to issues
+jira user groups <accountId>                            # groups a user belongs to
+```
+`assignable` flags: `-p, --project`, `--issue` (issue wins when both set; one of the two is required), `-n, --limit`. Use `assignable` as the correct picker before `issue assign`/`issue create`.
+
+Example:
+```bash
+jira user search "jane" -o json
+jira user assignable --project ABC
+```
+
+### field — system & custom fields
+
+Group alias: `fields`.
+
+```
+jira field list [--custom]
+```
+List all fields with their JQL clause names. `--custom` shows only custom fields.
+
+### issuetype / priority / resolution / label — enumerations
+
+```
+jira issuetype list [--project <id>]    # list issue types (alias: issuetypes); --project = numeric project id
+jira issuetype get <id>
+jira priority list                       # alias: priorities
+jira priority get <id>
+jira resolution list                     # alias: resolutions
+jira resolution get <id>
+jira label list [-n <limit>]             # available issue labels (alias: labels; default limit 100)
+```
+
+### status — issue statuses
+
+```
+jira status list [--project <key>]      # list issue statuses (alias: ls; status list is instance-wide)
+jira status get <idOrName>              # show one status
+```
+(Note: `jira status` with no subcommand shows site/auth status — see top-level commands. `--project` on `status list` is informational only; the status list is instance-wide.)
+
+### component — project components
+
+Group alias: `components`. Create/update/delete require project-admin permission.
+
+```
+jira component list <projectIdOrKey>                    # list a project's components
+jira component get <id>
+jira component create --project <key> --name <name> [flags]    # [mutates]
+jira component update <id> [flags]                      # [mutates]
+jira component delete <id> [--move-issues-to <id>] [--yes]     # [mutates]
+jira component count <id>                               # count issues using a component
+```
+`create`/`update` flags: `--name`, `-d, --description`, `--lead`, `--assignee-type` (`PROJECT_DEFAULT|COMPONENT_LEAD|PROJECT_LEAD|UNASSIGNED`); `create` also needs `--project`.
+
+### release — project versions ("Releases")
+
+Group aliases: `releases`, `version-mgmt`. Manages Jira project versions (the UI calls them "Releases"). Distinct from `jira version` (the CLI's own version).
+
+```
+jira release list <projectIdOrKey>                      # list a project's versions
+jira release get <id>
+jira release create --project <key> --name <name> [flags]      # [mutates]
+jira release update <id> [flags]                        # [mutates]
+jira release publish <id> [--release-date <d>]          # [mutates] mark released
+jira release delete <id> [--move-fix-to <id>] [--move-affected-to <id>] [--yes]  # [mutates]
+jira release merge <id> --into <targetId> [--yes]       # [mutates] re-point issues to <targetId>, then delete <id>
+jira release count <id>                                 # issue counts related to a version
+```
+`create` flags: `--project` (required; resolved to its numeric projectId), `--name` (required), `-d, --description`, `--release-date` (YYYY-MM-DD), `--start-date` (YYYY-MM-DD). `update` adds `--archived` (true/false).
+
+Example:
+```bash
+jira release create --project ABC --name "1.0" --release-date 2026-07-01
+jira release publish 10001
+```
+
+### filter — saved JQL filters
+
+Group alias: `filters`.
+
+```
+jira filter list                          # filters owned by the current user
+jira filter favourites                     # your favourite filters (alias: favorites)
+jira filter search [--query <q>] [-n <limit>]
+jira filter get <id>
+jira filter create --name <n> --jql <jql> [-d <desc>] [--favourite]   # [mutates]
+jira filter update <id> [flags]            # [mutates] --name/--jql/--description/--favourite
+jira filter delete <id> [--yes]            # [mutates]
+jira filter favourite <id>                 # [mutates] (alias: favorite)
+jira filter unfavourite <id>               # [mutates] (alias: unfavorite)
+jira filter run <id> [-n <limit>] [--all]  # run the filter's JQL and list matching issues
+```
+
+Example:
+```bash
+jira filter create --name "My open bugs" --jql "assignee = currentUser() AND type = Bug" --favourite
+jira filter run 10001 --all -o json
+```
+
+### dashboard — dashboards (read-only)
+
+Group alias: `dashboards`.
+
+```
+jira dashboard list [--filter <my|favourite|public>] [-n <limit>]
+jira dashboard search [--query <q>] [-n <limit>]
+jira dashboard get <id>
+```
+
+### group — user groups
+
+Group alias: `groups`. Create/delete and add/remove-user require the `manage:jira-configuration` scope / site-admin permission.
+
+```
+jira group list [-n <limit>]
+jira group find <name>                       # search groups by name
+jira group members <name> [--group-id <id>] [-n <limit>] [--inactive]
+jira group add-user <groupname> --user <u>   # [mutates] (--user required)
+jira group remove-user <groupname> --user <u># [mutates] (--user required)
+jira group create <name>                     # [mutates]
+jira group delete <name> [--swap-group <g>] [--yes]   # [mutates]
+```
+
+### permission — permissions & permitted projects
+
+Group aliases: `permissions`, `perm`.
+
+```
+jira permission mine [--project <key>] [--issue <key>] [--keys <csv>]
+jira permission permitted-projects --keys <csv>
+jira permission list
+```
+`mine` shows which permissions you hold (optionally scoped); when `--keys` is omitted a common default set is checked (BROWSE_PROJECTS, CREATE_ISSUES, EDIT_ISSUES, ASSIGN_ISSUES, TRANSITION_ISSUES, ADD_COMMENTS, DELETE_ISSUES, ADMINISTER, ADMINISTER_PROJECTS). `permitted-projects` returns project ids where you hold ALL the given permissions (`--keys` required). `list` shows all permissions the instance defines.
+
+Example:
+```bash
+jira permission mine --project ABC
+jira permission permitted-projects --keys CREATE_ISSUES,ADMINISTER_PROJECTS -o json
+```
+
+### jql — JQL helper tooling
+
+```
+jira jql autocomplete                        # fields/functions/reserved words usable in JQL (alias: autocompletedata)
+jira jql suggest --field <f> [--value <prefix>] [--predicate <p>]   # value suggestions for a field (--field required)
+jira jql parse <jql>... [--validation <strict|warn|none>]           # parse/validate one or more queries without running
+```
+`autocomplete` in table mode lists field clause names; use `-o json` for the full object (fields, functions, reserved words). `parse` prints per-query errors to stderr and exits nonzero if any query has errors.
+
+Example:
+```bash
+jira jql suggest --field assignee --value jo
+jira jql parse "project = ABC AND statusCategory != Done"
+```
+
+### board — Agile boards
+
+Group alias: `boards`. Agile commands use the Jira Software API; over OAuth they need granular `jira-software` scopes — classic scopes give `401 "scope does not match"`. They work with API-token / PAT auth. Board ids are integers.
+
+```
+jira board list [-p <project>] [--type <scrum|kanban|simple>] [-n <limit>]
+jira board get <boardId>
+jira board issues <boardId> [-n <limit>]
+jira board backlog <boardId> [-n <limit>]
+jira board epics <boardId> [--done] [-n <limit>]
+jira board config <boardId>                  # board configuration (columns, estimation, ranking)
+jira board create --name <n> --type <t> --filter-id <id> [-p <project>]   # [mutates] all three required
+jira board delete <boardId> [--yes]          # [mutates]
+```
+
+Example:
+```bash
+jira board list -p ABC -o json
+jira board create --name "Mobile Scrum" --type scrum --filter-id 10001
+```
+
+### sprint — sprints
+
+Group alias: `sprints`. Sprint ids are integers.
+
+```
+jira sprint list --board <id> [--state <future,active,closed>] [-n <limit>]   # -b for --board (required)
+jira sprint get <sprintId>
+jira sprint issues <sprintId> [-n <limit>]
+jira sprint create --board <id> --name <n> [--start <iso>] [--end <iso>] [--goal <g>]   # [mutates] --board & --name required
+jira sprint start <sprintId> [--start <iso>] [--end <iso>]   # [mutates] set state active
+jira sprint close <sprintId>                 # [mutates] set state closed (alias: complete)
+jira sprint update <sprintId> [flags]        # [mutates] --name/--goal/--start/--end/--state
+jira sprint delete <sprintId> [--yes]        # [mutates]
+jira sprint add-issues <sprintId> <issueKey...>   # [mutates] move issues into a sprint (max 50)
+```
+
+Example:
+```bash
+jira sprint list --board 42 --state active
+jira sprint create --board 42 --name "Sprint 5" --goal "Ship X"
+```
+
+### epic — epics
+
+Group alias: `epics`.
+
+```
+jira epic get <epicKey>
+jira epic issues <epicKey> [-n <limit>]
+jira epic update <epicKey> [flags]            # [mutates] --name/--summary/--color/--done/--not-done
+jira epic add-issues <epicKey> <issueKey...>  # [mutates] move issues into an epic
+jira epic remove-issues <issueKey...>         # [mutates] remove issues from their epic
+```
+`update`'s `--color` takes an epic color key (e.g. `color_1` … `color_9`); `--done` and `--not-done` are mutually exclusive.
+
+### backlog — Agile backlog
+
+```
+jira backlog move <issueKey...> [-b, --board <id>]
+```
+**[mutates]** Move issues to the backlog (max 50 per call). Without `--board` uses the board-agnostic endpoint (issues must already belong to a scrum board); with `--board` targets that board's backlog.
+
+### webhook — dynamic (OAuth-app) webhooks
+
+Group alias: `webhooks`. Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as — these require an OAuth login with the `manage:jira-webhook` scope (`admin`/`all` preset). Webhook ids are integers.
+
+```
+jira webhook list [-n <limit>]
+jira webhook register --url <url> --jql <jql> --events <csv> [--field-ids <csv>]   # [mutates] url/jql/events required
+jira webhook delete <id>... [--yes]          # [mutates]
+jira webhook refresh <id>...                 # [mutates] extend expiry
+```
+`--events` is comma-separated, e.g. `jira:issue_created,jira:issue_updated,jira:issue_deleted,comment_created`. `--field-ids` (comma-separated) restricts which field changes fire `jira:issue_updated`.
+
+Example:
+```bash
+jira webhook register --url https://example.com/hook --jql "project = ABC" \
+  --events jira:issue_created,jira:issue_updated
+```
+
+## Output formats
+
+Set with `-o, --output`:
+
+- `table` (default) — human-readable columns. (A few commands whose shape varies — e.g. `epic get`, `board config` — fall back to JSON even in table mode.)
+- `json` — machine-readable; **best for scripting and agents**. Pipe to `jq`.
+- `yaml` — machine-readable YAML.
+
+Informational messages (e.g. "Created ABC-1", the JQL used by `issue list`, connection notices) go to **stderr**; data goes to **stdout**. So `jira ... -o json | jq` is always safe. Use `--quiet` (or `JIRA_QUIET`) to suppress the stderr info lines entirely.
+
+Example:
+```bash
+jira issue search "project = ABC AND statusCategory != Done" -o json | jq '.[].key'
+jira whoami -o yaml
+```
+
+## Configuration & profiles
+
+- **File:** `~/.config/jira-cli/config.yaml` (or `$XDG_CONFIG_HOME/jira-cli/config.yaml`). YAML format, mode `0600`.
+- **Structure:**
+  ```yaml
+  current_profile: default
+  defaults:
+    output: json        # optional default output format
+  profiles:
+    default:
+      auth_type: api_token       # oauth2 | api_token | scoped_token | pat | basic
+      site: https://acme.atlassian.net
+      email: me@acme.com         # Cloud api_token/scoped_token
+      token: "..."               # API token (Cloud) or PAT (DC)
+      username: ""               # DC basic
+      password: ""               # DC basic
+      cloud_id: ""               # scoped_token / oauth2 gateway routing
+      client_id: ""              # oauth2
+      client_secret: ""          # oauth2
+      access_token: ""           # oauth2 (auto-rotated)
+      refresh_token: ""          # oauth2 (auto-rotated)
+      token_expiry: 0            # unix seconds (access-token expiry)
+      scopes: ""                 # space-separated oauth2 scopes
+      api_version: ""            # "3" (Cloud) or "2" (DC); empty = auto
+      insecure: false            # skip TLS verification
+      read_only: false           # block mutating commands
+    staging:
+      auth_type: pat
+      site: https://jira.company.com
+      token: "..."
+  ```
+- **Profiles:** Multiple named profiles are supported. Select one with `--profile <name>` or `JIRA_PROFILE`; otherwise `current_profile` is used (falling back to `default`). Switch the default with `jira auth use <name>`. Manage with `jira auth list/current/rename/logout`.
+- **Auto-detection:** Cloud vs Server/DC is derived from the auth type and site host (`*.atlassian.net`/`api.atlassian.com` → Cloud; `pat`/`basic` → Server/DC; `scoped_token`/`oauth2` → Cloud). The platform API version defaults to `3` on Cloud and `2` on Server/DC unless `api_version`/`--api-version`/`JIRA_API_VERSION` overrides it.
+- **OAuth refresh:** Access tokens are refreshed automatically and the rotated refresh token is persisted back to the profile (the load-modify-save cycle is serialized to avoid races).
+
+## Examples / recipes
+
+```bash
+# 1. Authenticate (browser OAuth by default) and confirm
+jira auth login
+jira whoami -o json
+jira status -o json
+
+# Non-interactive auth for CI/agents (no auth login needed)
+export JIRA_SITE=https://acme.atlassian.net JIRA_EMAIL=me@acme.com JIRA_TOKEN=xxxx
+jira whoami -o json
+
+# 2. Find my open issues, extract keys with jq
+jira issue search "assignee = currentUser() AND statusCategory != Done ORDER BY updated DESC" -o json \
+  | jq -r '.[].key'
+
+# 3. Create an issue and capture its key
+KEY=$(jira issue create -p ABC --type Task --summary "Set up CI" -d "Details" -o json | jq -r '.key')
+echo "created $KEY"
+
+# 4. Move it through the workflow with a comment
+jira issue transitions "$KEY"
+jira issue transition "$KEY" "In Progress" --comment "Starting"
+jira issue transition "$KEY" Done --resolution Fixed --comment "Shipped"
+
+# 5. Log work, comment, attach
+jira issue worklog "$KEY" --time "1h 30m" --comment "code review"
+jira issue comment "$KEY" --body "**Done** — see PR" --markdown
+jira issue attach "$KEY" ./error.log ./screenshot.png
+
+# 6. Resolve a person to an accountId, then assign
+ACCT=$(jira user assignable --project ABC "jane" -o json | jq -r '.[0].accountId')
+jira issue assign "$KEY" --to "id:$ACCT"
+
+# 7. Agile: list active sprint issues on a board
+jira board list -p ABC -o json
+jira sprint list --board 42 --state active -o json
+jira sprint issues 100 -o json
+
+# 8. Inspect what a project's create screen needs
+jira issue createmeta ABC --type Bug -o json | jq '.[] | select(.required) | .fieldId'
+
+# 9. Agent safety: read-only mode blocks all writes
+jira --read-only issue delete ABC-123        # errors out: command blocked in read-only mode
+
+# 10. Validate JQL before running it
+jira jql parse "project = ABC AND statusCategory != Done" -o json
+```
