@@ -20,7 +20,7 @@ func (c *Client) SearchIssues(jql string, fields []string, limit int, fetchAll b
 // searchJQL paginates the Cloud enhanced search via nextPageToken.
 func (c *Client) searchJQL(jql string, fields []string, limit int, fetchAll bool) ([]Issue, error) {
 	pageSize := pageSizeFor(limit)
-	var all []Issue
+	all := []Issue{}
 	token := ""
 	for {
 		body := map[string]any{"jql": jql, "maxResults": pageSize, "fields": fields}
@@ -49,7 +49,7 @@ func (c *Client) searchJQL(jql string, fields []string, limit int, fetchAll bool
 
 // searchClassic paginates the deprecated/Server search via startAt/total.
 func (c *Client) searchClassic(jql string, fields []string, limit int, fetchAll bool) ([]Issue, error) {
-	var all []Issue
+	all := []Issue{}
 	startAt := 0
 	pageSize := pageSizeFor(limit)
 	for {

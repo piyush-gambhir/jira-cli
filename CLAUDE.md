@@ -154,6 +154,9 @@ jira epic get ABC-10 ; jira epic issues ABC-10
   uses the classic `/search`. The CLI handles both. JQL must be bounded.
 - **Rate limits (429)** are retried automatically (honor `Retry-After`, else exponential backoff).
 - **API version** defaults to v3 on Cloud, v2 on Server/DC; override with `--api-version`.
+- **Agile commands over OAuth:** `board`/`sprint`/`epic` use the Jira Software (Agile) API, which over
+  OAuth needs granular `jira-software` scopes — classic scopes give `401 "scope does not match"`. They
+  work with API-token/PAT auth. See `docs/CREDENTIALS.md`.
 
 ## Discovering commands
 

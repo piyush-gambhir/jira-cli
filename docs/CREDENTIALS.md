@@ -185,6 +185,13 @@ jira auth login --type oauth2 … --scopes "read:jira-work write:jira-work offli
 scopes your app actually has — add the matching scopes under **Permissions** in the developer console,
 or authorization will fail. Broader scopes (e.g. `admin`) enable `jira project create/update/delete`.
 
+**Agile API + OAuth caveat.** The `board` / `sprint` / `epic` commands call the Jira **Software (Agile)**
+API (`/rest/agile/1.0`), which over OAuth requires **granular `jira-software` scopes** (e.g.
+`read:board-scope:jira-software`, `read:sprint:jira-software`). The classic scopes above return
+`401 "scope does not match"` for those endpoints. They work out of the box with **API-token / PAT**
+auth (which use your full account permissions, not scopes). To use the Agile commands over OAuth, add
+the granular `jira-software` scopes under your app's **Permissions** and re-login.
+
 ### Distributing a branded build (built-in OAuth app)
 By default the CLI has **no** built-in OAuth app — end users either paste their own API token
 (easiest) or bring their own OAuth app via `--client-id/--client-secret`. If you want to publish a
