@@ -186,13 +186,23 @@ Examples:
 	return cmd
 }
 
-// resolveLoginScopes determines the OAuth scope string from a preset (or an
-// interactive picker when none is given), plus any extra granular scopes.
+// defaultEmbeddedScopePreset is requested (without prompting) when the binary
+// ships a built-in OAuth app, so `jira auth login --type oauth2` is one step.
+const defaultEmbeddedScopePreset = "all"
+
+// resolveLoginScopes determines the OAuth scope string from a preset, defaulting
+// without a prompt for branded (embedded-app) and non-interactive builds, and
+// showing the interactive picker otherwise. Extra granular scopes are appended.
 func resolveLoginScopes(preset string, extra []string) (string, error) {
 	if preset == "" {
-		if noInputFlag {
+		switch {
+		case auth.HasEmbeddedOAuthApp():
+			// Branded build: the app is baked in, so go straight through with a
+			// sensible default. Override anytime with --scope-preset / --scope.
+			preset = defaultEmbeddedScopePreset
+		case noInputFlag:
 			preset = "write"
-		} else {
+		default:
 			p, err := promptScopePreset()
 			if err != nil {
 				return "", err
