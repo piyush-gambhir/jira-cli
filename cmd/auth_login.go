@@ -52,6 +52,11 @@ Examples:
 			if at == "" {
 				return fmt.Errorf("unknown --type %q (use api_token, scoped, oauth2, pat, or basic)", authType)
 			}
+			// On a branded build (OAuth app baked in), a bare `jira auth login`
+			// defaults to the browser flow — that's the point of an embedded app.
+			if !cmd.Flags().Changed("type") && auth.HasEmbeddedOAuthApp() {
+				at = config.AuthOAuth2
+			}
 			if profileName == "" {
 				profileName = "default"
 			}
