@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jira CLI</title>
+  <meta name="description" content="A fast, scriptable command-line interface for Jira (Cloud & Server/Data Center)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    :root { --bg: #fafafa; --surface: #fff; --text: #0a0a0a; --text-muted: #6b6b6b; --text-subtle: #9a9a9a; --border: #ececec; --border-strong: #d4d4d4; --code-bg: #f3f3f3; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    code, .mono, pre { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+    nav { position: sticky; top: 0; z-index: 50; background: rgba(250,250,250,0.85); backdrop-filter: saturate(180%) blur(12px); -webkit-backdrop-filter: saturate(180%) blur(12px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 720px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .nav-brand { font-weight: 600; font-size: 14px; color: var(--text); text-decoration: none; letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; transition: all .15s; white-space: nowrap; }
+    .nav-links a:hover { color: var(--text); background: var(--code-bg); }
+    header { padding: 80px 0 40px; }
+    header .cmd-tag { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-subtle); background: var(--code-bg); padding: 4px 10px; border-radius: 20px; margin-bottom: 20px; }
+    header h1 { font-size: 40px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 16px; }
+    header .lede { font-size: 17px; color: var(--text-muted); max-width: 580px; line-height: 1.55; }
+    header .meta { margin-top: 24px; display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-subtle); }
+    header .meta span { display: inline-flex; align-items: center; gap: 6px; }
+    header .meta .dot { width: 4px; height: 4px; background: var(--text-subtle); border-radius: 50%; }
+    section { padding: 48px 0; border-top: 1px solid var(--border); scroll-margin-top: 64px; }
+    section h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    section .section-lede { color: var(--text-muted); font-size: 15px; margin-bottom: 28px; max-width: 580px; }
+    .block { margin-top: 24px; }
+    .block:first-child { margin-top: 0; }
+    .block-label { font-size: 12px; font-weight: 500; color: var(--text-subtle); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+    .code { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+    .code pre { padding: 16px 18px; overflow-x: auto; font-size: 13px; line-height: 1.7; color: var(--text); white-space: pre; }
+    .code .copy { position: absolute; top: 8px; right: 8px; padding: 4px 9px; font-size: 11px; font-family: 'Inter', sans-serif; background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; transition: all .15s; opacity: 0; }
+    .code:hover .copy { opacity: 1; }
+    .code .copy:hover { color: var(--text); border-color: var(--border-strong); }
+    .code .copy.copied { color: #15803d; border-color: #bbf7d0; opacity: 1; }
+    .cm { color: var(--text-subtle); }
+    .code-inline { background: var(--code-bg); border-radius: 4px; padding: 1px 6px; font-size: .88em; color: var(--text); }
+    .cmd-grid { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+    .cmd-row { display: grid; grid-template-columns: minmax(160px, 1fr) 2fr; gap: 24px; padding: 12px 16px; border-top: 1px solid var(--border); align-items: baseline; }
+    .cmd-row:first-child { border-top: none; }
+    .cmd-row code { font-size: 12.5px; color: var(--text); }
+    .cmd-row .desc-inline { font-size: 13px; color: var(--text-muted); }
+    .auth-grid { display: grid; grid-template-columns: minmax(120px,auto) 1fr; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+    .auth-grid > div { padding: 11px 16px; border-top: 1px solid var(--border); font-size: 13px; }
+    .auth-grid > div:nth-child(1), .auth-grid > div:nth-child(2) { border-top: none; }
+    .auth-grid .k { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--text); }
+    .auth-grid .v { color: var(--text-muted); }
+    .repo-link { margin-top: 8px; display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color .15s; }
+    .repo-link:hover { color: var(--text); }
+    .repo-link svg { width: 14px; height: 14px; }
+    footer { padding: 48px 0; border-top: 1px solid var(--border); margin-top: 32px; font-size: 13px; color: var(--text-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    footer a { color: var(--text-muted); text-decoration: none; transition: color .15s; }
+    footer a:hover { color: var(--text); }
+    @media (max-width: 600px) {
+      header { padding: 56px 0 32px; }
+      header h1 { font-size: 30px; }
+      section { padding: 36px 0; }
+      .cmd-row, .auth-grid { grid-template-columns: 1fr; gap: 4px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="nav-brand">Jira CLI</a>
+      <div class="nav-links">
+        <a href="#install">Install</a>
+        <a href="#quickstart">Quick Start</a>
+        <a href="#auth">Auth</a>
+        <a href="#commands">Commands</a>
+        <a href="https://github.com/piyush-gambhir/jira-cli" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <header>
+      <span class="cmd-tag">$ jira</span>
+      <h1>Manage Jira<br/>from the command line.</h1>
+      <p class="lede">Search with JQL, create and transition issues, comment, log work, attach files, manage projects, components, releases, sprints and boards — on Jira Cloud and Server/Data Center, with first-class JSON output for scripts and agents.</p>
+      <div class="meta">
+        <span><span class="dot"></span>MIT License</span>
+        <span><span class="dot"></span>macOS · Linux · Windows</span>
+        <span><span class="dot"></span>Go 1.22+</span>
+        <span><span class="dot"></span>Unofficial · not affiliated with Atlassian</span>
+      </div>
+    </header>
+
+    <section id="install">
+      <h2>Install</h2>
+      <p class="section-lede">Pick whichever fits. The binary is <code class="code-inline">jira</code>.</p>
+
+      <div class="block">
+        <div class="block-label">Recommended — install script</div>
+        <div class="code">
+          <button class="copy" onclick="copyCode(this)">Copy</button>
+          <pre>curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh</pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Via Go</div>
+        <div class="code">
+          <button class="copy" onclick="copyCode(this)">Copy</button>
+          <pre>go install github.com/piyush-gambhir/jira-cli@latest</pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Build from source</div>
+        <div class="code">
+          <button class="copy" onclick="copyCode(this)">Copy</button>
+          <pre>git clone https://github.com/piyush-gambhir/jira-cli.git
+cd jira-cli
+make install        <span class="cm"># or: go build -o jira . && sudo mv jira /usr/local/bin/</span></pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">From releases</div>
+        <p style="font-size: 14px; color: var(--text-muted);">
+          Download a prebuilt binary for your platform from the
+          <a href="https://github.com/piyush-gambhir/jira-cli/releases" target="_blank" rel="noopener" style="color: var(--text); text-decoration: underline;">releases page</a>
+          and place it on your <code class="code-inline">PATH</code>.
+        </p>
+      </div>
+    </section>
+
+    <section id="quickstart">
+      <h2>Quick start</h2>
+      <p class="section-lede">Authenticate once, then operate. Add <code class="code-inline">-o json</code> to any command for machine-readable output.</p>
+
+      <div class="code">
+        <button class="copy" onclick="copyCode(this)">Copy</button>
+        <pre><span class="cm"># 1. Authenticate — browser OAuth by default (or use an API token)</span>
+jira auth login
+jira auth login --type api_token        <span class="cm"># paste site / email / API token</span>
+
+<span class="cm"># 2. Confirm who you are</span>
+jira whoami
+jira status
+
+<span class="cm"># 3. Find your open work with JQL</span>
+jira issue search "assignee = currentUser() AND statusCategory != Done" -o json
+
+<span class="cm"># 4. Create, transition, comment</span>
+jira issue create -p ABC --type Task --summary "Set up CI" -d "Details here"
+jira issue transition ABC-123 "In Progress"
+jira issue comment ABC-123 --body "On it"
+
+<span class="cm"># 5. Pipe JSON to jq</span>
+jira issue search "project = ABC" -o json | jq '.[].key'</pre>
+      </div>
+    </section>
+
+    <section id="auth">
+      <h2>Authentication</h2>
+      <p class="section-lede">Five methods for Cloud and Server/Data Center. CLI flags &gt; environment variables &gt; saved profile.</p>
+
+      <div class="block">
+        <div class="block-label">Methods</div>
+        <div class="auth-grid">
+          <div class="k">oauth2</div><div class="v">Cloud — OAuth 2.0 (3LO) browser login with auto-refresh <em>(default)</em></div>
+          <div class="k">api_token</div><div class="v">Cloud — email + API token (no app needed)</div>
+          <div class="k">scoped</div><div class="v">Cloud — scoped API token via the api.atlassian.com gateway</div>
+          <div class="k">pat</div><div class="v">Server/Data Center — bearer personal access token</div>
+          <div class="k">basic</div><div class="v">Server/Data Center — username + password</div>
+        </div>
+        <p style="font-size:13px;color:var(--text-subtle);margin-top:10px;">OAuth scopes are selectable with <code class="code-inline">--scope-preset read|write|admin|all</code>. See the full <a href="https://github.com/piyush-gambhir/jira-cli/blob/main/docs/CREDENTIALS.md" target="_blank" rel="noopener" style="color:var(--text);text-decoration:underline;">credentials guide</a>.</p>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Environment variables (CI / agents)</div>
+        <div class="code">
+          <button class="copy" onclick="copyCode(this)">Copy</button>
+          <pre>export JIRA_SITE=https://acme.atlassian.net
+export JIRA_EMAIL=me@acme.com
+export JIRA_TOKEN=your-api-token</pre>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Multiple accounts (profiles)</div>
+        <div class="code">
+          <button class="copy" onclick="copyCode(this)">Copy</button>
+          <pre>jira auth login --name work            <span class="cm"># save a named profile</span>
+jira auth list                         <span class="cm"># list profiles (current marked *)</span>
+jira auth use work                     <span class="cm"># switch the active profile</span>
+jira auth current                      <span class="cm"># show the active profile + account</span>
+jira --profile work issue list         <span class="cm"># one-off override</span>
+export JIRA_PROFILE=work               <span class="cm"># per-shell override</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="commands">
+      <h2>Commands</h2>
+      <p class="section-lede">Broad coverage of the Jira REST API. Every group has its own <code class="code-inline">--help</code>.</p>
+
+      <div class="block">
+        <div class="block-label">Top-level groups</div>
+        <div class="cmd-grid">
+          <div class="cmd-row"><code>jira issue</code><span class="desc-inline">Search (JQL), create, edit, transition, assign; comments, worklogs, attachments, links, watchers, votes, changelog, properties</span></div>
+          <div class="cmd-row"><code>jira project</code><span class="desc-inline">CRUD, statuses, roles, categories, archive/restore</span></div>
+          <div class="cmd-row"><code>jira component</code><span class="desc-inline">Manage project components</span></div>
+          <div class="cmd-row"><code>jira release</code><span class="desc-inline">Project versions / releases (create, publish, merge)</span></div>
+          <div class="cmd-row"><code>jira board</code><span class="desc-inline">Agile boards: issues, backlog, config, epics</span></div>
+          <div class="cmd-row"><code>jira sprint</code><span class="desc-inline">Sprints: create, start, close, add issues</span></div>
+          <div class="cmd-row"><code>jira epic</code><span class="desc-inline">Epics: update, add/remove issues</span></div>
+          <div class="cmd-row"><code>jira backlog</code><span class="desc-inline">Move issues to the backlog</span></div>
+          <div class="cmd-row"><code>jira filter</code><span class="desc-inline">Saved JQL filters: list, create, run, share</span></div>
+          <div class="cmd-row"><code>jira dashboard</code><span class="desc-inline">List and inspect dashboards</span></div>
+          <div class="cmd-row"><code>jira user</code><span class="desc-inline">Search, get, assignable, bulk, groups</span></div>
+          <div class="cmd-row"><code>jira group</code><span class="desc-inline">Groups and membership</span></div>
+          <div class="cmd-row"><code>jira permission</code><span class="desc-inline">Check effective permissions, permitted projects</span></div>
+          <div class="cmd-row"><code>jira issuetype · priority · status · resolution · field · label</code><span class="desc-inline">Metadata &amp; enum lookups</span></div>
+          <div class="cmd-row"><code>jira jql</code><span class="desc-inline">JQL autocomplete, suggest, parse/validate</span></div>
+          <div class="cmd-row"><code>jira webhook</code><span class="desc-inline">Dynamic (OAuth-app) webhooks</span></div>
+          <div class="cmd-row"><code>jira auth</code><span class="desc-inline">login, list, use, current, rename, logout</span></div>
+          <div class="cmd-row"><code>jira whoami · status · serverinfo · version · update</code><span class="desc-inline">Identity, connectivity, instance info, version</span></div>
+        </div>
+      </div>
+
+      <div class="block">
+        <div class="block-label">Output formats</div>
+        <div class="code">
+          <pre>jira issue search "project = ABC"            <span class="cm"># table (default)</span>
+jira issue search "project = ABC" -o json    <span class="cm"># JSON</span>
+jira issue search "project = ABC" -o yaml    <span class="cm"># YAML</span></pre>
+        </div>
+      </div>
+
+      <a href="https://github.com/piyush-gambhir/jira-cli" target="_blank" rel="noopener" class="repo-link" style="margin-top: 28px;">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.373 0 12c0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.298 24 12c0-6.627-5.373-12-12-12"/></svg>
+        Full reference on github.com/piyush-gambhir/jira-cli ↗
+      </a>
+    </section>
+
+  </main>
+
+  <footer class="container">
+    <span>jira-cli · MIT License · not affiliated with Atlassian</span>
+    <span>
+      <a href="privacy.html">Privacy</a> ·
+      <a href="terms.html">Terms</a> ·
+      <a href="https://github.com/piyush-gambhir/jira-cli" target="_blank" rel="noopener">GitHub ↗</a>
+    </span>
+  </footer>
+
+  <script>
+    function copyCode(btn) {
+      const pre = btn.parentElement.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+      });
+    }
+  </script>
+</body>
+</html>
