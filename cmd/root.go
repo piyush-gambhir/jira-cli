@@ -265,4 +265,18 @@ func init() {
 	rootCmd.AddCommand(newBoardCmd())
 	rootCmd.AddCommand(newSprintCmd())
 	rootCmd.AddCommand(newEpicCmd())
+
+	// Expanded API coverage (added groups)
+	rootCmd.AddCommand(newComponentCmd())
+	rootCmd.AddCommand(newReleaseCmd())
+	rootCmd.AddCommand(newFilterCmd())
+	rootCmd.AddCommand(newDashboardCmd())
+	rootCmd.AddCommand(newIssueTypeCmd())
+	rootCmd.AddCommand(newPriorityCmd())
+	rootCmd.AddCommand(newResolutionCmd())
+	rootCmd.AddCommand(newLabelCmd())
+	rootCmd.AddCommand(newGroupCmd())
+	rootCmd.AddCommand(newPermissionCmd())
+	rootCmd.AddCommand(newJQLCmd())
+	rootCmd.AddCommand(newWebhookCmd())
 }
