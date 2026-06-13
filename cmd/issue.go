@@ -22,7 +22,7 @@ Examples:
   jira issue list --mine
   jira issue search --jql "project = ABC AND statusCategory != Done" -o json
   jira issue get ABC-123
-  jira issue create -p ABC -t Task -s "Title" -d "Details"
+  jira issue create -p ABC --type Task --summary "Title" -d "Details"
   jira issue transition ABC-123 "In Progress"`,
 	}
 	cmd.AddCommand(

@@ -60,7 +60,7 @@ Quick start:
   jira auth login                 # authenticate (Cloud API token by default)
   jira whoami                     # confirm who you are
   jira issue search --jql "assignee = currentUser() AND statusCategory != Done"
-  jira issue create -p PROJ -t Task -s "Title" -d "Description"
+  jira issue create -p PROJ --type Task --summary "Title" -d "Description"
 
 Supports every Jira auth method (API token, scoped token, OAuth 2.0 3LO, PAT,
 username/password) — see "jira auth login --help" and docs/CREDENTIALS.md.
@@ -104,8 +104,9 @@ All list/get commands support -o json and -o yaml for machine-readable output.`,
 		if cmd.Parent() != nil && cmd.Parent().Name() == "auth" {
 			return loadConfigOnly()
 		}
-		// Parent/group commands (no RunE of their own) don't need a client.
-		if cmd.Runnable() && cmd.RunE == nil && cmd.Run == nil {
+		// Group/dispatcher commands (anything with sub-commands) only show help
+		// or hand off to a child; they never need an authenticated client.
+		if cmd.HasSubCommands() {
 			return nil
 		}
 		if !cmd.Runnable() {
@@ -285,4 +286,28 @@ func init() {
 	rootCmd.AddCommand(newWebhookCmd())
 	rootCmd.AddCommand(newBacklogCmd())
 	rootCmd.AddCommand(newServerInfoCmd())
+
+	// Make command groups reject unknown sub-commands (e.g. `jira issue bogus`)
+	// with a non-zero exit instead of silently printing help and exiting 0.
+	enforceGroupNoArgs(rootCmd)
+}
+
+// enforceGroupNoArgs walks the command tree and, for every command that groups
+// sub-commands but has no run function of its own, installs a RunE that returns
+// an "unknown command" error (exit 1) when given an unrecognized sub-command,
+// and otherwise prints help. Cobra short-circuits a non-runnable parent to help
+// (exit 0) before arg validation runs, so a typo like `jira issue bogus` would
+// otherwise look like success — bad for scripts and agents.
+func enforceGroupNoArgs(c *cobra.Command) {
+	if c.HasSubCommands() && c.Run == nil && c.RunE == nil {
+		c.RunE = func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				return fmt.Errorf("unknown command %q for %q\nRun '%s --help' for available commands", args[0], cmd.CommandPath(), cmd.CommandPath())
+			}
+			return cmd.Help()
+		}
+	}
+	for _, sub := range c.Commands() {
+		enforceGroupNoArgs(sub)
+	}
 }
