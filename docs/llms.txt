@@ -1,6 +1,6 @@
 # Jira CLI
 
-> A fast, scriptable command-line interface for Jira (Cloud and Server/Data Center) over the REST API. Manage issues, JQL search, transitions, comments, worklogs, attachments, links, boards, sprints, epics, projects, versions, users, groups, permissions, filters, dashboards, webhooks and more from your terminal. Designed for both humans and coding agents — every list/get command supports `-o json` and `-o yaml`.
+> A fast, scriptable command-line interface for Jira (Cloud and Server/Data Center) over the REST API. Manage issues, JQL search, transitions, comments, worklogs, attachments, links, boards, sprints, epics, projects, versions, users, groups, permissions, filters, dashboards, webhooks and more from your terminal. Designed for both humans and coding agents, every list/get command supports `-o json` and `-o yaml`.
 
 This is the canonical machine-readable manual for the `jira` command-line tool. It is intended to give an LLM or coding agent everything needed to drive the CLI correctly with zero prior knowledge. The command surface below is taken directly from the tool's source (the Cobra command definitions in `cmd/`).
 
@@ -30,7 +30,7 @@ The binary is `jira`. There is no Homebrew/Scoop/apt package; install one of the
 Prebuilt binaries for every supported platform (linux/darwin/windows × amd64/arm64, except windows/arm64) are attached to each GitHub Release as `.tar.gz` archives (`.zip` on Windows), named `jira-cli_<Os>_<Arch>`. Download the archive for your OS/arch, extract, and put `jira` on your `PATH`.
 
 ```bash
-# example (macOS arm64) — adjust the version/asset name for your platform
+# example (macOS arm64), adjust the version/asset name for your platform
 curl -sSL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_Darwin_arm64.tar.gz | tar xz
 sudo mv jira /usr/local/bin/
 ```
@@ -51,7 +51,7 @@ make install          # or: ./install.sh   (installs to $GOBIN / $GOPATH/bin)
 
 Other Make targets: `make build` (→ `bin/jira`), `make test` (`go test -race ./...`), `make vet`, `make fmt`, `make tidy`, `make clean`.
 
-Note on OAuth: released binaries may ship with a built-in OAuth 2.0 app baked in via `-ldflags` (so `jira auth login` can browser-login with no app registration). A plain `go build`/`go install` does **not** include an app — with a source build either use an API token (`jira auth login --type api_token`) or pass your own `--client-id`/`--client-secret`.
+Note on OAuth: released binaries may ship with a built-in OAuth 2.0 app baked in via `-ldflags` (so `jira auth login` can browser-login with no app registration). A plain `go build`/`go install` does **not** include an app, with a source build either use an API token (`jira auth login --type api_token`) or pass your own `--client-id`/`--client-secret`.
 
 ## Authentication
 
@@ -62,7 +62,7 @@ There are five auth methods, all selected with `jira auth login --type <method>`
 | `oauth2` (default) | `oauth`, `3lo` | Cloud | OAuth 2.0 (3LO) browser login | Loopback browser flow on `http://localhost:<port>/callback`; refresh tokens auto-rotate; an app may be baked into released binaries |
 | `api_token` | `apitoken`, `token`, `api` | Cloud | email + API token | Token from https://id.atlassian.com/manage-profile/security/api-tokens; no app needed |
 | `scoped` | `scoped_token` | Cloud | email + scoped API token | Resolves the site's `cloudId` and routes via the `api.atlassian.com` gateway |
-| `pat` | — | Server/DC | bearer personal access token | Jira 8.14+ |
+| `pat` |, | Server/DC | bearer personal access token | Jira 8.14+ |
 | `basic` | `password` | Server/DC | username + password | Legacy; watch for CAPTCHA lockout |
 
 The stored `auth_type` values are: `oauth2`, `api_token`, `scoped_token`, `pat`, `basic`. If a profile has no `auth_type`, it defaults to `api_token`. (Note: the `--type` flag itself defaults to `oauth2`, so a bare `jira auth login` performs the browser OAuth flow.)
@@ -70,13 +70,13 @@ The stored `auth_type` values are: `oauth2`, `api_token`, `scoped_token`, `pat`,
 ### Logging in
 
 ```bash
-# Browser OAuth — the default. (Released branded binaries: zero prompts, just click Accept.)
+# Browser OAuth, the default. (Released branded binaries: zero prompts, just click Accept.)
 jira auth login
 
-# API token instead (no app needed) — prompts for site, email, API token
+# API token instead (no app needed), prompts for site, email, API token
 jira auth login --type api_token
 
-# Non-interactive (CI/agents) — supply everything via flags
+# Non-interactive (CI/agents), supply everything via flags
 jira auth login --type api_token --site https://acme.atlassian.net --email me@acme.com --token "$JIRA_TOKEN"
 
 # Server/DC with a personal access token
@@ -95,7 +95,7 @@ Inputs may be supplied via flags (`--site`, `--email`, `--token`, `--user`, `--p
 
 For `--type oauth2` you choose how much access to grant:
 
-- `--scope-preset read|write|admin|all` — an interactive picker is shown if omitted and the session is interactive; non-interactive (`--no-input`) defaults to `write`; branded (embedded-app) builds default to `all`.
+- `--scope-preset read|write|admin|all`, an interactive picker is shown if omitted and the session is interactive; non-interactive (`--no-input`) defaults to `write`; branded (embedded-app) builds default to `all`.
 - `--scope <scope>` adds an individual scope on top of the preset (repeatable).
 - `--scopes "<space-separated>"` is a raw override that wins over the preset/`--scope`.
 - `offline_access` is always added automatically (so refresh works).
@@ -131,21 +131,21 @@ jira auth logout --name staging  # remove a profile and its stored credentials (
 
 All optional. Useful for CI/agents (no `auth login` needed if `JIRA_SITE` + credentials are set):
 
-- `JIRA_SITE` — base URL, e.g. `https://acme.atlassian.net` (Cloud) or `https://jira.host` (Server/DC)
-- `JIRA_EMAIL` — Atlassian account email (Cloud api_token/scoped_token)
-- `JIRA_TOKEN` — API token (Cloud) or PAT (Server/DC)
-- `JIRA_USER` — username (Server/DC basic auth)
-- `JIRA_PASSWORD` — password (Server/DC basic auth)
-- `JIRA_AUTH_TYPE` — one of `oauth2`, `api_token`, `scoped_token`, `pat`, `basic`
-- `JIRA_CLOUD_ID` — cloudId for the scoped_token/oauth2 gateway routing
-- `JIRA_API_VERSION` — platform REST API version: `3` (Cloud) or `2` (Server/DC)
-- `JIRA_INSECURE` — skip TLS certificate verification (bool)
-- `JIRA_READ_ONLY` — block all mutating commands (bool; agent safety)
-- `JIRA_OAUTH_CLIENT_ID`, `JIRA_OAUTH_CLIENT_SECRET` — OAuth app credentials
-- `JIRA_OAUTH_ACCESS_TOKEN`, `JIRA_OAUTH_REFRESH_TOKEN`, `JIRA_SCOPES` — OAuth token material / scopes
-- `JIRA_PROFILE` — select the active profile (same as `--profile`)
-- `JIRA_NO_INPUT` — disable interactive prompts (bool; same as `--no-input`)
-- `JIRA_QUIET` — suppress informational output (bool; same as `--quiet`)
+- `JIRA_SITE`, base URL, e.g. `https://acme.atlassian.net` (Cloud) or `https://jira.host` (Server/DC)
+- `JIRA_EMAIL`, Atlassian account email (Cloud api_token/scoped_token)
+- `JIRA_TOKEN`, API token (Cloud) or PAT (Server/DC)
+- `JIRA_USER`, username (Server/DC basic auth)
+- `JIRA_PASSWORD`, password (Server/DC basic auth)
+- `JIRA_AUTH_TYPE`, one of `oauth2`, `api_token`, `scoped_token`, `pat`, `basic`
+- `JIRA_CLOUD_ID`, cloudId for the scoped_token/oauth2 gateway routing
+- `JIRA_API_VERSION`, platform REST API version: `3` (Cloud) or `2` (Server/DC)
+- `JIRA_INSECURE`, skip TLS certificate verification (bool)
+- `JIRA_READ_ONLY`, block all mutating commands (bool; agent safety)
+- `JIRA_OAUTH_CLIENT_ID`, `JIRA_OAUTH_CLIENT_SECRET`, OAuth app credentials
+- `JIRA_OAUTH_ACCESS_TOKEN`, `JIRA_OAUTH_REFRESH_TOKEN`, `JIRA_SCOPES`, OAuth token material / scopes
+- `JIRA_PROFILE`, select the active profile (same as `--profile`)
+- `JIRA_NO_INPUT`, disable interactive prompts (bool; same as `--no-input`)
+- `JIRA_QUIET`, suppress informational output (bool; same as `--quiet`)
 
 Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); for `JIRA_NO_INPUT`/`JIRA_QUIET` any non-empty value other than `0`/`false` is treated as true.
 
@@ -157,24 +157,24 @@ Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/
 
 These persistent flags work on every command:
 
-- `-o, --output <table|json|yaml>` — output format (default `table`; falls back to the profile's `defaults.output` if set)
-- `--profile <name>` — configuration profile to use (also `JIRA_PROFILE`)
-- `-s, --site <url>` — Jira site URL override
-- `-e, --email <email>` — Atlassian account email override (Cloud)
-- `-t, --token <token>` — API token / PAT override
-- `-u, --user <username>` — username override (Server/DC basic auth)
-- `--api-version <2|3>` — platform REST API version override
-- `-k, --insecure` — skip TLS certificate verification
-- `--no-color` — registered for compatibility but currently a no-op: the tool emits no ANSI color (the table formatter outputs plain text), so there is nothing to disable
-- `-v, --verbose` — verbose HTTP logging to stderr
-- `--read-only` — block write operations (safety mode for agents); a write command run in read-only mode errors out before making any request
-- `--no-input` — disable all interactive prompts (for CI/agents); destructive commands then require `--yes`
-- `-q, --quiet` — suppress informational (stderr) output
-- `-h, --help` — help for any command
+- `-o, --output <table|json|yaml>`, output format (default `table`; falls back to the profile's `defaults.output` if set)
+- `--profile <name>`, configuration profile to use (also `JIRA_PROFILE`)
+- `-s, --site <url>`, Jira site URL override
+- `-e, --email <email>`, Atlassian account email override (Cloud)
+- `-t, --token <token>`, API token / PAT override
+- `-u, --user <username>`, username override (Server/DC basic auth)
+- `--api-version <2|3>`, platform REST API version override
+- `-k, --insecure`, skip TLS certificate verification
+- `--no-color`, registered for compatibility but currently a no-op: the tool emits no ANSI color (the table formatter outputs plain text), so there is nothing to disable
+- `-v, --verbose`, verbose HTTP logging to stderr
+- `--read-only`, block write operations (safety mode for agents); a write command run in read-only mode errors out before making any request
+- `--no-input`, disable all interactive prompts (for CI/agents); destructive commands then require `--yes`
+- `-q, --quiet`, suppress informational (stderr) output
+- `-h, --help`, help for any command
 
 ## Commands
 
-All commands accept the global flags above. Commands that mutate Jira are marked **[mutates]** — they are blocked when `--read-only` (or the profile's `read_only`) is active. Destructive commands accept `--yes` to skip the confirmation prompt; under `--no-input` they require `--yes` (otherwise they error rather than prompt). Common short flags: `-n` = `--limit`, `-p` = `--project`, `-b` = `--board`, `-d` = `--description`, `-a` = `--assignee`, `-l` = `--label`, `-j` = `--jql`, `-o` = `--output`.
+All commands accept the global flags above. Commands that mutate Jira are marked **[mutates]**, they are blocked when `--read-only` (or the profile's `read_only`) is active. Destructive commands accept `--yes` to skip the confirmation prompt; under `--no-input` they require `--yes` (otherwise they error rather than prompt). Common short flags: `-n` = `--limit`, `-p` = `--project`, `-b` = `--board`, `-d` = `--description`, `-a` = `--assignee`, `-l` = `--label`, `-j` = `--jql`, `-o` = `--output`.
 
 Note `jira version` (the CLI's own version) is distinct from the `jira release` group (Jira project versions / "Releases").
 
@@ -216,7 +216,7 @@ jira whoami -o json
 jira status -o json
 ```
 
-### auth — authentication profiles
+### auth, authentication profiles
 
 ```
 jira auth login [flags]
@@ -238,7 +238,7 @@ jira auth login --type pat --site https://jira.company.com --token "$PAT"
 jira auth use staging
 ```
 
-### issue — create, query, and manage issues
+### issue, create, query, and manage issues
 
 Group aliases: `issues`, `i`.
 
@@ -409,7 +409,7 @@ Example:
 jira issue notify ABC-123 --subject "Heads up" --body "please review" --to assignee,watchers
 ```
 
-### project — list, inspect, and manage projects
+### project, list, inspect, and manage projects
 
 Group alias: `projects`. Create/update/delete require project-admin permission (and over OAuth, the `admin`/`all` scope preset).
 
@@ -437,7 +437,7 @@ jira project create --key MOB --name "Mobile" --lead @me --template com.pyxis.gr
 jira project delete ABC --enable-undo --yes
 ```
 
-### user — find and inspect users
+### user, find and inspect users
 
 Group alias: `users`. Jira identifies users by accountId (GDPR). Commands that take a user reference accept email / display name / `@me` (or `me`) / `id:<accountId>`.
 
@@ -457,7 +457,7 @@ jira user search "jane" -o json
 jira user assignable --project ABC
 ```
 
-### field — system & custom fields
+### field, system & custom fields
 
 Group alias: `fields`.
 
@@ -466,7 +466,7 @@ jira field list [--custom]
 ```
 List all fields with their JQL clause names. `--custom` shows only custom fields.
 
-### issuetype / priority / resolution / label — enumerations
+### issuetype / priority / resolution / label, enumerations
 
 ```
 jira issuetype list [--project <id>]    # list issue types (alias: issuetypes); --project = numeric project id
@@ -478,15 +478,15 @@ jira resolution get <id>
 jira label list [-n <limit>]             # available issue labels (alias: labels; default limit 100)
 ```
 
-### status — issue statuses
+### status, issue statuses
 
 ```
 jira status list [--project <key>]      # list issue statuses (alias: ls; status list is instance-wide)
 jira status get <idOrName>              # show one status
 ```
-(Note: `jira status` with no subcommand shows site/auth status — see top-level commands. `--project` on `status list` is informational only; the status list is instance-wide.)
+(Note: `jira status` with no subcommand shows site/auth status, see top-level commands. `--project` on `status list` is informational only; the status list is instance-wide.)
 
-### component — project components
+### component, project components
 
 Group alias: `components`. Create/update/delete require project-admin permission.
 
@@ -500,7 +500,7 @@ jira component count <id>                               # count issues using a c
 ```
 `create`/`update` flags: `--name`, `-d, --description`, `--lead`, `--assignee-type` (`PROJECT_DEFAULT|COMPONENT_LEAD|PROJECT_LEAD|UNASSIGNED`); `create` also needs `--project`.
 
-### release — project versions ("Releases")
+### release, project versions ("Releases")
 
 Group aliases: `releases`, `version-mgmt`. Manages Jira project versions (the UI calls them "Releases"). Distinct from `jira version` (the CLI's own version).
 
@@ -522,7 +522,7 @@ jira release create --project ABC --name "1.0" --release-date 2026-07-01
 jira release publish 10001
 ```
 
-### filter — saved JQL filters
+### filter, saved JQL filters
 
 Group alias: `filters`.
 
@@ -545,7 +545,7 @@ jira filter create --name "My open bugs" --jql "assignee = currentUser() AND typ
 jira filter run 10001 --all -o json
 ```
 
-### dashboard — dashboards (read-only)
+### dashboard, dashboards (read-only)
 
 Group alias: `dashboards`.
 
@@ -555,7 +555,7 @@ jira dashboard search [--query <q>] [-n <limit>]
 jira dashboard get <id>
 ```
 
-### group — user groups
+### group, user groups
 
 Group alias: `groups`. Create/delete and add/remove-user require the `manage:jira-configuration` scope / site-admin permission.
 
@@ -569,7 +569,7 @@ jira group create <name>                     # [mutates]
 jira group delete <name> [--swap-group <g>] [--yes]   # [mutates]
 ```
 
-### permission — permissions & permitted projects
+### permission, permissions & permitted projects
 
 Group aliases: `permissions`, `perm`.
 
@@ -586,7 +586,7 @@ jira permission mine --project ABC
 jira permission permitted-projects --keys CREATE_ISSUES,ADMINISTER_PROJECTS -o json
 ```
 
-### jql — JQL helper tooling
+### jql, JQL helper tooling
 
 ```
 jira jql autocomplete                        # fields/functions/reserved words usable in JQL (alias: autocompletedata)
@@ -601,9 +601,9 @@ jira jql suggest --field assignee --value jo
 jira jql parse "project = ABC AND statusCategory != Done"
 ```
 
-### board — Agile boards
+### board, Agile boards
 
-Group alias: `boards`. Agile commands use the Jira Software API; over OAuth they need granular `jira-software` scopes — classic scopes give `401 "scope does not match"`. They work with API-token / PAT auth. Board ids are integers.
+Group alias: `boards`. Agile commands use the Jira Software API; over OAuth they need granular `jira-software` scopes, classic scopes give `401 "scope does not match"`. They work with API-token / PAT auth. Board ids are integers.
 
 ```
 jira board list [-p <project>] [--type <scrum|kanban|simple>] [-n <limit>]
@@ -622,7 +622,7 @@ jira board list -p ABC -o json
 jira board create --name "Mobile Scrum" --type scrum --filter-id 10001
 ```
 
-### sprint — sprints
+### sprint, sprints
 
 Group alias: `sprints`. Sprint ids are integers.
 
@@ -644,7 +644,7 @@ jira sprint list --board 42 --state active
 jira sprint create --board 42 --name "Sprint 5" --goal "Ship X"
 ```
 
-### epic — epics
+### epic, epics
 
 Group alias: `epics`.
 
@@ -657,16 +657,16 @@ jira epic remove-issues <issueKey...>         # [mutates] remove issues from the
 ```
 `update`'s `--color` takes an epic color key (e.g. `color_1` … `color_9`); `--done` and `--not-done` are mutually exclusive.
 
-### backlog — Agile backlog
+### backlog, Agile backlog
 
 ```
 jira backlog move <issueKey...> [-b, --board <id>]
 ```
 **[mutates]** Move issues to the backlog (max 50 per call). Without `--board` uses the board-agnostic endpoint (issues must already belong to a scrum board); with `--board` targets that board's backlog.
 
-### webhook — dynamic (OAuth-app) webhooks
+### webhook, dynamic (OAuth-app) webhooks
 
-Group alias: `webhooks`. Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as — these require an OAuth login with the `manage:jira-webhook` scope (`admin`/`all` preset). Webhook ids are integers.
+Group alias: `webhooks`. Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as, these require an OAuth login with the `manage:jira-webhook` scope (`admin`/`all` preset). Webhook ids are integers.
 
 ```
 jira webhook list [-n <limit>]
@@ -686,9 +686,9 @@ jira webhook register --url https://example.com/hook --jql "project = ABC" \
 
 Set with `-o, --output`:
 
-- `table` (default) — human-readable columns. (A few commands whose shape varies — e.g. `epic get`, `board config` — fall back to JSON even in table mode.)
-- `json` — machine-readable; **best for scripting and agents**. Pipe to `jq`.
-- `yaml` — machine-readable YAML.
+- `table` (default), human-readable columns. (A few commands whose shape varies, e.g. `epic get`, `board config`, fall back to JSON even in table mode.)
+- `json`, machine-readable; **best for scripting and agents**. Pipe to `jq`.
+- `yaml`, machine-readable YAML.
 
 Informational messages (e.g. "Created ABC-1", the JQL used by `issue list`, connection notices) go to **stderr**; data goes to **stdout**. So `jira ... -o json | jq` is always safe. Use `--quiet` (or `JIRA_QUIET`) to suppress the stderr info lines entirely.
 
@@ -760,7 +760,7 @@ jira issue transition "$KEY" Done --resolution Fixed --comment "Shipped"
 
 # 5. Log work, comment, attach
 jira issue worklog "$KEY" --time "1h 30m" --comment "code review"
-jira issue comment "$KEY" --body "**Done** — see PR" --markdown
+jira issue comment "$KEY" --body "**Done**, see PR" --markdown
 jira issue attach "$KEY" ./error.log ./screenshot.png
 
 # 6. Resolve a person to an accountId, then assign
