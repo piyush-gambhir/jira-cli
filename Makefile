@@ -20,11 +20,17 @@ LDFLAGS := -s -w \
 
 .PHONY: build install test lint fmt vet clean tidy
 
+# NOTE: build/install recipes are silenced (@) so the embedded-OAuth ldflags
+# (which may contain a client secret from .env) are never echoed to the terminal
+# or CI logs. Embedding for distribution should go through scripts/release.sh or
+# CI secrets (auto-masked), not a chatty local build.
 build:
-	go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY) .
+	@echo "building $(BINARY) $(VERSION)"
+	@go build -ldflags "$(LDFLAGS)" -o bin/$(BINARY) .
 
 install:
-	go install -ldflags "$(LDFLAGS)" .
+	@echo "installing $(BINARY) $(VERSION)"
+	@go install -ldflags "$(LDFLAGS)" .
 
 test:
 	go test -v -race ./...
