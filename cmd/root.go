@@ -94,8 +94,11 @@ All list/get commands support -o json and -o yaml for machine-readable output.`,
 		}
 		OutputFormat = outputFormat
 
-		// Commands that never need an authenticated client.
-		if cmdName == "version" || cmdName == "help" || cmdName == "update" || cmdName == "completion" {
+		// Commands that never need an authenticated client. version/update/completion
+		// are matched ONLY at the top level — otherwise a subcommand of the same name
+		// (e.g. `project update`) would wrongly be left without a client.
+		isTopLevel := cmd.Parent() == nil || cmd.Parent() == cmd.Root()
+		if cmdName == "help" || (isTopLevel && (cmdName == "version" || cmdName == "update" || cmdName == "completion")) {
 			return nil
 		}
 		if cmd.Parent() != nil && cmd.Parent().Name() == "auth" {
