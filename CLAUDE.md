@@ -169,4 +169,4 @@ Auth reference: `docs/CREDENTIALS.md`.
 ## Maintainer note
 
 When you change the CLI (commands, flags, auth, output), update **this file**, `README.md`,
-`SKILL.md`, and `jira/references/commands.md` in the same change. See `CONTRIBUTING.md`.
+`jira/SKILL.md`, and `jira/references/commands.md` in the same change. See `CONTRIBUTING.md`.

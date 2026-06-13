@@ -42,8 +42,8 @@ Keep `go vet ./...` and `gofmt -l .` clean before committing.
 ## Documentation and agent materials
 
 When you change commands, flags, auth, config, or output, update **`CLAUDE.md`**, **`README.md`**,
-**`SKILL.md`**, and **`jira/references/commands.md`** in the same change. If scope/auth/major
-workflows change, update the `SKILL.md` front-matter `description` too.
+**`jira/SKILL.md`**, and **`jira/references/commands.md`** in the same change. If scope/auth/major
+workflows change, update the `jira/SKILL.md` front-matter `description` too.
 
 ## Commits
 
