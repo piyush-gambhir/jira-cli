@@ -16,7 +16,7 @@ func attachmentTable() *output.TableDef {
 		Headers: []string{"ID", "FILENAME", "SIZE", "MIME", "AUTHOR"},
 		RowFunc: func(item interface{}) []string {
 			a := item.(client.Attachment)
-			return []string{a.ID, a.Filename, fmt.Sprintf("%d", a.Size), dash(a.MimeType), userName(a.Author)}
+			return []string{string(a.ID), a.Filename, fmt.Sprintf("%d", a.Size), dash(a.MimeType), userName(a.Author)}
 		},
 	}
 }

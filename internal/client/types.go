@@ -1,5 +1,22 @@
 package client
 
+import "strings"
+
+// flexString unmarshals from a JSON string OR number. Some Jira endpoints return
+// ids both ways (e.g. attachment id is a string in an issue's attachment list but
+// a number from GET /attachment/{id}).
+type flexString string
+
+func (f *flexString) UnmarshalJSON(b []byte) error {
+	s := string(b)
+	if s == "null" {
+		*f = ""
+		return nil
+	}
+	*f = flexString(strings.Trim(s, `"`))
+	return nil
+}
+
 // User is a Jira user (identified by accountId on Cloud).
 type User struct {
 	AccountID    string `json:"accountId,omitempty"`
@@ -100,14 +117,14 @@ type Worklog struct {
 
 // Attachment is issue attachment metadata.
 type Attachment struct {
-	ID        string `json:"id,omitempty"`
-	Filename  string `json:"filename,omitempty"`
-	Author    *User  `json:"author,omitempty"`
-	Created   string `json:"created,omitempty"`
-	Size      int64  `json:"size,omitempty"`
-	MimeType  string `json:"mimeType,omitempty"`
-	Content   string `json:"content,omitempty"`
-	Thumbnail string `json:"thumbnail,omitempty"`
+	ID        flexString `json:"id,omitempty"`
+	Filename  string     `json:"filename,omitempty"`
+	Author    *User      `json:"author,omitempty"`
+	Created   string     `json:"created,omitempty"`
+	Size      int64      `json:"size,omitempty"`
+	MimeType  string     `json:"mimeType,omitempty"`
+	Content   string     `json:"content,omitempty"`
+	Thumbnail string     `json:"thumbnail,omitempty"`
 }
 
 // IssueType is an issue type.
