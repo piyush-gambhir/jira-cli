@@ -1,0 +1,10 @@
+/bin/
+/dist/
+*.out
+*.test
+.DS_Store
+
+# Local build secrets (embedded OAuth app). Never commit.
+.env
+.env.local
+
