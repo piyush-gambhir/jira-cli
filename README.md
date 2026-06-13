@@ -60,9 +60,11 @@ The binary is `jira`.
 ## Quick start
 
 ```bash
-# 1. Authenticate (Cloud, API token — create one at id.atlassian.com)
+# 1. Authenticate — browser OAuth by default (released binaries have the app built in)
 jira auth login
-#    or non-interactively / in CI:
+#    prefer an API token (no app needed)? — prompts for site, email, token
+jira auth login --type api_token
+#    or non-interactively / in CI (uses API token under the hood):
 export JIRA_SITE=https://acme.atlassian.net JIRA_EMAIL=me@acme.com JIRA_TOKEN=xxxx
 
 # 2. Confirm
@@ -80,9 +82,9 @@ jira issue comment ABC-123 --body "On it"
 
 | `--type`  | Deployment   | Credential            |
 |-----------|--------------|-----------------------|
-| `api_token` (default) | Cloud | email + API token |
+| `oauth2` (default) | Cloud | OAuth 2.0 3LO browser login (refresh tokens; app baked into released binaries) |
+| `api_token` | Cloud      | email + API token (no app needed) |
 | `scoped`  | Cloud        | email + scoped token (api.atlassian.com gateway) |
-| `oauth2`  | Cloud        | OAuth 2.0 3LO (browser; refresh tokens) |
 | `pat`     | Server/DC    | bearer personal access token |
 | `basic`   | Server/DC    | username + password |
 
@@ -97,9 +99,9 @@ granular `--scope`. See [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
 
 ### For end users
 
-The CLI ships with **no embedded credentials** — everyone authenticates to **their own** Jira account.
-The simplest path needs nothing from the maintainer: install, run `jira auth login`, and paste your own
-API token (id.atlassian.com, ~30s). OAuth is optional and bring-your-own-app by default.
+Everyone authenticates to **their own** Jira account. Released binaries have an OAuth app baked in, so
+`jira auth login` opens the browser and you just click **Accept**. Prefer a token (or building from
+source without an app)? Run `jira auth login --type api_token` and paste one from id.atlassian.com (~30s).
 
 ## Output
 

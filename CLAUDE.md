@@ -22,20 +22,22 @@ full reference). The auth type is stored per profile.
 
 | `--type` | Deployment | Credential | Notes |
 |---|---|---|---|
-| `api_token` (default) | Cloud | email + API token | Token from id.atlassian.com |
+| `oauth2` (default) | Cloud | OAuth 2.0 (3LO) | Browser loopback flow; refresh tokens auto-rotate; app baked into released binaries |
+| `api_token` | Cloud | email + API token | Token from id.atlassian.com; no app needed |
 | `scoped` | Cloud | email + scoped token | Resolves cloudId; routes via api.atlassian.com gateway |
-| `oauth2` | Cloud | OAuth 2.0 (3LO) | Browser loopback flow; refresh tokens auto-rotate |
 | `pat` | Server/DC | bearer PAT | Jira 8.14+ |
 | `basic` | Server/DC | username + password | Legacy; watch CAPTCHA lockout |
 
 ```bash
-# Cloud, API token (interactive)
+# Browser OAuth — the default (released binaries have the app baked in)
 jira auth login
-# Non-interactive (CI/agents)
-jira auth login --site https://acme.atlassian.net --email me@acme.com --token "$JIRA_TOKEN"
+# API token instead (no app needed) — prompts for site/email/token
+jira auth login --type api_token
+# Non-interactive (CI/agents) — uses API token
+jira auth login --type api_token --site https://acme.atlassian.net --email me@acme.com --token "$JIRA_TOKEN"
 # Server/DC with a PAT
 jira auth login --type pat --site https://jira.company.com --token "$PAT"
-# OAuth 2.0 3LO
+# OAuth 2.0 3LO with your own app (bring-your-own-app)
 jira auth login --type oauth2 --client-id "$ID" --client-secret "$SECRET"
 
 jira auth list            # show profiles (current marked *)

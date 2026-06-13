@@ -27,14 +27,16 @@ func newAuthLoginCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Authenticate to a Jira site and save a profile",
-		Long: `Authenticate to a Jira site. The auth method is chosen with --type:
+		Long: `Authenticate to a Jira site. The auth method is chosen with --type
+(default: oauth2 — browser login):
 
-  api_token     (default) Cloud: prompts for site, email, API token.
+  oauth2        (default) Cloud: OAuth 2.0 (3LO) browser login. On a branded build
+                the app is baked in (zero prompts); otherwise pass
+                --client-id/--client-secret (callback http://localhost:<port>/callback).
+  api_token     Cloud: prompts for site, email, API token (no app needed).
                 Create a token at https://id.atlassian.com/manage-profile/security/api-tokens
   scoped_token  Cloud: like api_token but for a scoped token; resolves the cloudId
                 and routes via the api.atlassian.com gateway.
-  oauth2        Cloud: OAuth 2.0 (3LO). Opens a browser; requires an app's
-                --client-id/--client-secret with callback http://localhost:<port>/callback.
   pat           Server/DC: prompts for site (host) and a personal access token.
   basic         Server/DC: prompts for site (host), username and password.
 
@@ -42,20 +44,15 @@ Inputs may be supplied via flags (--site, --email, --token, --user) for
 non-interactive use; missing required values are prompted unless --no-input.
 
 Examples:
-  jira auth login
+  jira auth login                         # browser OAuth (default)
+  jira auth login --type api_token        # paste site / email / API token
   jira auth login --type pat --site https://jira.company.com --token "$PAT"
-  jira auth login --type scoped --site https://acme.atlassian.net --email me@acme.com --token "$TOK"
-  jira auth login --type oauth2 --client-id ABC --client-secret XYZ`,
+  jira auth login --type oauth2 --client-id ABC --client-secret XYZ   # bring-your-own app`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			at := normalizeAuthType(authType)
 			if at == "" {
-				return fmt.Errorf("unknown --type %q (use api_token, scoped, oauth2, pat, or basic)", authType)
-			}
-			// On a branded build (OAuth app baked in), a bare `jira auth login`
-			// defaults to the browser flow — that's the point of an embedded app.
-			if !cmd.Flags().Changed("type") && auth.HasEmbeddedOAuthApp() {
-				at = config.AuthOAuth2
+				return fmt.Errorf("unknown --type %q (use oauth2, api_token, scoped, pat, or basic)", authType)
 			}
 			if profileName == "" {
 				profileName = "default"
@@ -179,7 +176,7 @@ Examples:
 		},
 	}
 
-	cmd.Flags().StringVar(&authType, "type", "api_token", "Auth method: api_token, scoped, oauth2, pat, basic")
+	cmd.Flags().StringVar(&authType, "type", "oauth2", "Auth method: oauth2 (default, browser), api_token, scoped, pat, basic")
 	cmd.Flags().StringVar(&profileName, "name", "default", "Profile name to save under")
 	cmd.Flags().StringVar(&password, "password", "", "Password (basic auth; prompted if omitted)")
 	cmd.Flags().StringVar(&clientID, "client-id", "", "OAuth 2.0 client id")

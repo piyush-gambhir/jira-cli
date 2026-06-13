@@ -38,7 +38,7 @@ Authenticate and save a profile.
 
 | Flag | Description |
 |---|---|
-| `--type` | `api_token` (default), `scoped`, `oauth2`, `pat`, `basic` |
+| `--type` | `oauth2` (default, browser), `api_token`, `scoped`, `pat`, `basic` |
 | `--name` | Profile name to save under (default `default`) |
 | `--password` | Password (basic auth; prompted if omitted) |
 | `--client-id`, `--client-secret` | OAuth 2.0 app credentials |
