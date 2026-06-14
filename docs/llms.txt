@@ -20,6 +20,11 @@ This is the canonical machine-readable manual for the `jira` command-line tool. 
 - Privacy: https://jira-cli.pages.dev/privacy-policy
 - Terms: https://jira-cli.pages.dev/terms-of-service
 - Contact: https://jira-cli.pages.dev/contact
+- Skill (Claude Code agent skill): https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKILL.md
+
+## Skill (Claude Code / agents)
+
+A ready-made Claude Code skill ships in the repo: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKILL.md . Point your agent at that file, or install it as a skill (copy it to `~/.claude/skills/jira/SKILL.md`, or load it via your agent's skill mechanism) to teach an agent how to drive `jira`.
 
 ## Install
 

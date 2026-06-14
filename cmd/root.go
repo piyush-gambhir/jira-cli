@@ -72,7 +72,8 @@ username/password) — see "jira auth login --help" and docs/CREDENTIALS.md.
 
 All list/get commands support -o json and -o yaml for machine-readable output.
 
-Full command reference (for agents/LLMs): https://jira-cli.pages.dev/llms.txt`,
+Full command reference (for agents/LLMs): https://jira-cli.pages.dev/llms.txt
+Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKILL.md`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
