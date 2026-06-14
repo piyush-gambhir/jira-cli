@@ -70,7 +70,9 @@ Quick start:
 Supports every Jira auth method (API token, scoped token, OAuth 2.0 3LO, PAT,
 username/password) — see "jira auth login --help" and docs/CREDENTIALS.md.
 
-All list/get commands support -o json and -o yaml for machine-readable output.`,
+All list/get commands support -o json and -o yaml for machine-readable output.
+
+Full command reference (for agents/LLMs): https://jira-cli.pages.dev/llms.txt`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
