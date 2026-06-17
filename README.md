@@ -29,7 +29,22 @@ Designed for both human operators and coding agents. All list/get commands suppo
 
 ## Installation
 
-### Download a release
+### Install script (recommended — no Go required)
+
+Installs the latest prebuilt binary for your OS/arch:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh
+```
+
+Pin a version or change the install directory:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | VERSION=0.1.1 sh
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | INSTALL_DIR=~/.local/bin sh
+```
+
+### Download a release manually
 
 Prebuilt binaries for every platform are attached to each
 [GitHub Release](https://github.com/piyush-gambhir/jira-cli/releases). Download the archive for your
@@ -37,22 +52,27 @@ OS/arch, extract, and put `jira` on your `PATH`:
 
 ```bash
 # example (macOS arm64) — adjust the version/asset name
-curl -sSL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_Darwin_arm64.tar.gz | tar xz
+curl -sSfL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_darwin_arm64.tar.gz | tar xz
 sudo mv jira /usr/local/bin/
 ```
 
-### go install
+Assets are named `jira-cli_<os>_<arch>.tar.gz` (lowercase), where `<os>` is `darwin` or `linux` and
+`<arch>` is `amd64` or `arm64` (Windows ships as `jira-cli_windows_amd64.zip`).
+
+### Alternative (build from source, requires Go)
+
+Requires the Go 1.22+ toolchain.
 
 ```bash
 go install github.com/piyush-gambhir/jira-cli@latest
 ```
 
-### From source
+Or clone and build:
 
 ```bash
 git clone https://github.com/piyush-gambhir/jira-cli.git
 cd jira-cli
-make install          # or: ./install.sh   (installs to $GOBIN / $GOPATH/bin)
+make install          # builds and installs to $GOBIN / $GOPATH/bin
 ```
 
 The binary is `jira`.
