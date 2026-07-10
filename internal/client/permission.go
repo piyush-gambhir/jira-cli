@@ -74,7 +74,7 @@ func (c *Client) PermittedProjects(keys []string) ([]string, error) {
 			ID flexString `json:"id"`
 		} `json:"projects"`
 	}
-	if err := c.PostJSON(c.api("permissions/project"), nil, body, &resp); err != nil {
+	if err := c.PostJSONRetryable(c.api("permissions/project"), nil, body, &resp); err != nil {
 		return nil, err
 	}
 	out := make([]string, 0, len(resp.Projects))

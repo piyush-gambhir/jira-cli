@@ -24,7 +24,7 @@ type buildFunc func() (*http.Request, error)
 
 // doRetry sends a request with auth applied, retrying on 429 and transient 5xx
 // with backoff that honors Retry-After. The returned response's body is still open.
-func (c *Client) doRetry(build buildFunc) (*http.Response, error) {
+func (c *Client) doRetry(build buildFunc, retryable bool) (*http.Response, error) {
 	backoff := 2 * time.Second
 	var lastErr error
 	for attempt := 0; attempt <= maxRetries; attempt++ {
@@ -47,7 +47,7 @@ func (c *Client) doRetry(build buildFunc) (*http.Response, error) {
 				fmt.Fprintf(os.Stderr, "<-- ERROR: %v (%v)\n", err, time.Since(start))
 			}
 			// Network error — retry transient failures.
-			if attempt < maxRetries {
+			if retryable && attempt < maxRetries {
 				time.Sleep(jitter(backoff))
 				backoff = nextBackoff(backoff)
 				continue
@@ -58,7 +58,7 @@ func (c *Client) doRetry(build buildFunc) (*http.Response, error) {
 			fmt.Fprintf(os.Stderr, "<-- %d %s (%v)\n", resp.StatusCode, resp.Status, time.Since(start))
 		}
 
-		if resp.StatusCode == http.StatusTooManyRequests || (resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented) {
+		if retryable && (resp.StatusCode == http.StatusTooManyRequests || (resp.StatusCode >= 500 && resp.StatusCode != http.StatusNotImplemented)) {
 			if attempt < maxRetries {
 				wait := retryAfter(resp, backoff)
 				resp.Body.Close()
@@ -102,7 +102,7 @@ func jitter(d time.Duration) time.Duration {
 
 // doJSON sends a request (optional JSON body) and decodes a JSON response into
 // out. out may be nil for endpoints that return 204 No Content.
-func (c *Client) doJSON(method, path string, query url.Values, body, out any) error {
+func (c *Client) doJSON(method, path string, query url.Values, body, out any, retryable bool) error {
 	var bodyBytes []byte
 	if body != nil {
 		var err error
@@ -124,7 +124,7 @@ func (c *Client) doJSON(method, path string, query url.Values, body, out any) er
 			req.Header.Set("Content-Type", "application/json")
 		}
 		return req, nil
-	})
+	}, retryable)
 	if err != nil {
 		return err
 	}
@@ -148,22 +148,29 @@ func (c *Client) doJSON(method, path string, query url.Values, body, out any) er
 
 // GetJSON performs a GET and decodes JSON into out.
 func (c *Client) GetJSON(path string, query url.Values, out any) error {
-	return c.doJSON(http.MethodGet, path, query, nil, out)
+	return c.doJSON(http.MethodGet, path, query, nil, out, true)
 }
 
 // PostJSON performs a POST with an optional JSON body and decodes into out (may be nil).
 func (c *Client) PostJSON(path string, query url.Values, body, out any) error {
-	return c.doJSON(http.MethodPost, path, query, body, out)
+	return c.doJSON(http.MethodPost, path, query, body, out, false)
+}
+
+// PostJSONRetryable performs a semantically read-only POST that is safe to
+// retry after rate limits or transient server failures. Mutating POSTs must use
+// PostJSON so an ambiguous response cannot duplicate the write.
+func (c *Client) PostJSONRetryable(path string, query url.Values, body, out any) error {
+	return c.doJSON(http.MethodPost, path, query, body, out, true)
 }
 
 // PutJSON performs a PUT with an optional JSON body and decodes into out (may be nil).
 func (c *Client) PutJSON(path string, query url.Values, body, out any) error {
-	return c.doJSON(http.MethodPut, path, query, body, out)
+	return c.doJSON(http.MethodPut, path, query, body, out, true)
 }
 
 // Delete performs a DELETE.
 func (c *Client) Delete(path string, query url.Values) error {
-	return c.doJSON(http.MethodDelete, path, query, nil, nil)
+	return c.doJSON(http.MethodDelete, path, query, nil, nil, true)
 }
 
 // GetBytes performs a GET and returns the raw response body (used for binary
@@ -178,7 +185,7 @@ func (c *Client) GetBytes(path string, query url.Values, accept string) ([]byte,
 			req.Header.Set("Accept", accept)
 		}
 		return req, nil
-	})
+	}, true)
 	if err != nil {
 		return nil, nil, err
 	}

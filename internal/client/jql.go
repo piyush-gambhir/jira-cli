@@ -87,7 +87,7 @@ func (c *Client) JQLParse(queries []string, validation string) ([]JQLParsedError
 	var out struct {
 		Queries []JQLParsedError `json:"queries"`
 	}
-	if err := c.PostJSON(c.api("jql/parse"), q, body, &out); err != nil {
+	if err := c.PostJSONRetryable(c.api("jql/parse"), q, body, &out); err != nil {
 		return nil, err
 	}
 	return out.Queries, nil

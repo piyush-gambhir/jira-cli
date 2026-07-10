@@ -49,7 +49,7 @@ func (c *Client) AddAttachment(key string, files []string) ([]Attachment, error)
 		req.Header.Set("Content-Type", w.FormDataContentType())
 		req.Header.Set("X-Atlassian-Token", "no-check")
 		return req, nil
-	})
+	}, false)
 	if err != nil {
 		return nil, err
 	}

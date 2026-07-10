@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -234,7 +235,10 @@ func startBackgroundUpdateCheck() {
 	}()
 }
 
-func truthy(v string) bool { return v != "" && v != "0" && v != "false" }
+func truthy(v string) bool {
+	v = strings.TrimSpace(v)
+	return strings.EqualFold(v, "true") || v == "1"
+}
 
 // RootCmd returns the root command for use in main.go.
 func RootCmd() *cobra.Command { return rootCmd }

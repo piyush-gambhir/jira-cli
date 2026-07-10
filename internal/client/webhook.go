@@ -60,7 +60,7 @@ func (c *Client) RegisterWebhooks(callbackURL string, webhooks []WebhookRegistra
 // carries a JSON body, so it goes through doJSON directly (c.Delete has no body).
 func (c *Client) DeleteWebhooks(ids []int) error {
 	body := map[string]any{"webhookIds": ids}
-	return c.doJSON(http.MethodDelete, c.api("webhook"), nil, body, nil)
+	return c.doJSON(http.MethodDelete, c.api("webhook"), nil, body, nil, true)
 }
 
 // RefreshWebhooks extends the expiry of the given webhook ids and returns the
