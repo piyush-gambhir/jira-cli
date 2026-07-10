@@ -34,6 +34,16 @@ func TestEffectiveAuthTypeDefault(t *testing.T) {
 	}
 }
 
+func TestResolveAuthRejectsMissingProfile(t *testing.T) {
+	cfg := &Config{CurrentProfile: "missing", Profiles: map[string]Profile{}}
+	if _, err := ResolveAuth(FlagValues{}, nil, cfg, ""); err == nil {
+		t.Fatal("expected stale current profile to fail")
+	}
+	if _, err := ResolveAuth(FlagValues{}, nil, cfg, "explicit-missing"); err == nil {
+		t.Fatal("expected missing explicit profile to fail")
+	}
+}
+
 func TestResolveAuthPrecedence(t *testing.T) {
 	cfg := &Config{
 		CurrentProfile: "default",

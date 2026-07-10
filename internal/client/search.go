@@ -32,7 +32,7 @@ func (c *Client) searchJQL(jql string, fields []string, limit int, fetchAll bool
 			NextPageToken string  `json:"nextPageToken"`
 			IsLast        bool    `json:"isLast"`
 		}
-		if err := c.PostJSON(c.api("search/jql"), nil, body, &resp); err != nil {
+		if err := c.PostJSONRetryable(c.api("search/jql"), nil, body, &resp); err != nil {
 			return nil, err
 		}
 		all = append(all, resp.Issues...)
@@ -60,7 +60,7 @@ func (c *Client) searchClassic(jql string, fields []string, limit int, fetchAll 
 			StartAt    int     `json:"startAt"`
 			MaxResults int     `json:"maxResults"`
 		}
-		if err := c.PostJSON(c.api("search"), nil, body, &resp); err != nil {
+		if err := c.PostJSONRetryable(c.api("search"), nil, body, &resp); err != nil {
 			return nil, err
 		}
 		all = append(all, resp.Issues...)
@@ -83,7 +83,7 @@ func (c *Client) ApproximateCount(jql string) (int, error) {
 			Total int `json:"total"`
 		}
 		body := map[string]any{"jql": jql, "startAt": 0, "maxResults": 0}
-		if err := c.PostJSON(c.api("search"), nil, body, &resp); err != nil {
+		if err := c.PostJSONRetryable(c.api("search"), nil, body, &resp); err != nil {
 			return 0, err
 		}
 		return resp.Total, nil
@@ -91,7 +91,7 @@ func (c *Client) ApproximateCount(jql string) (int, error) {
 	var resp struct {
 		Count int `json:"count"`
 	}
-	if err := c.PostJSON(c.api("search/approximate-count"), nil, map[string]any{"jql": jql}, &resp); err != nil {
+	if err := c.PostJSONRetryable(c.api("search/approximate-count"), nil, map[string]any{"jql": jql}, &resp); err != nil {
 		return 0, err
 	}
 	return resp.Count, nil
