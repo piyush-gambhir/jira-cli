@@ -42,7 +42,6 @@ var (
 
 	// Shared state set during PersistentPreRunE
 	cfg               *config.Config
-	activeProfile     config.Profile
 	activeProfileName string
 	jiraClient        *client.Client
 	outFormat         output.Format
@@ -136,8 +135,6 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		if err != nil {
 			return err
 		}
-		activeProfile = profile
-
 		if err := checkReadOnly(cmd, profile); err != nil {
 			return err
 		}
@@ -149,7 +146,7 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		if err != nil {
 			return err
 		}
-		jiraClient = client.NewClient(authr, profile.EffectiveAPIVersion(), profile.Insecure, verboseFlag)
+		jiraClient = client.NewClient(authr, profile.EffectiveAPIVersion(), profile.Insecure, verboseFlag).WithContext(cmd.Context())
 		return nil
 	},
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
@@ -218,11 +215,11 @@ func resolveProfile(cmd *cobra.Command) (config.Profile, error) {
 
 func checkReadOnly(cmd *cobra.Command, profile config.Profile) error {
 	effective := profile.ReadOnly
-	if cmd.Flags().Changed("read-only") {
-		effective = readOnlyFlag
+	if readOnlyFlag {
+		effective = true
 	}
 	if effective && cmd.Annotations != nil && cmd.Annotations["mutates"] == "true" {
-		return fmt.Errorf("command '%s' is blocked in read-only mode (use --read-only=false or remove read_only from the profile)", cmd.CommandPath())
+		return fmt.Errorf("command '%s' is blocked in read-only mode; remove read_only from the profile or disable the read-only environment setting to permit writes", cmd.CommandPath())
 	}
 	return nil
 }

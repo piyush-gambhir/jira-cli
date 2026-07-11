@@ -192,22 +192,13 @@ API (`/rest/agile/1.0`), which over OAuth requires **granular `jira-software` sc
 auth (which use your full account permissions, not scopes). To use the Agile commands over OAuth, add
 the granular `jira-software` scopes under your app's **Permissions** and re-login.
 
-### Distributing a branded build (built-in OAuth app)
-By default the CLI has **no** built-in OAuth app — end users either paste their own API token
-(easiest) or bring their own OAuth app via `--client-id/--client-secret`. If you want to publish a
-binary where users can just run `jira auth login --type oauth2` and sign in to **their own** Jira in
-the browser with no app registration, bake your app's credentials in at build time:
+### Distributing OAuth builds safely
 
-```bash
-JIRA_OAUTH_CLIENT_ID=<your-client-id> JIRA_OAUTH_CLIENT_SECRET=<your-secret> make build
-```
-
-The credentials are injected via `-ldflags` into `internal/auth.Embedded*` — they live only in the
-released binary, never in source. Each user still logs into their own account (tokens are per-user and
-stay on their machine); only the **app identity and rate-limit quota** are shared. Tradeoffs to accept:
-all users' OAuth traffic counts against your app's quota, your app name shows on every consent screen,
-and rotating the secret invalidates older binaries. A plain `go build` / `go install` (no env vars)
-ships **without** embedded creds, so forks and source builds fall back to API token / bring-your-own-app.
+Release binaries must not embed OAuth client secrets: users can extract any value shipped in a public
+binary. End users either paste an API token (easiest) or bring their own OAuth app via
+`--client-id/--client-secret`. A zero-configuration browser-login experience requires a server-side
+authorization broker that retains the confidential client secret and applies appropriate abuse,
+rate-limit, and redirect controls.
 
 ### CLI loopback flow (what `jira auth login --type oauth2` does)
 1. Start `http.Server` on `127.0.0.1:PORT` with a `/callback` handler.

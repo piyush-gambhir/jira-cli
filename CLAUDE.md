@@ -22,15 +22,15 @@ full reference). The auth type is stored per profile.
 
 | `--type` | Deployment | Credential | Notes |
 |---|---|---|---|
-| `oauth2` (default) | Cloud | OAuth 2.0 (3LO) | Browser loopback flow; refresh tokens auto-rotate; app baked into released binaries |
+| `oauth2` (default) | Cloud | OAuth 2.0 (3LO) | Browser loopback flow; refresh tokens auto-rotate; requires your app credentials |
 | `api_token` | Cloud | email + API token | Token from id.atlassian.com; no app needed |
 | `scoped` | Cloud | email + scoped token | Resolves cloudId; routes via api.atlassian.com gateway |
 | `pat` | Server/DC | bearer PAT | Jira 8.14+ |
 | `basic` | Server/DC | username + password | Legacy; watch CAPTCHA lockout |
 
 ```bash
-# Browser OAuth — the default (released binaries have the app baked in)
-jira auth login
+# Browser OAuth — bring your own Atlassian 3LO app
+jira auth login --client-id "$ID" --client-secret "$SECRET"
 # API token instead (no app needed) — prompts for site/email/token
 jira auth login --type api_token
 # Non-interactive (CI/agents) — uses API token

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"html"
 	"net"
 	"net/http"
 	"net/url"
@@ -166,9 +167,10 @@ func OAuthLogin(clientID, clientSecret, scopes string, port int, insecure bool) 
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		q := r.URL.Query()
 		if e := q.Get("error"); e != "" {
-			fmt.Fprintf(w, "Authorization failed: %s. You can close this tab.", e)
+			fmt.Fprintf(w, "Authorization failed: %s. You can close this tab.", html.EscapeString(e))
 			resultCh <- cbResult{err: fmt.Errorf("authorization denied: %s (%s)", e, q.Get("error_description"))}
 			return
 		}
@@ -187,7 +189,13 @@ func OAuthLogin(clientID, clientSecret, scopes string, port int, insecure bool) 
 	if err != nil {
 		return nil, fmt.Errorf("cannot listen on %s for the OAuth callback (is the port free?): %w", redirectURI, err)
 	}
-	srv := &http.Server{Handler: mux}
+	srv := &http.Server{
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       15 * time.Second,
+	}
 	go func() { _ = srv.Serve(ln) }()
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)

@@ -30,8 +30,7 @@ func newAuthLoginCmd() *cobra.Command {
 		Long: `Authenticate to a Jira site. The auth method is chosen with --type
 (default: oauth2 — browser login):
 
-  oauth2        (default) Cloud: OAuth 2.0 (3LO) browser login. On a branded build
-                the app is baked in (zero prompts); otherwise pass
+  oauth2        (default) Cloud: OAuth 2.0 (3LO) browser login. Pass your app's
                 --client-id/--client-secret (callback http://localhost:<port>/callback).
   api_token     Cloud: prompts for site, email, API token (no app needed).
                 Create a token at https://id.atlassian.com/manage-profile/security/api-tokens
@@ -68,7 +67,7 @@ Examples:
 				if profile.Email, err = need(emailFlag, "Atlassian account email: "); err != nil {
 					return err
 				}
-				if profile.Token, err = need(tokenFlag, "API token: "); err != nil {
+				if profile.Token, err = needSecret(tokenFlag, "API token: "); err != nil {
 					return err
 				}
 				profile.Site = strings.TrimRight(profile.Site, "/")
@@ -82,7 +81,7 @@ Examples:
 				if profile.Site, err = need(siteFlag, "Jira site (https://jira.host): "); err != nil {
 					return err
 				}
-				if profile.Token, err = need(tokenFlag, "Personal access token: "); err != nil {
+				if profile.Token, err = needSecret(tokenFlag, "Personal access token: "); err != nil {
 					return err
 				}
 				profile.Site = strings.TrimRight(profile.Site, "/")
@@ -93,23 +92,15 @@ Examples:
 				if profile.Username, err = need(userFlag, "Username: "); err != nil {
 					return err
 				}
-				if profile.Password, err = need(password, "Password: "); err != nil {
+				if profile.Password, err = needSecret(password, "Password: "); err != nil {
 					return err
 				}
 				profile.Site = strings.TrimRight(profile.Site, "/")
 			case config.AuthOAuth2:
-				// Fall back to a built-in OAuth app (if this binary was built with
-				// one) so end users can browser-login without registering an app.
-				if clientID == "" {
-					clientID = auth.EmbeddedClientID
-				}
-				if clientSecret == "" {
-					clientSecret = auth.EmbeddedClientSecret
-				}
 				if clientID, err = need(clientID, "OAuth client id: "); err != nil {
 					return err
 				}
-				if clientSecret, err = need(clientSecret, "OAuth client secret: "); err != nil {
+				if clientSecret, err = needSecret(clientSecret, "OAuth client secret: "); err != nil {
 					return err
 				}
 				if scopes == "" { // --scopes (raw) wins; otherwise resolve from preset/picker
@@ -159,16 +150,13 @@ Examples:
 				return fmt.Errorf("connection test failed: %w", err)
 			}
 
-			// Persist.
-			c, err := config.Load()
-			if err != nil {
-				return err
-			}
-			config.SetProfile(c, profileName, profile)
-			if c.CurrentProfile == "" {
-				c.CurrentProfile = profileName
-			}
-			if err := config.Save(c); err != nil {
+			if err := config.Update(func(c *config.Config) error {
+				config.SetProfile(c, profileName, profile)
+				if c.CurrentProfile == "" {
+					c.CurrentProfile = profileName
+				}
+				return nil
+			}); err != nil {
 				return err
 			}
 			info("Authenticated as %s. Profile %q saved to %s", me.DisplayName, profileName, config.ConfigPath())
@@ -188,20 +176,12 @@ Examples:
 	return cmd
 }
 
-// defaultEmbeddedScopePreset is requested (without prompting) when the binary
-// ships a built-in OAuth app, so `jira auth login --type oauth2` is one step.
-const defaultEmbeddedScopePreset = "all"
-
 // resolveLoginScopes determines the OAuth scope string from a preset, defaulting
-// without a prompt for branded (embedded-app) and non-interactive builds, and
-// showing the interactive picker otherwise. Extra granular scopes are appended.
+// without a prompt for non-interactive builds and showing the interactive picker
+// otherwise. Extra granular scopes are appended.
 func resolveLoginScopes(preset string, extra []string) (string, error) {
 	if preset == "" {
 		switch {
-		case auth.HasEmbeddedOAuthApp():
-			// Branded build: the app is baked in, so go straight through with a
-			// sensible default. Override anytime with --scope-preset / --scope.
-			preset = defaultEmbeddedScopePreset
 		case noInputFlag:
 			preset = "write"
 		default:
@@ -281,6 +261,20 @@ func need(flagVal, label string) (string, error) {
 		return flagVal, nil
 	}
 	v, err := prompt(label)
+	if err != nil {
+		return "", err
+	}
+	if v == "" {
+		return "", fmt.Errorf("%s is required", strings.TrimRight(strings.TrimRight(label, " "), ":"))
+	}
+	return v, nil
+}
+
+func needSecret(flagVal, label string) (string, error) {
+	if flagVal != "" {
+		return flagVal, nil
+	}
+	v, err := promptSecret(label)
 	if err != nil {
 		return "", err
 	}

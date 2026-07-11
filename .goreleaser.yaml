@@ -2,14 +2,6 @@ version: 2
 
 project_name: jira-cli
 
-# Optional built-in OAuth app, injected at release time from CI secrets so users
-# of the released binaries can `jira auth login --type oauth2` with no app
-# registration. Default to empty (templates below resolve cleanly) so local
-# `--snapshot` builds and forks ship WITHOUT embedded credentials.
-env:
-  - JIRA_OAUTH_CLIENT_ID={{ if index .Env "JIRA_OAUTH_CLIENT_ID" }}{{ .Env.JIRA_OAUTH_CLIENT_ID }}{{ end }}
-  - JIRA_OAUTH_CLIENT_SECRET={{ if index .Env "JIRA_OAUTH_CLIENT_SECRET" }}{{ .Env.JIRA_OAUTH_CLIENT_SECRET }}{{ end }}
-
 builds:
   - binary: jira
     env:
@@ -30,14 +22,16 @@ builds:
       - -X github.com/piyush-gambhir/jira-cli/internal/version.Version={{.Version}}
       - -X github.com/piyush-gambhir/jira-cli/internal/version.Commit={{.Commit}}
       - -X github.com/piyush-gambhir/jira-cli/internal/version.BuildTime={{.Date}}
-      - -X github.com/piyush-gambhir/jira-cli/internal/auth.EmbeddedClientID={{.Env.JIRA_OAUTH_CLIENT_ID}}
-      - -X github.com/piyush-gambhir/jira-cli/internal/auth.EmbeddedClientSecret={{.Env.JIRA_OAUTH_CLIENT_SECRET}}
+
+sboms:
+  - artifacts: archive
+    disable: false
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [zip]
     name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
 
 checksum:

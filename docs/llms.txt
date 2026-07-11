@@ -56,7 +56,7 @@ make install          # or: ./install.sh   (installs to $GOBIN / $GOPATH/bin)
 
 Other Make targets: `make build` (→ `bin/jira`), `make test` (`go test -race ./...`), `make vet`, `make fmt`, `make tidy`, `make clean`.
 
-Note on OAuth: released binaries may ship with a built-in OAuth 2.0 app baked in via `-ldflags` (so `jira auth login` can browser-login with no app registration). A plain `go build`/`go install` does **not** include an app, with a source build either use an API token (`jira auth login --type api_token`) or pass your own `--client-id`/`--client-secret`.
+Note on OAuth: release binaries never embed OAuth client secrets. Use an API token (`jira auth login --type api_token`) or pass your own app's `--client-id`/`--client-secret`.
 
 ## Authentication
 
@@ -64,7 +64,7 @@ There are five auth methods, all selected with `jira auth login --type <method>`
 
 | `--type` value | Aliases accepted | Deployment | Credential | Notes |
 |---|---|---|---|---|
-| `oauth2` (default) | `oauth`, `3lo` | Cloud | OAuth 2.0 (3LO) browser login | Loopback browser flow on `http://localhost:<port>/callback`; refresh tokens auto-rotate; an app may be baked into released binaries |
+| `oauth2` (default) | `oauth`, `3lo` | Cloud | OAuth 2.0 (3LO) browser login | Loopback browser flow on `http://localhost:<port>/callback`; refresh tokens auto-rotate; requires user-supplied app credentials |
 | `api_token` | `apitoken`, `token`, `api` | Cloud | email + API token | Token from https://id.atlassian.com/manage-profile/security/api-tokens; no app needed |
 | `scoped` | `scoped_token` | Cloud | email + scoped API token | Resolves the site's `cloudId` and routes via the `api.atlassian.com` gateway |
 | `pat` |, | Server/DC | bearer personal access token | Jira 8.14+ |

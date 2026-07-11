@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/piyush-gambhir/jira-cli/internal/output"
+	"golang.org/x/term"
 )
 
 // stderr returns the stderr writer (indirection keeps prompts testable).
@@ -36,6 +37,26 @@ func prompt(label string) (string, error) {
 		return "", fmt.Errorf("interactive input required but --no-input is set")
 	}
 	fmt.Fprint(os.Stderr, label)
+	reader := bufio.NewReader(os.Stdin)
+	line, err := reader.ReadString('\n')
+	if err != nil && line == "" {
+		return "", err
+	}
+	return strings.TrimSpace(line), nil
+}
+
+// promptSecret reads a sensitive value without terminal echo. Piped input stays
+// supported for scripts and tests, while --no-input continues to reject prompts.
+func promptSecret(label string) (string, error) {
+	if noInputFlag {
+		return "", fmt.Errorf("interactive input required but --no-input is set")
+	}
+	fmt.Fprint(os.Stderr, label)
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		secret, err := term.ReadPassword(int(os.Stdin.Fd()))
+		fmt.Fprintln(os.Stderr)
+		return strings.TrimSpace(string(secret)), err
+	}
 	reader := bufio.NewReader(os.Stdin)
 	line, err := reader.ReadString('\n')
 	if err != nil && line == "" {

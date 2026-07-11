@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/gofrs/flock"
 	"gopkg.in/yaml.v3"
 )
 
@@ -61,20 +62,20 @@ func Save(cfg *Config) error {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
+	if err := os.Chmod(dir, 0o700); err != nil {
+		return fmt.Errorf("securing config directory: %w", err)
+	}
 
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return fmt.Errorf("marshaling config: %w", err)
 	}
 
-	// Atomic write: write to a temp file then rename, so a crash mid-write
-	// (or a concurrent reader) never sees a truncated config.
-	tmp := ConfigPath() + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+	if err := atomicWriteFile(ConfigPath(), data, 0o600); err != nil {
 		return fmt.Errorf("writing config: %w", err)
 	}
-	if err := os.Rename(tmp, ConfigPath()); err != nil {
-		return fmt.Errorf("replacing config: %w", err)
+	if err := os.Chmod(ConfigPath(), 0o600); err != nil {
+		return fmt.Errorf("securing config: %w", err)
 	}
 
 	return nil
@@ -121,17 +122,38 @@ func GetCurrentProfile(cfg *Config) (Profile, error) {
 	return p, nil
 }
 
-// PersistProfile performs a serialized load-modify-save to update a single
-// profile in place. Used by the OAuth authenticator to persist rotated tokens
-// without clobbering other profiles or losing the new refresh token.
-func PersistProfile(name string, profile Profile) error {
+// Update performs a process- and machine-wide serialized load-modify-save.
+func Update(mutator func(*Config) error) error {
 	persistMu.Lock()
 	defer persistMu.Unlock()
+	if err := os.MkdirAll(ConfigDir(), 0o700); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
+	}
+	lockPath := ConfigPath() + ".lock"
+	fileLock := flock.New(lockPath)
+	if err := fileLock.Lock(); err != nil {
+		return fmt.Errorf("locking config: %w", err)
+	}
+	defer fileLock.Unlock()
+	if err := os.Chmod(lockPath, 0o600); err != nil {
+		return fmt.Errorf("securing config lock: %w", err)
+	}
 
 	cfg, err := Load()
 	if err != nil {
 		return err
 	}
-	SetProfile(cfg, name, profile)
+	if err := mutator(cfg); err != nil {
+		return err
+	}
 	return Save(cfg)
+}
+
+// PersistProfile atomically persists a rotated OAuth profile without losing
+// concurrent updates from another jira process.
+func PersistProfile(name string, profile Profile) error {
+	return Update(func(cfg *Config) error {
+		SetProfile(cfg, name, profile)
+		return nil
+	})
 }

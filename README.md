@@ -80,8 +80,8 @@ The binary is `jira`.
 ## Quick start
 
 ```bash
-# 1. Authenticate — browser OAuth by default (released binaries have the app built in)
-jira auth login
+# 1. Authenticate — API token is the simplest setup
+jira auth login --type api_token
 #    prefer an API token (no app needed)? — prompts for site, email, token
 jira auth login --type api_token
 #    or non-interactively / in CI (uses API token under the hood):
@@ -102,7 +102,7 @@ jira issue comment ABC-123 --body "On it"
 
 | `--type`  | Deployment   | Credential            |
 |-----------|--------------|-----------------------|
-| `oauth2` (default) | Cloud | OAuth 2.0 3LO browser login (refresh tokens; app baked into released binaries) |
+| `oauth2` (default) | Cloud | OAuth 2.0 3LO browser login (requires your app client ID and secret) |
 | `api_token` | Cloud      | email + API token (no app needed) |
 | `scoped`  | Cloud        | email + scoped token (api.atlassian.com gateway) |
 | `pat`     | Server/DC    | bearer personal access token |
@@ -119,9 +119,9 @@ granular `--scope`. See [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
 
 ### For end users
 
-Everyone authenticates to **their own** Jira account. Released binaries have an OAuth app baked in, so
-`jira auth login` opens the browser and you just click **Accept**. Prefer a token (or building from
-source without an app)? Run `jira auth login --type api_token` and paste one from id.atlassian.com (~30s).
+Everyone authenticates to **their own** Jira account. For OAuth, register a 3LO app and pass its
+client ID and secret; these credentials are stored only in your local protected config. For the
+simplest setup, run `jira auth login --type api_token` and paste a token from id.atlassian.com.
 
 ## Output
 
@@ -147,11 +147,9 @@ git tag -s v0.1.0 -m "v0.1.0"     # signed tag
 git push origin v0.1.0            # -> CI builds cross-platform binaries + checksums and publishes a Release
 ```
 
-To ship a build with a **built-in OAuth app** (so users can browser-login with no app registration),
-add repo secrets `JIRA_OAUTH_CLIENT_ID` / `JIRA_OAUTH_CLIENT_SECRET` (Settings → Secrets and variables
-→ Actions). They're injected via `-ldflags` and never stored in source. Locally, the same values live
-in a gitignored `.env`, consumed by `make build`, `./install.sh`, and `./scripts/release.sh`. Without
-them, builds ship credential-free (API token / BYO OAuth).
+Release binaries never embed OAuth client secrets. Users bring their own 3LO app credentials or use
+an API token; a future zero-configuration OAuth experience should use a server-side authorization
+broker so no reusable client secret is distributed in a public binary.
 
 ## Development
 
