@@ -5,6 +5,7 @@
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
@@ -19,6 +20,7 @@ import (
 
 // Client talks to one Jira site using one authenticator.
 type Client struct {
+	ctx        context.Context
 	auth       auth.Authenticator
 	apiVersion string // platform REST version: "3" (Cloud) or "2" (Server/DC)
 	httpClient *http.Client
@@ -42,6 +44,7 @@ func NewClient(a auth.Authenticator, apiVersion string, insecure, verbose bool) 
 	}
 	jar, _ := cookiejar.New(nil)
 	return &Client{
+		ctx:        context.Background(),
 		auth:       a,
 		apiVersion: apiVersion,
 		verbose:    verbose,
@@ -51,6 +54,15 @@ func NewClient(a auth.Authenticator, apiVersion string, insecure, verbose bool) 
 			Jar:       jar,
 		},
 	}
+}
+
+// WithContext sets the default context for subsequent requests and returns c.
+func (c *Client) WithContext(ctx context.Context) *Client {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	c.ctx = ctx
+	return c
 }
 
 // APIVer returns the platform REST API version in use ("3" or "2").

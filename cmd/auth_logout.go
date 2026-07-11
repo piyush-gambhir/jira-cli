@@ -22,10 +22,9 @@ func newAuthLogoutCmd() *cobra.Command {
 			if target == "" {
 				return fmt.Errorf("no profile to remove; pass --name")
 			}
-			if err := config.DeleteProfile(cfg, target); err != nil {
-				return err
-			}
-			if err := config.Save(cfg); err != nil {
+			if err := config.Update(func(latest *config.Config) error {
+				return config.DeleteProfile(latest, target)
+			}); err != nil {
 				return err
 			}
 			info("Removed profile %q", target)

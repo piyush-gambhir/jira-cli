@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -42,7 +41,7 @@ func (c *Client) AddAttachment(key string, files []string) ([]Attachment, error)
 		if err := w.Close(); err != nil {
 			return nil, err
 		}
-		req, err := http.NewRequest(http.MethodPost, c.fullURL(c.api("issue/%s/attachments", key), nil), &buf)
+		req, err := http.NewRequestWithContext(c.ctx, http.MethodPost, c.fullURL(c.api("issue/%s/attachments", key), nil), &buf)
 		if err != nil {
 			return nil, err
 		}
@@ -54,7 +53,7 @@ func (c *Client) AddAttachment(key string, files []string) ([]Attachment, error)
 		return nil, err
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
+	data, err := readAllLimited(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}

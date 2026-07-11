@@ -37,7 +37,7 @@ export JIRA_TOKEN=xxxx                          # API token from id.atlassian.co
 Or save a profile interactively (also supports scoped token, OAuth 2.0, PAT, basic):
 
 ```bash
-jira auth login                                  # browser OAuth (default; app baked into releases)
+jira auth login --client-id "$ID" --client-secret "$SECRET" # browser OAuth with your app
 jira auth login --type api_token                 # paste site / email / API token (no app needed)
 jira auth login --type pat --site https://jira.company.com --token "$PAT"   # Server/DC
 ```
@@ -187,7 +187,7 @@ See [references/commands.md](references/commands.md) for the complete reference.
 
 | `--type` | Deployment | Credential |
 |---|---|---|
-| `oauth2` (default) | Cloud | OAuth 2.0 (3LO) browser login (refresh tokens; app baked into releases) |
+| `oauth2` (default) | Cloud | OAuth 2.0 (3LO) browser login (refresh tokens; requires your app credentials) |
 | `api_token` | Cloud | email + API token (no app needed) |
 | `scoped` | Cloud | email + scoped token (api.atlassian.com gateway) |
 | `pat` | Server/DC | bearer personal access token |

@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -48,7 +49,9 @@ func (c *Client) doRetry(build buildFunc, retryable bool) (*http.Response, error
 			}
 			// Network error — retry transient failures.
 			if retryable && attempt < maxRetries {
-				time.Sleep(jitter(backoff))
+				if err := sleepContext(req.Context(), jitter(backoff)); err != nil {
+					return nil, err
+				}
 				backoff = nextBackoff(backoff)
 				continue
 			}
@@ -62,7 +65,9 @@ func (c *Client) doRetry(build buildFunc, retryable bool) (*http.Response, error
 			if attempt < maxRetries {
 				wait := retryAfter(resp, backoff)
 				resp.Body.Close()
-				time.Sleep(wait)
+				if err := sleepContext(req.Context(), wait); err != nil {
+					return nil, err
+				}
 				backoff = nextBackoff(backoff)
 				continue
 			}
@@ -73,6 +78,17 @@ func (c *Client) doRetry(build buildFunc, retryable bool) (*http.Response, error
 		return nil, lastErr
 	}
 	return nil, fmt.Errorf("request failed after %d retries", maxRetries)
+}
+
+func sleepContext(ctx context.Context, d time.Duration) error {
+	timer := time.NewTimer(d)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // retryAfter returns how long to wait: the Retry-After header if present, else
@@ -116,7 +132,7 @@ func (c *Client) doJSON(method, path string, query url.Values, body, out any, re
 		if bodyBytes != nil {
 			r = bytes.NewReader(bodyBytes)
 		}
-		req, err := http.NewRequest(method, c.fullURL(path, query), r)
+		req, err := http.NewRequestWithContext(c.ctx, method, c.fullURL(path, query), r)
 		if err != nil {
 			return nil, fmt.Errorf("creating request: %w", err)
 		}
@@ -130,7 +146,7 @@ func (c *Client) doJSON(method, path string, query url.Values, body, out any, re
 	}
 	defer resp.Body.Close()
 
-	data, err := io.ReadAll(resp.Body)
+	data, err := readAllLimited(resp.Body)
 	if err != nil {
 		return fmt.Errorf("reading response: %w", err)
 	}
@@ -177,7 +193,7 @@ func (c *Client) Delete(path string, query url.Values) error {
 // downloads and raw passthrough). Follows redirects via the default client.
 func (c *Client) GetBytes(path string, query url.Values, accept string) ([]byte, *http.Response, error) {
 	resp, err := c.doRetry(func() (*http.Request, error) {
-		req, err := http.NewRequest(http.MethodGet, c.fullURL(path, query), nil)
+		req, err := http.NewRequestWithContext(c.ctx, http.MethodGet, c.fullURL(path, query), nil)
 		if err != nil {
 			return nil, err
 		}
@@ -190,7 +206,7 @@ func (c *Client) GetBytes(path string, query url.Values, accept string) ([]byte,
 		return nil, nil, err
 	}
 	defer resp.Body.Close()
-	data, err := io.ReadAll(resp.Body)
+	data, err := readAllLimited(resp.Body)
 	if err != nil {
 		return nil, resp, fmt.Errorf("reading response: %w", err)
 	}

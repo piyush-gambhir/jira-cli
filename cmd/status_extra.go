@@ -172,23 +172,21 @@ func newAuthRenameCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			oldName, newName := args[0], args[1]
-			c, err := config.Load()
-			if err != nil {
-				return err
-			}
-			p, ok := c.Profiles[oldName]
-			if !ok {
-				return fmt.Errorf("profile %q not found", oldName)
-			}
-			if _, exists := c.Profiles[newName]; exists {
-				return fmt.Errorf("profile %q already exists", newName)
-			}
-			delete(c.Profiles, oldName)
-			c.Profiles[newName] = p
-			if c.CurrentProfile == oldName {
-				c.CurrentProfile = newName
-			}
-			if err := config.Save(c); err != nil {
+			if err := config.Update(func(c *config.Config) error {
+				p, ok := c.Profiles[oldName]
+				if !ok {
+					return fmt.Errorf("profile %q not found", oldName)
+				}
+				if _, exists := c.Profiles[newName]; exists {
+					return fmt.Errorf("profile %q already exists", newName)
+				}
+				delete(c.Profiles, oldName)
+				c.Profiles[newName] = p
+				if c.CurrentProfile == oldName {
+					c.CurrentProfile = newName
+				}
+				return nil
+			}); err != nil {
 				return err
 			}
 			info("Renamed profile %q to %q", oldName, newName)
