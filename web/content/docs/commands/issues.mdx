@@ -1,0 +1,56 @@
+---
+title: Issues
+description: Search, create, edit, transition issues and everything around them.
+---
+
+## Find issues (JQL)
+
+```bash
+# Convenience filters (the CLI builds the JQL for you)
+jira issue list --mine
+jira issue list -p ABC --status "In Progress" -o json
+jira issue list -p ABC --type Bug --label regression
+
+# Raw JQL (Cloud uses /search/jql cursor paging; --all fetches everything)
+jira issue search "project = ABC AND statusCategory != Done ORDER BY updated DESC" -o json
+jira issue search --jql "assignee = currentUser() AND resolution IS EMPTY" --all
+jira issue search "project = ABC" --count        # approximate count only
+```
+
+## Inspect, create, edit
+
+```bash
+jira issue get ABC-123 -o json
+jira issue get ABC-123 --fields summary,status,assignee --expand changelog
+
+jira issue create -p ABC --type Task --summary "Title" -d "Plain description"
+jira issue create -p ABC --type Bug --summary "X" -d "**bold** details" --markdown -a me@acme.com -l urgent
+jira issue create -p ABC --type Task --summary "X" --field customfield_10010=5
+
+jira issue edit ABC-123 --summary "New title" --add-label triaged --remove-label blocker
+jira issue assign ABC-123 --to me@acme.com      # or @me, id:<accountId>, default, none
+jira issue delete ABC-123 --yes
+```
+
+## Transition (change status)
+
+```bash
+jira issue transitions ABC-123                  # list available transitions
+jira issue transition ABC-123 "In Progress"     # match by target status or transition name
+jira issue transition ABC-123 Done --resolution Fixed --comment "Shipped"
+```
+
+## Comments, worklogs, attachments, links, watch, vote
+
+```bash
+jira issue comment ABC-123 --body "Looks good" [--markdown]
+jira issue comments ABC-123 -o json
+jira issue worklog ABC-123 --time "2h 30m" --comment "review" --started "2026-06-13T09:00:00.000+0000"
+jira issue attach ABC-123 ./error.log ./screenshot.png
+jira issue attachments ABC-123
+jira issue download <attachmentId> --out ./file
+jira issue link ABC-1 ABC-2 --type Blocks       # "ABC-1 Blocks ABC-2"
+jira issue link-types
+jira issue watch ABC-123 ; jira issue unwatch ABC-123 ; jira issue watchers ABC-123
+jira issue vote  ABC-123 ; jira issue unvote  ABC-123 ; jira issue votes   ABC-123
+```

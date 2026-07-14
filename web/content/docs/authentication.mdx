@@ -1,0 +1,73 @@
+---
+title: Authentication
+description: OAuth 2.0, API tokens, scoped tokens, PATs, basic auth, and named profiles.
+---
+
+Five authentication methods are available, all via `jira auth login --type <method>`.
+The auth type is stored per profile. Configuration priority is
+**CLI flags > environment variables > config profile**.
+
+## Methods
+
+| `--type` | Deployment | Credential | Notes |
+|---|---|---|---|
+| `oauth2` (default) | Cloud | OAuth 2.0 (3LO) | Browser loopback flow; refresh tokens auto-rotate; requires your app credentials |
+| `api_token` | Cloud | email + API token | Token from id.atlassian.com; no app needed |
+| `scoped` | Cloud | email + scoped token | Resolves cloudId; routes via api.atlassian.com gateway |
+| `pat` | Server/DC | bearer PAT | Jira 8.14+ |
+| `basic` | Server/DC | username + password | Legacy; watch CAPTCHA lockout |
+
+## Logging in
+
+```bash
+# Browser OAuth — bring your own Atlassian 3LO app
+jira auth login --type oauth2 --client-id "$ID" --client-secret "$SECRET"
+
+# API token instead (no app needed) — prompts for site/email/token
+jira auth login --type api_token
+
+# Non-interactive (CI/agents)
+jira auth login --type api_token --site https://acme.atlassian.net --email me@acme.com --token "$JIRA_TOKEN"
+
+# Server/DC with a PAT
+jira auth login --type pat --site https://jira.company.com --token "$PAT"
+```
+
+## OAuth scopes
+
+Choose how much access to grant with `--scope-preset read|write|admin|all` (or an
+interactive picker if omitted), add individual scopes with the repeatable
+`--scope`, or override raw with `--scopes`. `admin`/`all` enable project and
+configuration management. The app's permissions in the developer console must
+include whatever you request.
+
+<Callout type="warn">
+  Agile commands (`board`/`sprint`/`epic`) use the Jira Software API, which over
+  OAuth needs granular `jira-software` scopes — classic scopes return
+  `401 "scope does not match"`. They work with API-token / PAT auth.
+</Callout>
+
+## Named profiles
+
+```bash
+jira auth list            # show profiles (current marked *)
+jira auth use staging     # switch active profile
+jira auth logout --name staging
+```
+
+## Environment variables
+
+For agents and CI, environment variables are the simplest path (no `auth login`
+needed):
+
+```bash
+export JIRA_SITE=https://acme.atlassian.net JIRA_EMAIL=me@acme.com JIRA_TOKEN=xxxx
+jira whoami -o json
+```
+
+Recognized variables: `JIRA_SITE`, `JIRA_EMAIL`, `JIRA_TOKEN`, `JIRA_USER`,
+`JIRA_PASSWORD`, `JIRA_AUTH_TYPE`, `JIRA_CLOUD_ID`, `JIRA_API_VERSION`,
+`JIRA_INSECURE`, `JIRA_READ_ONLY`, `JIRA_OAUTH_CLIENT_ID`,
+`JIRA_OAUTH_CLIENT_SECRET`, `JIRA_NO_INPUT`, `JIRA_QUIET`.
+
+The config file lives at `~/.config/jira-cli/config.yaml` (XDG-aware, mode `0600`).

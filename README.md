@@ -61,18 +61,13 @@ Assets are named `jira-cli_<os>_<arch>.tar.gz` (lowercase), where `<os>` is `dar
 
 ### Alternative (build from source, requires Go)
 
-Requires the Go 1.22+ toolchain.
-
-```bash
-go install github.com/piyush-gambhir/jira-cli@latest
-```
-
-Or clone and build:
+Requires the Go 1.22+ toolchain. The CLI lives in the [`cli-go/`](cli-go) directory of this
+monorepo (the marketing site and docs live in [`web/`](web)).
 
 ```bash
 git clone https://github.com/piyush-gambhir/jira-cli.git
-cd jira-cli
-make install          # builds and installs to $GOBIN / $GOPATH/bin
+cd jira-cli/cli-go
+make install          # builds and installs `jira` to $GOBIN / $GOPATH/bin
 ```
 
 The binary is `jira`.

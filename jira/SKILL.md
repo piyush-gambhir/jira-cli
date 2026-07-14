@@ -14,12 +14,10 @@ Agile boards/sprints/epics — on both Jira Cloud and Server/Data Center.
 ### Install
 
 ```bash
-# go install
-go install github.com/piyush-gambhir/jira-cli@latest
-# from source
-git clone https://github.com/piyush-gambhir/jira-cli.git && cd jira-cli && make install
-# install script
-curl -sSL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | bash
+# install script (recommended — no Go required)
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh
+# from source (Go CLI lives in cli-go/)
+git clone https://github.com/piyush-gambhir/jira-cli.git && cd jira-cli/cli-go && make install
 ```
 
 The binary is `jira`.

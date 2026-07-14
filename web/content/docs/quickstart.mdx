@@ -1,0 +1,54 @@
+---
+title: Quick start
+description: Authenticate and run your first Jira CLI commands.
+---
+
+## 1. Authenticate
+
+The API token is the simplest setup (no OAuth app required):
+
+```bash
+jira auth login --type api_token
+```
+
+Or non-interactively for CI/agents:
+
+```bash
+export JIRA_SITE=https://acme.atlassian.net JIRA_EMAIL=me@acme.com JIRA_TOKEN=xxxx
+```
+
+## 2. Confirm connectivity
+
+```bash
+jira whoami          # current user (also prints accountId)
+jira status          # site reachability + auth check + serverInfo
+```
+
+## 3. Work
+
+```bash
+# Search with raw JQL
+jira issue search "assignee = currentUser() AND statusCategory != Done" -o json
+
+# Create an issue
+jira issue create -p ABC --type Task --summary "Set up CI" -d "Details here"
+
+# Move it and comment
+jira issue transition ABC-123 "In Progress"
+jira issue comment ABC-123 --body "On it"
+```
+
+## Discovering commands
+
+Every command has `-h`/`--help`:
+
+```bash
+jira --help
+jira issue --help
+jira issue create --help
+```
+
+<Cards>
+  <Card title="Output formats" href="/docs/output-formats" description="table, json, and yaml — and the stdout/stderr contract." />
+  <Card title="Commands" href="/docs/commands" description="The full command surface, grouped by area." />
+</Cards>

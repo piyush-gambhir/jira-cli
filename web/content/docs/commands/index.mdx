@@ -1,0 +1,26 @@
+---
+title: Overview
+description: The Jira CLI command surface, grouped by area.
+---
+
+Every command supports `-h`/`--help`. Read/get commands accept `-o json|yaml`.
+
+## Identity & connectivity
+
+```bash
+jira whoami -o json          # current user (also prints accountId)
+jira status  -o json         # site reachability + auth check + serverInfo
+```
+
+## Groups
+
+<Cards>
+  <Card title="Issues" href="/docs/commands/issues" description="Search, create, edit, transition, comments, worklogs, attachments, links, watch, vote." />
+  <Card title="Agile" href="/docs/commands/agile" description="Boards, sprints, epics, and backlogs." />
+  <Card title="Projects, users & fields" href="/docs/commands/projects-users-fields" description="Manage projects, resolve users, inspect fields." />
+</Cards>
+
+<Callout type="info">
+  This is a curated tour. The exhaustive, always-current reference is the CLI's own
+  help output and the agent manual at `docs/llms.txt`.
+</Callout>

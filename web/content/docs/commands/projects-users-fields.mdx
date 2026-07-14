@@ -1,0 +1,29 @@
+---
+title: Projects, users & fields
+description: Manage projects, resolve users to accountIds, and inspect fields.
+---
+
+## Projects
+
+```bash
+jira project list --query mobile -o json
+jira project get ABC
+
+# Manage projects (needs project-admin permission; OAuth needs the admin/all scope preset)
+jira project create --key MOB --name "Mobile" --lead @me --template <projectTemplateKey>
+jira project update ABC --name "New name" --lead me@acme.com
+jira project delete ABC --enable-undo --yes
+```
+
+## Users
+
+```bash
+jira user search "jane" -o json      # resolve a person to an accountId
+jira user get <accountId>
+```
+
+## Fields
+
+```bash
+jira field list --custom             # field ids + JQL clause names
+```

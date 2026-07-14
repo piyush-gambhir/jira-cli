@@ -17,7 +17,10 @@ docs/CREDENTIALS.md     authentication reference
 
 ## Build & test
 
+The Go CLI lives in `cli-go/`; run the toolchain from there:
+
 ```bash
+cd cli-go
 make build      # -> bin/jira
 make test       # go test -race ./...
 make vet

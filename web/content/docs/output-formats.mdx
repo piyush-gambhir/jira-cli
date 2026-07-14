@@ -1,0 +1,38 @@
+---
+title: Output formats
+description: table, json, and yaml output — and the stdout/stderr contract.
+---
+
+Add `-o <format>` to any list/get command:
+
+- `-o table` — default, human-readable
+- `-o json` — parse with `jq`
+- `-o yaml` — YAML output
+
+<Callout type="info">
+  **Agents: always use `-o json`.** Informational lines (e.g. "Created ABC-1", the
+  JQL used by `issue list`) go to **stderr**, so **stdout** stays clean for parsing.
+</Callout>
+
+```bash
+jira whoami -o json | jq -r .accountId
+jira issue search "project = ABC" -o json | jq '.[].key'
+```
+
+## Notes & gotchas
+
+- **Users are accountIds (GDPR).** Commands accept email / display name / `@me` /
+  `id:<accountId>` and resolve to an accountId via user search before use.
+- **Rich text is ADF.** Descriptions, comments, and worklog comments are sent as
+  Atlassian Document Format. `--markdown` interprets input as lightweight markdown
+  (headings, lists, bold/italic/code/links).
+- **Transitions are discover-then-do.** There is no "set status"; the CLI lists
+  transitions and matches your argument against the transition name or its target
+  status.
+- **Search pagination differs by deployment.** Cloud uses the cursor-based
+  `/search/jql`; Server/DC uses the classic `/search`. The CLI handles both. JQL
+  must be bounded.
+- **Rate limits (429)** are retried automatically (honoring `Retry-After`, else
+  exponential backoff).
+- **API version** defaults to v3 on Cloud, v2 on Server/DC; override with
+  `--api-version`.

@@ -1,0 +1,54 @@
+---
+title: Installation
+description: Install the prebuilt binary or build Jira CLI from source.
+---
+
+## Install script (recommended)
+
+Installs the latest prebuilt binary for your OS/arch — no Go toolchain required:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh
+```
+
+Pin a version or change the install directory:
+
+```bash
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | VERSION=0.1.1 sh
+curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | INSTALL_DIR=~/.local/bin sh
+```
+
+## Download a release manually
+
+Prebuilt binaries for every platform are attached to each
+[GitHub Release](https://github.com/piyush-gambhir/jira-cli/releases). Download the
+archive for your OS/arch, extract, and put `jira` on your `PATH`:
+
+```bash
+# example (macOS arm64) — adjust the version/asset name
+curl -sSfL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_darwin_arm64.tar.gz | tar xz
+sudo mv jira /usr/local/bin/
+```
+
+Assets are named `jira-cli_<os>_<arch>.tar.gz` (lowercase), where `<os>` is
+`darwin` or `linux` and `<arch>` is `amd64` or `arm64` (Windows ships as
+`jira-cli_windows_amd64.zip`).
+
+## Build from source
+
+Requires the Go 1.22+ toolchain. The CLI lives in the `cli-go/` directory of the
+monorepo:
+
+```bash
+git clone https://github.com/piyush-gambhir/jira-cli.git
+cd jira-cli/cli-go
+make install          # builds and installs `jira` to $GOBIN / $GOPATH/bin
+```
+
+The binary is `jira`.
+
+## Verify
+
+```bash
+jira version
+```

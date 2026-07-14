@@ -1,0 +1,34 @@
+---
+title: Agile
+description: Boards, sprints, epics, and backlogs.
+---
+
+<Callout type="warn">
+  Agile commands use the Jira Software (Agile) API. Over OAuth they need granular
+  `jira-software` scopes — classic scopes return `401 "scope does not match"`.
+  They work with API-token / PAT auth.
+</Callout>
+
+## Boards
+
+```bash
+jira board list -p ABC -o json
+jira board issues 42
+jira board backlog 42
+```
+
+## Sprints
+
+```bash
+jira sprint list --board 42 --state active
+jira sprint get 100
+jira sprint issues 100
+jira sprint create --board 42 --name "Sprint 5" --goal "Ship X"
+```
+
+## Epics
+
+```bash
+jira epic get ABC-10
+jira epic issues ABC-10
+```

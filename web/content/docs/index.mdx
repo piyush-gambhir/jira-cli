@@ -1,0 +1,40 @@
+---
+title: Introduction
+description: A fast, scriptable command-line interface for Jira Cloud and Server/Data Center.
+---
+
+**Jira CLI** is a fast, scriptable command-line interface for **Jira** — Cloud and
+Server/Data Center — over the REST API. Manage issues, JQL search, transitions,
+comments, worklogs, attachments, links, boards, and sprints from your terminal.
+
+It is designed for both human operators and coding agents. Every list/get command
+supports `-o json` and `-o yaml` for machine-readable output.
+
+<Callout type="info">
+  Independent open-source wrapper over the Jira REST API. Not affiliated with
+  Atlassian and unrelated to Atlassian's official `acli`.
+</Callout>
+
+## Features
+
+- **Every auth method** — Cloud API token, scoped API token, OAuth 2.0 (3LO)
+  browser login with auto-refresh, Server/DC personal access token, and
+  username/password.
+- **Issues** — JQL search, list, get, create, edit, delete, assign, transition.
+- **Around issues** — comments, worklogs, attachments (upload/download), links,
+  watchers, votes.
+- **Projects, users, fields** and **Agile** boards / sprints / epics.
+- **ADF-aware** — descriptions and comments are sent as Atlassian Document Format;
+  `--markdown` supported.
+- **Agent-friendly** — `-o json|yaml`, `--read-only` safety mode, `--no-input`,
+  env-var config, clean stdout/stderr separation, automatic rate-limit (429) backoff.
+- **Cross-platform** — macOS, Linux, Windows (amd64 and arm64). Multiple named profiles.
+
+## Next steps
+
+<Cards>
+  <Card title="Installation" href="/docs/installation" description="Install the prebuilt binary or build from source." />
+  <Card title="Authentication" href="/docs/authentication" description="OAuth, API tokens, PATs, and named profiles." />
+  <Card title="Quick start" href="/docs/quickstart" description="Authenticate and run your first commands." />
+  <Card title="Agents" href="/docs/agents" description="The JSON output contract and safety flags." />
+</Cards>

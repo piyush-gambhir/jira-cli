@@ -1,0 +1,44 @@
+---
+title: Agents
+description: The JSON output contract and safety flags for coding agents.
+---
+
+Jira CLI is built to be driven by coding agents as well as humans.
+
+## The output contract
+
+- Add `-o json` (or `-o yaml`) to any list/get command for machine-readable output.
+- **stdout** carries only the requested data. **stderr** carries informational
+  lines ("Created ABC-1", the JQL that `issue list` built, warnings). Parse stdout;
+  log stderr.
+- Non-zero exit codes signal failure; API errors preserve the upstream HTTP status.
+
+## Safety flags
+
+| Flag | Env | Effect |
+|---|---|---|
+| `--read-only` | `JIRA_READ_ONLY=1` | Blocks every write command (create/edit/delete/transition/...) |
+| `--no-input` | `JIRA_NO_INPUT=1` | Disables all interactive prompts; fails instead of prompting |
+| `--quiet` | `JIRA_QUIET=1` | Suppresses informational stderr output |
+
+```bash
+# Safe, non-interactive read for an agent
+JIRA_READ_ONLY=1 JIRA_NO_INPUT=1 jira issue search "project = ABC" -o json
+```
+
+## Configuration via environment
+
+No `auth login` step is needed — set credentials directly:
+
+```bash
+export JIRA_SITE=https://acme.atlassian.net
+export JIRA_EMAIL=me@acme.com
+export JIRA_TOKEN=xxxx
+jira whoami -o json
+```
+
+## Claude Code skill
+
+A ready-to-use skill lives at
+[`jira/SKILL.md`](https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKILL.md),
+with command and API references under `jira/references/`.

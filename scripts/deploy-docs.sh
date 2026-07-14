@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local Cloudflare Pages deploy for the docs/ landing page (privacy/terms + index).
+# Build the Next.js site in web/ and deploy the static export to Cloudflare Pages.
 # Run as `bash scripts/deploy-docs.sh [production|development]`.
 #
 # Falls back to a local `wrangler login` session if no .env.deploy.<env> file is present.
@@ -24,10 +24,14 @@ else
 fi
 
 CF_PROJECT_NAME="${CF_PROJECT_NAME:-jira-cli}"
-DOCS_DIR="${DOCS_DIR:-docs}"
+WEB_DIR="${WEB_DIR:-web}"
+OUT_DIR="${OUT_DIR:-$WEB_DIR/out}"
 
-if [[ ! -f "$DOCS_DIR/index.html" ]]; then
-  echo "error: $DOCS_DIR/index.html not found — nothing to deploy." >&2
+echo "==> Building the site in ${WEB_DIR}/"
+( cd "$WEB_DIR" && pnpm install --frozen-lockfile && pnpm build )
+
+if [[ ! -f "$OUT_DIR/index.html" ]]; then
+  echo "error: $OUT_DIR/index.html not found — build produced no static export." >&2
   exit 1
 fi
 
@@ -40,7 +44,7 @@ fi
 if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then export CLOUDFLARE_API_TOKEN; fi
 if [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then export CLOUDFLARE_ACCOUNT_ID; fi
 
-echo "==> Deploying ${DOCS_DIR}/ to Cloudflare Pages project '${CF_PROJECT_NAME}' (branch: ${CF_BRANCH})"
-npx --yes wrangler@4.110.0 pages deploy "$DOCS_DIR" \
+echo "==> Deploying ${OUT_DIR}/ to Cloudflare Pages project '${CF_PROJECT_NAME}' (branch: ${CF_BRANCH})"
+npx --yes wrangler@4.110.0 pages deploy "$OUT_DIR" \
   --project-name="$CF_PROJECT_NAME" \
   --branch="$CF_BRANCH"
