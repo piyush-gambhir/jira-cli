@@ -202,30 +202,6 @@
   transform: translateY(0) rotate(0.001deg);
 }
 
-.micro-hover-card {
-  transition:
-    background-color var(--duration-xs) var(--cubic-default),
-    transform var(--duration-xs) var(--cubic-default);
-}
-
-.micro-hover-icon {
-  transition:
-    background-color var(--duration-xs) var(--cubic-default),
-    color var(--duration-xs) var(--cubic-default),
-    transform var(--duration-xs) var(--cubic-default);
-}
-
-.micro-hover-card:hover {
-  background-color: color-mix(in oklab, var(--muted) 70%, var(--background));
-  transform: translateY(-2px);
-}
-
-.micro-hover-card:hover .micro-hover-icon {
-  color: var(--site-accent);
-  background-color: var(--site-accent-muted);
-  transform: translateY(-2px);
-}
-
 .micro-hover-lift {
   transition: transform var(--duration-xs) var(--cubic-default);
 }
@@ -298,8 +274,6 @@
   .button-roll-label-primary,
   .button-roll-label-secondary,
   .reveal,
-  .micro-hover-card,
-  .micro-hover-icon,
   .micro-hover-lift,
   .floating-header-surface,
   .nav-underline-slide::after,
@@ -386,6 +360,112 @@ html[data-lenis] {
 .action-button:focus-visible { outline: 2px solid var(--site-accent); outline-offset: 2px; }
 .action-button:disabled { cursor: not-allowed; opacity: 0.45; }
 .action-button .button-icon { display: inline-flex; flex: none; align-items: center; justify-content: center; }
+
+/* Landing-page capabilities: intentionally dark in both site themes. */
+.capabilities-band {
+  color: oklch(0.985 0 0);
+  background: oklch(0.205 0 0);
+  padding-block: 7.5em;
+}
+
+.capabilities-band__inner {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+
+.capabilities-band__header {
+  max-width: 42rem;
+}
+
+.capabilities-band__eyebrow {
+  color: var(--site-accent);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.capabilities-band__title {
+  margin-top: 1rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  font-weight: 550;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+}
+
+.capabilities-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: clamp(3rem, 7vw, 6rem);
+  row-gap: 5rem;
+  margin-top: 4.5rem;
+}
+
+.capabilities-grid__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.capabilities-grid__number {
+  color: color-mix(in oklab, var(--site-accent) 35%, transparent);
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(3rem, 5vw, 3.5rem);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.06em;
+}
+
+.capabilities-grid__title {
+  margin-top: 1.75rem;
+  color: oklch(0.985 0 0);
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.capabilities-grid__body {
+  max-width: 65ch;
+  margin-top: 0.75rem;
+  color: oklch(0.708 0 0);
+  font-size: 0.9375rem;
+  line-height: 1.65;
+}
+
+.capabilities-band__compatible {
+  margin-top: 5rem;
+  color: oklch(0.708 0 0);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 1.8;
+  text-transform: uppercase;
+}
+
+.capabilities-band__separator {
+  color: var(--site-accent);
+}
+
+@media (max-width: 767px) {
+  .capabilities-band {
+    padding-block: 6em;
+  }
+
+  .capabilities-grid {
+    grid-template-columns: 1fr;
+    row-gap: 3.75rem;
+    margin-top: 3.75rem;
+  }
+
+  .capabilities-band__compatible {
+    margin-top: 4rem;
+  }
+}
 
 /* Ported Osmo floating shell. Colors, fonts and content are project-specific. */
 .nav {
