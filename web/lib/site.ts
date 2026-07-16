@@ -14,6 +14,12 @@ export interface Feature {
   body: string;
 }
 
+export interface SiteStep {
+  title: string;
+  body: string;
+  snippet?: string;
+}
+
 export interface SiteConfig {
   /** Display name, e.g. "Jira CLI" */
   name: string;
@@ -43,6 +49,12 @@ export interface SiteConfig {
   featuresSubtitle?: string;
   /** Optional: CTA band body (default mentions installing the binary) */
   ctaBody?: string;
+  /** Optional: per-site accent expressed as an OKLCH color */
+  accent?: string;
+  /** Optional: human-readable accent name */
+  accentName?: string;
+  /** Optional: three-step getting-started sequence */
+  steps?: SiteStep[];
 }
 
 export const site: SiteConfig = {
@@ -53,8 +65,29 @@ export const site: SiteConfig = {
   description:
     'A fast, scriptable CLI over the Jira REST API. Manage issues, JQL search, transitions, comments, boards, and sprints — built for humans and coding agents alike.',
   badge: 'Open-source · Cloud & Server/DC',
+  accent: 'oklch(0.72 0.13 235)',
+  accentName: 'sky',
   installCommand:
     'curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh',
+  steps: [
+    {
+      title: 'Install',
+      body: 'Install the latest jira-cli binary directly from the project repository.',
+      snippet:
+        'curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh',
+    },
+    {
+      title: 'Authenticate',
+      body: 'Create a Jira profile with an API token, OAuth 2.0, or Server/DC credentials.',
+      snippet: 'jira auth login --type api_token',
+    },
+    {
+      title: 'Run',
+      body: 'Search, update, and automate Jira from an interactive shell or a script.',
+      snippet:
+        'jira issue search "assignee = currentUser() AND statusCategory != Done" -o json',
+    },
+  ],
   features: [
     {
       icon: Search,

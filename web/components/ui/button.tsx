@@ -1,5 +1,6 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button"
 import { cva, type VariantProps } from "class-variance-authority"
+import type { ReactNode } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -40,16 +41,26 @@ const buttonVariants = cva(
   }
 )
 
+type ButtonProps = ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & {
+    /** Rolls an identical, aria-hidden label into place on hover. */
+    rollLabel?: boolean
+    children?: ReactNode
+  }
+
 function Button({
   className,
   variant = "default",
   size = "default",
   render,
+  rollLabel = false,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      data-roll-label={rollLabel || undefined}
       // When rendering as a custom element (e.g. a link via `render`), the
       // underlying element is not a native <button>, so tell Base UI to drop
       // native button semantics and avoid the accessibility warning.
@@ -57,8 +68,19 @@ function Button({
       render={render}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {rollLabel ? (
+        <span className="button-roll-labels">
+          <span className="button-roll-label-primary">{children}</span>
+          <span className="button-roll-label-secondary" aria-hidden="true">
+            {children}
+          </span>
+        </span>
+      ) : (
+        children
+      )}
+    </ButtonPrimitive>
   )
 }
 
-export { Button, buttonVariants }
+export { Button, buttonVariants, type ButtonProps }
