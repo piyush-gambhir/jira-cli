@@ -88,10 +88,11 @@ export default function HomePage() {
       <section className="mx-auto w-full max-w-5xl px-4 py-24">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Everything, from one binary
+            {site.featuresTitle ?? 'Everything, from one binary'}
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            Built for humans at the keyboard and coding agents alike.
+            {site.featuresSubtitle ??
+              'Built for humans at the keyboard and coding agents alike.'}
           </p>
         </div>
 
@@ -125,8 +126,8 @@ export default function HomePage() {
             Ready in one command
           </h2>
           <p className="mx-auto mt-4 max-w-md text-lg text-muted-foreground">
-            Install the binary, authenticate, and start querying. No runtime, no
-            dependencies.
+            {site.ctaBody ??
+              'Install the binary, authenticate, and start querying. No runtime, no dependencies.'}
           </p>
           <div className="mt-9 flex flex-col items-center gap-5">
             <InstallCommand command={site.installCommand} />

@@ -37,6 +37,12 @@ export interface SiteConfig {
   example: string;
   /** Optional: tech / query languages this CLI speaks (logo strip) */
   compatible?: string[];
+  /** Optional: features section heading (default: "Everything, from one binary") */
+  featuresTitle?: string;
+  /** Optional: features section subheading */
+  featuresSubtitle?: string;
+  /** Optional: CTA band body (default mentions installing the binary) */
+  ctaBody?: string;
 }
 
 export const site: SiteConfig = {
