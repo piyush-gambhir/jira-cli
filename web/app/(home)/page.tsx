@@ -8,7 +8,7 @@ import { SiteFooter } from '@/components/site-footer';
 import { site, type SiteStep } from '@/lib/site';
 
 const eyebrowClass =
-  'font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--accent)]';
+  'font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--site-accent)]';
 
 export default function HomePage() {
   const firstExampleCommand =
@@ -64,7 +64,7 @@ export default function HomePage() {
                       <span className="px-7 font-mono text-xs font-medium uppercase tracking-[0.12em] text-fd-foreground/60 sm:px-10">
                         {item}
                       </span>
-                      <span aria-hidden className="text-[var(--accent)]">
+                      <span aria-hidden className="text-[var(--site-accent)]">
                         ·
                       </span>
                     </span>
@@ -94,7 +94,7 @@ export default function HomePage() {
             >
               <span
                 aria-hidden
-                className="pointer-events-none absolute right-4 top-0 font-mono text-[6.5rem] font-semibold leading-none text-[color-mix(in_oklab,var(--accent)_15%,transparent)]"
+                className="pointer-events-none absolute right-4 top-0 font-mono text-[6.5rem] font-semibold leading-none text-[color-mix(in_oklab,var(--site-accent)_15%,transparent)]"
               >
                 {String(index + 1).padStart(2, '0')}
               </span>
@@ -107,7 +107,7 @@ export default function HomePage() {
               </p>
               {snippet ? (
                 <code className="relative mt-6 block overflow-hidden text-ellipsis whitespace-nowrap rounded-lg bg-fd-muted px-3 py-2.5 font-mono text-xs text-fd-foreground">
-                  <span aria-hidden className="mr-2 text-[var(--accent)]">
+                  <span aria-hidden className="mr-2 text-[var(--site-accent)]">
                     $
                   </span>
                   {snippet}
@@ -158,7 +158,7 @@ export default function HomePage() {
             className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64"
             style={{
               background:
-                'radial-gradient(60% 100% at 50% 0%, color-mix(in oklab, var(--accent) 20%, transparent), transparent)',
+                'radial-gradient(60% 100% at 50% 0%, color-mix(in oklab, var(--site-accent) 20%, transparent), transparent)',
             }}
           />
           <p className={eyebrowClass}>Start building</p>

@@ -10,7 +10,7 @@ import { useGsap } from '@/lib/motion/useGsap';
 import { site } from '@/lib/site';
 
 const eyebrowClass =
-  'font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--accent)]';
+  'font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--site-accent)]';
 
 export function HomeHero() {
   const rootRef = useRef<HTMLElement>(null);
@@ -74,7 +74,7 @@ export function HomeHero() {
           className="absolute left-[18%] top-[48%] size-[34rem] rounded-full opacity-60 blur-[100px]"
           style={{
             background:
-              'radial-gradient(circle, color-mix(in oklab, var(--accent) 35%, transparent), transparent 70%)',
+              'radial-gradient(circle, color-mix(in oklab, var(--site-accent) 35%, transparent), transparent 70%)',
           }}
         />
         <div

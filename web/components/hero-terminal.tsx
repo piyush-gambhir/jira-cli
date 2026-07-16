@@ -145,7 +145,7 @@ export function HeroTerminal({
             return (
               <span key={i} className="block">
                 {!line.trimStart().startsWith('#') && line.trim() !== '' ? (
-                  <span className="mr-2 select-none text-[var(--accent)]">
+                  <span className="mr-2 select-none text-[var(--site-accent)]">
                     $
                   </span>
                 ) : null}
@@ -153,7 +153,7 @@ export function HeroTerminal({
                 {isTypingLine ? (
                   <span
                     aria-hidden
-                    className="terminal-caret text-[var(--accent)]"
+                    className="terminal-caret text-[var(--site-accent)]"
                   >
                     ▍
                   </span>
