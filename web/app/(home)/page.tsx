@@ -2,7 +2,7 @@ import type { CSSProperties } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { ActionButton } from '@/components/ui/action-button';
 import { InstallCommand } from '@/components/install-command';
-import { HeroTerminal } from '@/components/hero-terminal';
+import { HomeHero } from '@/components/home-hero';
 import { Reveal } from '@/components/reveal';
 import { SiteFooter } from '@/components/site-footer';
 import { site, type SiteStep } from '@/lib/site';
@@ -11,8 +11,6 @@ const eyebrowClass =
   'font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--accent)]';
 
 export default function HomePage() {
-  const repoUrl = `https://github.com/${site.repo}`;
-  const taglineWords = site.tagline.split(/\s+/);
   const firstExampleCommand =
     site.example
       .split('\n')
@@ -39,76 +37,7 @@ export default function HomePage() {
 
   return (
     <main className="flex flex-1 flex-col">
-      {/* Hero */}
-      <section className="relative isolate overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-          <div
-            className="absolute left-[18%] top-[48%] size-[34rem] rounded-full opacity-60 blur-[100px]"
-            style={{
-              background:
-                'radial-gradient(circle, color-mix(in oklab, var(--accent) 35%, transparent), transparent 70%)',
-            }}
-          />
-          <div
-            className="absolute right-[7%] top-[58%] size-[24rem] rounded-full opacity-50 blur-[100px]"
-            style={{
-              background:
-                'radial-gradient(circle, color-mix(in oklab, var(--foreground) 8%, transparent), transparent 72%)',
-            }}
-          />
-        </div>
-
-        <div className="mx-auto flex max-w-5xl flex-col items-center px-4 pb-24 pt-[clamp(10rem,24svh,15rem)] text-center sm:pb-32">
-          <p className={`${eyebrowClass} fade-up`}>
-            <span aria-hidden className="mr-2">
-              ▸
-            </span>
-            {site.badge}
-          </p>
-          <h1 className="mt-6 max-w-4xl text-balance font-display text-[clamp(2.75rem,7vw,5.5rem)] font-[575] leading-[0.95] tracking-[-0.04em]">
-            {taglineWords.map((word, index) => (
-              <span key={`${word}-${index}`}>
-                {index > 0 ? ' ' : null}
-                <span className="word-mask">
-                  <span
-                    className="word-mask-reveal"
-                    style={{ '--word-index': index } as CSSProperties}
-                  >
-                    {word}
-                  </span>
-                </span>
-              </span>
-            ))}
-          </h1>
-          <p className="fade-up fade-up-delay-1 mt-7 max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground">
-            {site.description}
-          </p>
-
-          <div className="fade-up fade-up-delay-2 mt-9 flex flex-wrap items-center justify-center gap-3">
-            <ActionButton href="/docs" aria-label="Get started">
-              Get started
-              <ArrowRight className="size-4" />
-            </ActionButton>
-            <ActionButton
-              href={repoUrl}
-              theme="neutral"
-              aria-label="View on GitHub"
-            >
-              View on GitHub
-            </ActionButton>
-          </div>
-          <InstallCommand
-            command={site.installCommand}
-            className="fade-up fade-up-delay-3 mt-5"
-          />
-
-          <HeroTerminal
-            title={site.exampleTitle}
-            command={site.example}
-            className="fade-up fade-up-delay-3 mt-16 w-full max-w-3xl text-left"
-          />
-        </div>
-      </section>
+      <HomeHero />
 
       {/* Stack marquee */}
       {site.compatible && site.compatible.length > 0 ? (

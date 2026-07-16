@@ -1,160 +1,173 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { InstallCommand } from '@/components/install-command';
+import { ActionButton } from '@/components/ui/action-button';
 import { site } from '@/lib/site';
 import { getOtherSuiteProjects } from '@/lib/suite';
 
-function FooterHeading({ children }: { children: ReactNode }) {
-  return (
-    <h2 className="flex items-center gap-2 font-mono text-[0.6875rem] font-medium uppercase tracking-[0.1em] text-muted-foreground">
-      <span
-        aria-hidden
-        className="size-1.5 rounded-full bg-[var(--accent)]"
-      />
-      {children}
-    </h2>
-  );
-}
-
-const internalLinkClass =
-  'text-sm text-muted-foreground hover:text-[var(--accent)]';
-const externalLinkClass =
-  'text-sm text-muted-foreground hover:text-[var(--accent)]';
+const documentationLinks = [
+  { label: 'Introduction', href: '/docs' },
+  { label: 'Installation', href: '/docs/installation' },
+  { label: 'Authentication', href: '/docs/authentication' },
+  { label: 'Quick start', href: '/docs/quickstart' },
+];
 
 export function SiteFooter() {
   const repoUrl = `https://github.com/${site.repo}`;
-  const otherTools = getOtherSuiteProjects(site.repo);
   const year = new Date().getFullYear();
+  const groups = [
+    {
+      title: 'Documentation',
+      links: documentationLinks,
+    },
+    {
+      title: 'Project',
+      links: [
+        { label: 'GitHub', href: repoUrl },
+        { label: 'Releases', href: `${repoUrl}/releases` },
+        { label: 'Issues', href: `${repoUrl}/issues` },
+        { label: 'License', href: `${repoUrl}/blob/main/LICENSE` },
+      ],
+    },
+    {
+      title: 'More tools',
+      links: getOtherSuiteProjects(site.repo).map(({ name, href }) => ({
+        label: name,
+        href,
+      })),
+    },
+  ];
+  const [activeGroup, setActiveGroup] = useState(groups[0]?.title ?? '');
 
   return (
-    <footer className="flex min-h-0 flex-col justify-between gap-16 overflow-hidden border-t border-border bg-fd-muted/20 pt-16 md:min-h-[70svh] md:gap-20 md:pt-24">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-x-6 gap-y-12 px-4 sm:px-6 lg:grid-cols-[0.8fr_0.8fr_1fr_2fr] lg:gap-10">
-        <div>
-          <FooterHeading>Documentation</FooterHeading>
-          <div className="mt-5 flex flex-col items-start gap-3">
-            <Link href="/docs" className={internalLinkClass}>
-              Introduction
-            </Link>
-            <Link href="/docs/installation" className={internalLinkClass}>
-              Installation
-            </Link>
-            <Link href="/docs/authentication" className={internalLinkClass}>
-              Authentication
-            </Link>
-            <Link href="/docs/quickstart" className={internalLinkClass}>
-              Quick start
-            </Link>
-          </div>
-        </div>
-
-        <div>
-          <FooterHeading>Project</FooterHeading>
-          <div className="mt-5 flex flex-col items-start gap-3">
-            <a
-              href={repoUrl}
-              target="_blank"
-              rel="noreferrer"
-              className={externalLinkClass}
-            >
-              GitHub
-            </a>
-            <a
-              href={`${repoUrl}/releases`}
-              target="_blank"
-              rel="noreferrer"
-              className={externalLinkClass}
-            >
-              Releases
-            </a>
-            <a
-              href={`${repoUrl}/issues`}
-              target="_blank"
-              rel="noreferrer"
-              className={externalLinkClass}
-            >
-              Issues
-            </a>
-            <a
-              href={`${repoUrl}/blob/main/LICENSE`}
-              target="_blank"
-              rel="noreferrer"
-              className={externalLinkClass}
-            >
-              License
-            </a>
-          </div>
-        </div>
-
-        <div>
-          <FooterHeading>More tools</FooterHeading>
-          <div className="mt-5 flex flex-col items-start gap-3 font-mono">
-            {otherTools.map((project) => (
+    <footer className="site-footer">
+      <div className="site-footer__inner">
+        <div className="site-footer__top">
+          <div className="site-footer__start">
+            <p className="site-footer__eyebrow">Start building</p>
+            <h2>Get started in seconds</h2>
+            <p className="site-footer__intro">
+              Install {site.binary}, then follow the quick start to connect your
+              first profile.
+            </p>
+            <InstallCommand
+              command={site.installCommand}
+              className="site-footer__install"
+            />
+            <div className="site-footer__actions">
+              <ActionButton href="/docs" aria-label="Get started">
+                Get started
+                <ArrowRight className="size-4" />
+              </ActionButton>
               <a
-                key={project.name}
-                href={project.href}
+                className="site-footer__github"
+                href={repoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className={externalLinkClass}
+                aria-label={`${site.name} on GitHub`}
               >
-                {project.name}
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M12 .7A11.5 11.5 0 0 0 8.36 23.1c.58.1.79-.25.79-.56v-2.23c-3.24.7-3.92-1.38-3.92-1.38-.53-1.35-1.3-1.71-1.3-1.71-1.06-.73.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.79 2.73 1.27 3.4.97.1-.76.4-1.27.74-1.56-2.59-.3-5.31-1.3-5.31-5.69 0-1.26.45-2.28 1.2-3.09-.12-.29-.52-1.47.11-3.05 0 0 .98-.31 3.16 1.18a10.9 10.9 0 0 1 5.76 0c2.19-1.49 3.16-1.18 3.16-1.18.63 1.58.23 2.76.11 3.05.75.81 1.2 1.83 1.2 3.09 0 4.4-2.73 5.39-5.32 5.68.42.36.79 1.07.79 2.17v3.22c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z"
+                  />
+                </svg>
               </a>
-            ))}
+            </div>
+          </div>
+
+          <div className="site-footer__directory">
+            <div
+              className="site-footer__groups"
+              data-accordion-close-siblings="true"
+            >
+              {groups.map((group) => {
+                const expanded = group.title === activeGroup;
+                const panelId = `footer-${group.title
+                  .toLowerCase()
+                  .replace(/\s+/g, '-')}`;
+
+                return (
+                  <div
+                    className="site-footer__group"
+                    data-accordion-status={expanded ? 'active' : 'not-active'}
+                    key={group.title}
+                  >
+                    <button
+                      type="button"
+                      className="site-footer__group-toggle"
+                      aria-expanded={expanded}
+                      aria-controls={panelId}
+                      onClick={() =>
+                        setActiveGroup(expanded ? '' : group.title)
+                      }
+                    >
+                      <span>{group.title}</span>
+                      <span className="site-footer__plus" aria-hidden="true" />
+                    </button>
+                    <div className="site-footer__group-panel" id={panelId}>
+                      <ul>
+                        {group.links.map((link) => {
+                          const external = link.href.startsWith('http');
+
+                          return (
+                            <li key={link.label}>
+                              {external ? (
+                                <a
+                                  href={link.href}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {link.label}
+                                </a>
+                              ) : (
+                                <Link href={link.href}>{link.label}</Link>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="site-footer__disclaimer">
+              {site.name} is an independent, open-source project. It is{' '}
+              <span>not affiliated with, endorsed by, or sponsored by</span>{' '}
+              the makers of the underlying software. All product names, logos,
+              and trademarks are the property of their respective owners and
+              are used for identification purposes only.
+            </p>
           </div>
         </div>
 
-        <div className="col-span-2 lg:col-span-1">
-          <FooterHeading>Get started in seconds</FooterHeading>
-          <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
-            Install {site.binary}, then follow the quick start to connect your
-            first profile.
-          </p>
-          <InstallCommand
-            command={site.installCommand}
-            className="mt-5 max-w-none border border-border bg-background/60"
-          />
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
-        <p className="max-w-prose text-xs leading-relaxed text-muted-foreground">
-          {site.name} is an independent, open-source project. It is{' '}
-          <span className="font-medium text-fd-foreground/80">
-            not affiliated with, endorsed by, or sponsored by
-          </span>{' '}
-          the makers of the underlying software. All product names, logos, and
-          trademarks are the property of their respective owners and are used
-          for identification purposes only.
-        </p>
-      </div>
-
-      <div>
-        <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 font-mono text-[0.6875rem] text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <span>© {year} {site.name}</span>
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <a
-              href="https://github.com/piyush-gambhir"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-[var(--accent)]"
-            >
-              Built by Piyush Gambhir
-            </a>
-            <a
-              href={`${repoUrl}/blob/main/LICENSE`}
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-[var(--accent)]"
-            >
-              MIT licensed
-            </a>
+        <div className="site-footer__bottom">
+          <div className="site-footer__wordmark" aria-hidden="true">
+            {site.binary}
           </div>
-        </div>
-
-        <div
-          aria-hidden="true"
-          className="-mb-[4vw] flex select-none justify-center overflow-visible pt-8 font-mono text-[20vw] leading-none font-medium tracking-[-0.08em] whitespace-nowrap text-foreground opacity-[0.05] dark:opacity-[0.07]"
-        >
-          {site.binary}
+          <div className="site-footer__details">
+            <div className="site-footer__legal">
+              <Link href="/privacy-policy.html">Privacy</Link>
+              <Link href="/terms-of-service.html">Terms</Link>
+            </div>
+            <p>
+              © {year} {site.name}
+            </p>
+            <p className="site-footer__credit">
+              <a
+                href="https://github.com/piyush-gambhir"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Built by Piyush Gambhir
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

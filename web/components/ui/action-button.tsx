@@ -38,8 +38,12 @@ function ActionButtonInner({
     <>
       <span className="button-bg" aria-hidden="true" />
       <span className="button-label-wrap" aria-hidden="true">
-        <span className="button-label is--primary">{children}</span>
-        <span className="button-label is--secondary">{children}</span>
+        <span className="button-label is--primary inline-flex items-center gap-2 whitespace-nowrap">
+          {children}
+        </span>
+        <span className="button-label is--secondary inline-flex items-center gap-2 whitespace-nowrap">
+          {children}
+        </span>
       </span>
       {icon ? (
         <span className="button-icon" aria-hidden="true">
