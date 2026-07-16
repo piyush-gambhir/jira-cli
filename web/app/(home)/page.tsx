@@ -48,7 +48,7 @@ export default function HomePage() {
           >
             Speaks the language of your stack
           </p>
-          <div className="marquee mt-7 border-y border-border/70 py-5">
+          <div className="marquee mt-7 py-5">
             <div
               className="marquee-track"
               style={{ '--marquee-duration': '28s' } as CSSProperties}
@@ -90,7 +90,7 @@ export default function HomePage() {
             <Reveal
               key={`${title}-${index}`}
               delay={index * 100}
-              className="relative overflow-hidden rounded-lg border border-border/70 bg-card/40 p-7 sm:p-8"
+              className="relative overflow-hidden rounded-xl bg-fd-muted/45 p-7 sm:p-8"
             >
               <span
                 aria-hidden
@@ -136,7 +136,7 @@ export default function HomePage() {
             <Reveal
               key={title}
               delay={index * 60}
-              className="micro-hover-card group rounded-lg border border-border/70 bg-card/40 p-7 sm:p-8"
+              className="micro-hover-card group rounded-xl bg-fd-muted/45 p-7 sm:p-8"
             >
               <div className="micro-hover-icon mb-8 flex size-11 items-center justify-center rounded-lg bg-fd-muted text-fd-foreground">
                 <Icon className="size-5" />
@@ -152,7 +152,7 @@ export default function HomePage() {
 
       {/* CTA band */}
       <section className="mx-auto w-full max-w-6xl px-4 pb-28 pt-16 sm:pb-32 sm:pt-20">
-        <Reveal className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-fd-muted/50 px-6 py-20 text-center sm:py-24">
+        <Reveal className="relative overflow-hidden rounded-[2rem] bg-fd-muted/50 px-6 py-20 text-center sm:py-24">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-64"

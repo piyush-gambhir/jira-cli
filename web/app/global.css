@@ -204,7 +204,7 @@
 
 .micro-hover-card {
   transition:
-    border-color var(--duration-xs) var(--cubic-default),
+    background-color var(--duration-xs) var(--cubic-default),
     transform var(--duration-xs) var(--cubic-default);
 }
 
@@ -216,7 +216,7 @@
 }
 
 .micro-hover-card:hover {
-  border-color: color-mix(in oklab, var(--border) 60%, var(--foreground));
+  background-color: color-mix(in oklab, var(--muted) 70%, var(--background));
   transform: translateY(-2px);
 }
 
@@ -250,15 +250,6 @@
 }
 
 /* Floating navigation refinements */
-.floating-header-surface {
-  border-color: color-mix(in oklab, var(--border) 72%, transparent);
-  transition: border-color var(--duration-s) var(--cubic-default);
-}
-
-.floating-header-surface[data-scrolled='true'] {
-  border-color: color-mix(in oklab, var(--border) 72%, var(--foreground) 28%);
-}
-
 .nav-underline-slide {
   position: relative;
 }
@@ -463,11 +454,7 @@ html[data-lenis] {
   border-radius: 0.375em;
 }
 
-.nav-bar__outline {
-  inset: -1px;
-  border: 1px solid oklch(0.985 0 0 / 10%);
-  border-radius: 0.4375em;
-}
+.nav-bar__outline { display: none; }
 
 .nav-bar__bg { background: oklch(0.205 0 0); }
 
@@ -648,69 +635,11 @@ html[data-lenis] {
 .nav-desktop-menu__col a { transition: color var(--duration-s) var(--cubic-default); }
 .nav-desktop-menu__col a:hover { color: var(--site-accent); }
 
-.under-nav-bar {
-  position: fixed;
-  z-index: 50;
-  top: 0;
-  width: 100%;
-  padding: var(--nav-bar-height) 1.875em 0;
-  opacity: 1;
-  pointer-events: none;
-  transition:
-    opacity var(--duration-s) var(--cubic-default),
-    visibility 0s linear 0s;
-}
-html[data-menu-open] .under-nav-bar {
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity var(--duration-s) var(--cubic-default),
-    visibility 0s linear var(--duration-s);
-}
-.under-nav-bar__inner {
-  width: 100%;
-  max-width: 38em;
-  margin-inline: auto;
-  padding-top: 0.375em;
-}
-.nav-marquee {
-  display: flex;
-  width: 100%;
-  height: 1.5em;
-  align-items: center;
-  overflow: hidden;
-  color: oklch(0.145 0 0);
-  background: var(--site-accent);
-  font-family: var(--font-mono), monospace;
-  font-size: 0.6875em;
-  line-height: 1;
-  letter-spacing: 0.08em;
-  text-decoration: none !important;
-  text-transform: uppercase;
-  pointer-events: auto;
-}
-.marquee-css { display: flex; width: max-content; height: 100%; }
-.marquee-css__list {
-  display: flex;
-  flex: none;
-  align-items: center;
-  animation: translate-nav-marquee 30s linear infinite;
-}
-.nav-marquee__item {
-  display: flex;
-  flex: none;
-  align-items: center;
-  gap: 0.75em;
-  padding-right: 2.5em;
-}
-.nav-marquee__mark { color: oklch(0.145 0 0); font-weight: 600; }
-@keyframes translate-nav-marquee { to { transform: translateX(-100%); } }
 
 /* Osmo-inspired closing chapter. */
 .site-footer {
   position: relative;
   overflow: hidden;
-  border-top: 1px solid var(--border);
   color: var(--foreground);
   background: color-mix(in oklab, var(--muted) 20%, var(--background));
 }
@@ -761,8 +690,7 @@ html[data-menu-open] .under-nav-bar {
 .site-footer .site-footer__install {
   max-width: none;
   margin-top: 1.5rem;
-  border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--background) 60%, transparent);
+  background: color-mix(in oklab, var(--muted) 55%, transparent);
   transition: background-color var(--duration-s) var(--cubic-default);
 }
 .site-footer__actions {
@@ -877,16 +805,16 @@ html[data-menu-open] .under-nav-bar {
   align-items: center;
   min-height: 2rem;
   padding: 0.45rem 0.75rem;
-  border: 1px solid var(--border);
   border-radius: 3rem;
+  background: color-mix(in oklab, var(--muted) 60%, transparent);
   transition:
     color var(--duration-s) var(--cubic-default),
     border-color var(--duration-s) var(--cubic-default),
     background-color var(--duration-s) var(--cubic-default);
 }
 .site-footer__legal a:is(:hover, :focus-visible) {
-  border-color: var(--site-accent);
   color: var(--site-accent);
+  background: var(--site-accent-muted);
 }
 .site-footer__credit a {
   border-color: transparent;
@@ -909,11 +837,12 @@ html[data-menu-open] .under-nav-bar {
     gap: 4.5rem;
   }
   .site-footer__start h2 { max-width: 8em; }
-  .site-footer__groups {
-    display: block;
-    border-top: 1px solid var(--border);
+  .site-footer__groups { display: flex; flex-direction: column; gap: 0.5rem; }
+  .site-footer__group {
+    padding-inline: 1rem;
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--muted) 40%, transparent);
   }
-  .site-footer__group { border-bottom: 1px solid var(--border); }
   .site-footer__group-toggle { padding: 1.1rem 0; cursor: pointer; }
   .site-footer__plus {
     position: relative;
@@ -986,8 +915,6 @@ html[data-menu-open] .under-nav-bar {
   .nav-bar__bottom-inner { width: 100vw; max-height: calc(100dvh - 4.125em); border-radius: 0; }
   .nav-desktop-menu { grid-template-columns: 1fr; padding: 1em; }
   .nav-desktop-menu__col { min-height: auto; padding: 1.5em; }
-  .under-nav-bar { padding: 4.125em 0.5em 0; }
-  .under-nav-bar__inner { padding-top: 0; transform: translateY(-2px); }
 }
 
 @media (max-width: 479px) {
@@ -1007,7 +934,7 @@ html[data-menu-open] .under-nav-bar {
   .nav-desktop-menu__col { transform: none !important; }
   .action-button .button-label.is--secondary { display: none; }
   .nav *,
-  .under-nav-bar,
+
   .action-button .button-label,
   .action-button .button-bg,
   .site-footer__group-panel,
