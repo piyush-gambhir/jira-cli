@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import type { CSSProperties } from 'react';
 import { Provider } from '@/components/provider';
+import { LenisProvider } from '@/lib/motion/LenisProvider';
 import { site } from '@/lib/site';
 import './global.css';
 
@@ -61,7 +62,9 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         />
       </head>
       <body className="flex flex-col min-h-screen">
-        <Provider>{children}</Provider>
+        <LenisProvider>
+          <Provider>{children}</Provider>
+        </LenisProvider>
       </body>
     </html>
   );

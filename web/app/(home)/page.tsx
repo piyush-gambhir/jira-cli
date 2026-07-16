@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
-import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ActionButton } from '@/components/ui/action-button';
 import { InstallCommand } from '@/components/install-command';
 import { HeroTerminal } from '@/components/hero-terminal';
 import { Reveal } from '@/components/reveal';
@@ -86,17 +85,17 @@ export default function HomePage() {
           </p>
 
           <div className="fade-up fade-up-delay-2 mt-9 flex flex-wrap items-center justify-center gap-3">
-            <Button size="lg" render={<Link href="/docs" />} rollLabel>
+            <ActionButton href="/docs" aria-label="Get started">
               Get started
               <ArrowRight className="size-4" />
-            </Button>
-            <Button
-              size="lg"
-              variant="ghost"
-              render={<Link href={repoUrl} />}
+            </ActionButton>
+            <ActionButton
+              href={repoUrl}
+              theme="neutral"
+              aria-label="View on GitHub"
             >
               View on GitHub
-            </Button>
+            </ActionButton>
           </div>
           <InstallCommand
             command={site.installCommand}
@@ -243,10 +242,10 @@ export default function HomePage() {
           </p>
           <div className="mt-9 flex flex-col items-center gap-5">
             <InstallCommand command={site.installCommand} />
-            <Button render={<Link href="/docs" />} rollLabel>
+            <ActionButton href="/docs" aria-label="Read the docs">
               Read the docs
               <ArrowRight className="size-4" />
-            </Button>
+            </ActionButton>
           </div>
         </Reveal>
       </section>
