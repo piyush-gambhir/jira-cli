@@ -1,38 +1,10 @@
-import { HomeHero, HomeStats } from '@/components/home-hero';
+import { HomeHero } from '@/components/home-hero';
 import { Reveal } from '@/components/reveal';
 import { SiteFooter } from '@/components/site-footer';
 import { site, type SiteStep } from '@/lib/site';
 
 const eyebrowClass =
   'font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--site-accent)]';
-
-function splitDescription(
-  description: string,
-  highlights: string[] | undefined,
-) {
-  const matchedHighlights = Array.from(
-    new Set(
-      (highlights ?? []).filter(
-        (highlight) => highlight && description.includes(highlight),
-      ),
-    ),
-  ).sort((a, b) => b.length - a.length);
-
-  if (!matchedHighlights.length) {
-    return [{ text: description, highlighted: false }];
-  }
-
-  const escapedHighlights = matchedHighlights.map((highlight) =>
-    highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
-  );
-  const pattern = new RegExp(`(${escapedHighlights.join('|')})`, 'g');
-  const highlightSet = new Set(matchedHighlights);
-
-  return description
-    .split(pattern)
-    .filter(Boolean)
-    .map((text) => ({ text, highlighted: highlightSet.has(text) }));
-}
 
 export default function HomePage() {
   const firstExampleCommand =
@@ -58,15 +30,10 @@ export default function HomePage() {
     },
   ];
   const steps = site.steps?.length ? site.steps : fallbackSteps;
-  const descriptionParts = splitDescription(
-    site.description,
-    site.descriptionHighlights,
-  );
 
   return (
     <main className="flex flex-1 flex-col">
-      <HomeHero descriptionParts={descriptionParts} />
-      <HomeStats stats={site.stats} />
+      <HomeHero />
 
       {/* Getting started */}
       <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:py-[7.5rem]">

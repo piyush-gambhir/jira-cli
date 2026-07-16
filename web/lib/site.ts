@@ -20,11 +20,6 @@ export interface SiteStep {
   snippet?: string;
 }
 
-export interface SiteStat {
-  value: string;
-  label: string;
-}
-
 export interface SiteConfig {
   /** Display name, e.g. "Jira CLI" */
   name: string;
@@ -36,8 +31,6 @@ export interface SiteConfig {
   tagline: string;
   /** Hero sub-paragraph */
   description: string;
-  /** Optional phrases highlighted in the hero description */
-  descriptionHighlights?: string[];
   /** Small pill above the heading */
   badge: string;
   /** One-line install command shown in the hero */
@@ -64,8 +57,6 @@ export interface SiteConfig {
   accentName?: string;
   /** Optional: three-step getting-started sequence */
   steps?: SiteStep[];
-  /** Optional: compact project statistics shown below the hero */
-  stats?: SiteStat[];
 }
 
 export const site: SiteConfig = {
@@ -75,7 +66,6 @@ export const site: SiteConfig = {
   tagline: 'Jira from your terminal',
   description:
     'A fast, scriptable CLI over the Jira REST API. Manage issues, JQL search, transitions, comments, boards, and sprints — built for humans and coding agents alike.',
-  descriptionHighlights: ['JQL search', 'boards', 'coding agents'],
   badge: 'Open-source · Cloud & Server/DC',
   accent: 'oklch(0.76 0.16 235)',
   accentHue: 235,
@@ -100,12 +90,6 @@ export const site: SiteConfig = {
       snippet:
         'jira issue search "assignee = currentUser() AND statusCategory != Done" -o json',
     },
-  ],
-  stats: [
-    { value: '50+', label: 'commands' },
-    { value: '5', label: 'auth methods' },
-    { value: '1', label: 'static binary' },
-    { value: '0', label: 'runtime deps' },
   ],
   features: [
     {
