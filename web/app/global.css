@@ -260,6 +260,51 @@
   transform: translateY(-2px);
 }
 
+/* Floating navigation refinements */
+.floating-header-surface {
+  border-color: color-mix(in oklab, var(--border) 72%, transparent);
+  transition: border-color var(--dur-base) var(--ease-out-brand);
+}
+
+.floating-header-surface[data-scrolled='true'] {
+  border-color: color-mix(in oklab, var(--border) 72%, var(--foreground) 28%);
+}
+
+.nav-underline-slide {
+  position: relative;
+}
+
+.nav-underline-slide::after {
+  position: absolute;
+  right: 0;
+  bottom: 0.2rem;
+  left: 0;
+  height: 1px;
+  background: var(--accent);
+  content: '';
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-base) var(--ease-out-brand);
+}
+
+.nav-underline-slide:is(:hover, :focus-visible)::after {
+  transform: scaleX(1);
+}
+
+.floating-header-mobile-item {
+  opacity: 0;
+  transform: translateY(-6px) rotate(0.001deg);
+  transition:
+    opacity var(--dur-base) var(--ease-out-brand),
+    transform var(--dur-base) var(--ease-out-brand);
+}
+
+[data-open='true'] .floating-header-mobile-item {
+  opacity: 1;
+  transform: translateY(0) rotate(0.001deg);
+  transition-delay: calc(120ms + var(--mobile-item-index, 0) * 45ms);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .word-mask-reveal,
   .fade-up,
@@ -277,7 +322,10 @@
   .reveal,
   .micro-hover-card,
   .micro-hover-icon,
-  .micro-hover-lift {
+  .micro-hover-lift,
+  .floating-header-surface,
+  .nav-underline-slide::after,
+  .floating-header-mobile-item {
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
