@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { gsap } from '@/lib/motion/gsap';
-import { useGsap } from '@/lib/motion/useGsap';
+import { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface PlaybackPosition {
@@ -16,7 +14,7 @@ function Line({ line, isTyping = false }: { line: string; isTyping?: boolean }) 
 
   // Comment line
   if (line.trimStart().startsWith('#')) {
-    return <span className="terminal-token--comment">{line}</span>;
+    return <span className="text-fd-muted-foreground/70">{line}</span>;
   }
 
   const tokens = line.split(/(\s+)/);
@@ -31,14 +29,14 @@ function Line({ line, isTyping = false }: { line: string; isTyping?: boolean }) 
         if (!seenBinary) {
           seenBinary = true;
           return (
-            <span key={i} className="terminal-token--command">
+            <span key={i} className="text-violet-500 dark:text-violet-400">
               {tok}
             </span>
           );
         }
         if (tok.startsWith('-')) {
           return (
-            <span key={i} className="terminal-token--flag">
+            <span key={i} className="text-amber-600 dark:text-amber-400">
               {tok}
             </span>
           );
@@ -49,13 +47,13 @@ function Line({ line, isTyping = false }: { line: string; isTyping?: boolean }) 
           tok.startsWith("'")
         ) {
           return (
-            <span key={i} className="terminal-token--string">
+            <span key={i} className="text-emerald-600 dark:text-emerald-400">
               {tok}
             </span>
           );
         }
         return (
-          <span key={i} className="terminal-token--text">
+          <span key={i} className="text-fd-foreground/90">
             {tok}
           </span>
         );
@@ -73,54 +71,10 @@ export function HeroTerminal({
   command: string;
   className?: string;
 }) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<HTMLDivElement>(null);
   const lines = useMemo(() => command.split('\n'), [command]);
   // `null` is deliberately the initial state so SSR and no-JS clients receive
   // the complete, highlighted example before the hydrated replay begins.
   const [playback, setPlayback] = useState<PlaybackPosition | null>(null);
-
-  useGsap(
-    () => {
-      const root = rootRef.current;
-      const terminal = terminalRef.current;
-      if (!root || !terminal || window.matchMedia('(hover: none)').matches) {
-        return;
-      }
-
-      const rotateX = gsap.quickTo(terminal, 'rotationX', {
-        duration: 0.6,
-        ease: 'brand-default',
-      });
-      const rotateY = gsap.quickTo(terminal, 'rotationY', {
-        duration: 0.6,
-        ease: 'brand-default',
-      });
-
-      const onPointerMove = (event: PointerEvent) => {
-        const bounds = root.getBoundingClientRect();
-        const x = ((event.clientX - bounds.left) / bounds.width - 0.5) * 2;
-        const y = ((event.clientY - bounds.top) / bounds.height - 0.5) * 2;
-
-        rotateX(gsap.utils.clamp(-2.5, 2.5, y * -2.5));
-        rotateY(gsap.utils.clamp(-2.5, 2.5, x * 2.5));
-      };
-      const resetTilt = () => {
-        rotateX(0);
-        rotateY(0);
-      };
-
-      root.addEventListener('pointermove', onPointerMove);
-      root.addEventListener('pointerleave', resetTilt);
-
-      return () => {
-        root.removeEventListener('pointermove', onPointerMove);
-        root.removeEventListener('pointerleave', resetTilt);
-      };
-    },
-    [],
-    rootRef,
-  );
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -164,42 +118,51 @@ export function HeroTerminal({
     : lines;
 
   return (
-    <div ref={rootRef} className={cn('hero-terminal-perspective', className)}>
-      <div ref={terminalRef} className="hero-terminal">
-        <div aria-hidden className="terminal-scanlines" />
-        {/* titlebar */}
-        <div className="hero-terminal__titlebar">
-          <span className="size-3 rounded-full bg-red-400/90" />
-          <span className="size-3 rounded-full bg-amber-400/90" />
-          <span className="size-3 rounded-full bg-emerald-400/90" />
-          <span className="hero-terminal__title">{title}</span>
-        </div>
-        {/* body */}
-        <pre className="hero-terminal__body">
-          <code>
-            {visibleLines.map((line, i) => {
-              const isTypingLine = playback?.lineIndex === i;
-              const visibleLine = isTypingLine
-                ? line.slice(0, playback?.charIndex ?? 0)
-                : line;
-
-              return (
-                <span key={i} className="block">
-                  {!line.trimStart().startsWith('#') && line.trim() !== '' ? (
-                    <span className="terminal-prompt mr-2 select-none">$</span>
-                  ) : null}
-                  <Line line={visibleLine} isTyping={isTypingLine} />
-                  {isTypingLine ? (
-                    <span aria-hidden className="terminal-caret">
-                      ▍
-                    </span>
-                  ) : null}
-                </span>
-              );
-            })}
-          </code>
-        </pre>
+    <div
+      className={cn(
+        'overflow-hidden rounded-2xl bg-fd-card shadow-[0_24px_80px_-24px_rgba(0,0,0,0.25)]',
+        className,
+      )}
+    >
+      {/* titlebar */}
+      <div className="flex items-center gap-2 bg-fd-muted/50 px-4 py-3">
+        <span className="size-3 rounded-full bg-red-400/90" />
+        <span className="size-3 rounded-full bg-amber-400/90" />
+        <span className="size-3 rounded-full bg-emerald-400/90" />
+        <span className="ml-3 text-xs font-medium text-fd-muted-foreground">
+          {title}
+        </span>
       </div>
+      {/* body */}
+      <pre className="overflow-x-auto px-5 py-4 text-left font-mono text-[13px] leading-relaxed sm:text-sm">
+        <code>
+          {visibleLines.map((line, i) => {
+            const isTypingLine = playback?.lineIndex === i;
+            const visibleLine = isTypingLine
+              ? line.slice(0, playback?.charIndex ?? 0)
+              : line;
+
+            return (
+              <span key={i} className="block">
+                {!line.trimStart().startsWith('#') && line.trim() !== '' ? (
+                  <span className="mr-2 select-none text-[var(--site-accent)]">
+                    $
+                  </span>
+                ) : null}
+                <Line line={visibleLine} isTyping={isTypingLine} />
+                {isTypingLine ? (
+                  <span
+                    aria-hidden
+                    className="terminal-caret text-[var(--site-accent)]"
+                  >
+                    ▍
+                  </span>
+                ) : null}
+              </span>
+            );
+          })}
+        </code>
+      </pre>
     </div>
   );
 }

@@ -10,18 +10,18 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.962 0.004 var(--site-hue));
-  --foreground: oklch(0.16 0.01 var(--site-hue));
-  --card: oklch(0.985 0.003 var(--site-hue));
-  --card-foreground: oklch(0.16 0.01 var(--site-hue));
-  --popover: oklch(0.985 0.003 var(--site-hue));
-  --popover-foreground: oklch(0.16 0.01 var(--site-hue));
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.93 0.006 var(--site-hue));
-  --secondary-foreground: oklch(0.16 0.01 var(--site-hue));
-  --muted: oklch(0.93 0.006 var(--site-hue));
-  --muted-foreground: oklch(0.556 0.015 var(--site-hue));
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
@@ -32,18 +32,18 @@
 }
 
 .dark {
-  --background: oklch(0.135 0.009 var(--site-hue));
-  --foreground: oklch(0.975 0.004 var(--site-hue));
-  --card: oklch(0.185 0.011 var(--site-hue));
-  --card-foreground: oklch(0.975 0.004 var(--site-hue));
-  --popover: oklch(0.185 0.011 var(--site-hue));
-  --popover-foreground: oklch(0.975 0.004 var(--site-hue));
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.985 0 0);
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.21 0.01 var(--site-hue));
-  --secondary-foreground: oklch(0.975 0.004 var(--site-hue));
-  --muted: oklch(0.21 0.01 var(--site-hue));
-  --muted-foreground: oklch(0.62 0.015 var(--site-hue));
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -93,9 +93,7 @@
 
 /* Motion system */
 :root {
-  --site-accent-strong: oklch(0.84 0.19 var(--site-hue));
-  --site-accent-muted: color-mix(in oklab, var(--site-accent) 18%, transparent);
-  --site-glow: color-mix(in oklab, var(--site-accent) 28%, transparent);
+  --site-accent-muted: color-mix(in oklab, var(--site-accent) 15%, transparent);
   --cubic-default: cubic-bezier(0.625, 0.05, 0, 1);
   --duration-xs: 0.15s;
   --duration-s: 0.3s;
@@ -227,84 +225,6 @@
   animation: terminal-caret-blink 0.9s step-end infinite;
 }
 
-/* Hero terminal: elevated shell with a static phosphor/scanline treatment. */
-.hero-terminal-perspective {
-  perspective: 1200px;
-}
-
-.hero-terminal {
-  --terminal-foreground: oklch(0.975 0.004 var(--site-hue));
-  position: relative;
-  overflow: hidden;
-  border-radius: 1rem;
-  background: oklch(0.225 0.012 var(--site-hue));
-  box-shadow: 0 30px 120px -40px var(--site-glow);
-  transform-style: preserve-3d;
-  will-change: transform;
-}
-
-.hero-terminal__titlebar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: oklch(0.205 0.012 var(--site-hue));
-}
-
-.hero-terminal__title {
-  margin-left: 0.75rem;
-  color: oklch(0.62 0.015 var(--site-hue));
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.hero-terminal__body {
-  position: relative;
-  overflow-x: auto;
-  padding: 1rem 1.25rem;
-  color: color-mix(in oklab, var(--terminal-foreground) 90%, transparent);
-  font-family: var(--font-mono), monospace;
-  font-size: 0.8125rem;
-  line-height: 1.625;
-  text-align: left;
-  text-shadow: 0 0 12px color-mix(in oklab, var(--site-accent) 35%, transparent);
-}
-
-.terminal-token--command,
-.terminal-prompt,
-.terminal-caret {
-  color: var(--site-accent-strong);
-}
-
-.terminal-token--flag { color: oklch(0.83 0.14 85); }
-.terminal-token--string { color: oklch(0.80 0.15 160); }
-.terminal-token--comment { color: oklch(0.55 0.01 var(--site-hue)); }
-.terminal-token--text { color: color-mix(in oklab, var(--terminal-foreground) 90%, transparent); }
-
-.terminal-scanlines {
-  position: absolute;
-  z-index: 10;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 2px,
-    var(--terminal-foreground) 2px,
-    var(--terminal-foreground) 3px
-  );
-  opacity: 0.03;
-  pointer-events: none;
-}
-
-@media (min-width: 640px) {
-  .hero-terminal__body { font-size: 0.875rem; }
-}
-
-@media (hover: none) {
-  .hero-terminal { transform: none !important; will-change: auto; }
-}
-
 /* Floating navigation refinements */
 .nav-underline-slide {
   position: relative;
@@ -357,8 +277,7 @@
   .micro-hover-lift,
   .floating-header-surface,
   .nav-underline-slide::after,
-  .floating-header-mobile-item,
-  .hero-terminal {
+  .floating-header-mobile-item {
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -390,7 +309,7 @@ html[data-lenis] {
   overflow: hidden;
   padding: 0 1.125em 1px;
   border-radius: 2px;
-  color: oklch(0.17 0 0);
+  color: oklch(0.145 0 0);
   background: transparent;
   font-family: var(--font-satoshi), sans-serif;
   font-size: 1em;
@@ -412,9 +331,9 @@ html[data-lenis] {
 }
 
 .action-button.is--dark { color: oklch(0.985 0 0); }
-.action-button.is--dark .button-bg { background: oklch(0.269 0.012 var(--site-hue)); }
+.action-button.is--dark .button-bg { background: oklch(0.269 0 0); }
 .action-button.is--neutral { color: oklch(0.985 0 0); }
-.action-button.is--neutral .button-bg { background: oklch(0.32 0.012 var(--site-hue)); }
+.action-button.is--neutral .button-bg { background: oklch(0.32 0 0); }
 
 .action-button .button-label-wrap {
   position: relative;
@@ -445,7 +364,7 @@ html[data-lenis] {
 /* Landing-page capabilities: intentionally dark in both site themes. */
 .capabilities-band {
   color: oklch(0.985 0 0);
-  background: oklch(0.205 0.012 var(--site-hue));
+  background: oklch(0.205 0 0);
   padding-block: 7.5em;
 }
 
@@ -563,13 +482,7 @@ html[data-lenis] {
   height: 100%;
   padding: 0;
   border: 0;
-  background: color-mix(
-    in oklab,
-    rgb(0 0 0 / 30%) 96%,
-    var(--site-glow) 4%
-  );
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background: rgb(0 0 0 / 30%);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--duration-m) var(--cubic-default);
@@ -623,7 +536,7 @@ html[data-lenis] {
 
 .nav-bar__outline { display: none; }
 
-.nav-bar__bg { background: oklch(0.205 0.012 var(--site-hue)); }
+.nav-bar__bg { background: oklch(0.205 0 0); }
 
 .nav-bar__top {
   position: relative;
@@ -735,15 +648,12 @@ html[data-lenis] {
     background-color var(--duration-s) var(--cubic-default);
 }
 .nav-icon-button svg { width: 1em; height: 1em; }
-.nav-icon-button:is(:hover, :focus-visible) {
-  color: white;
-  background: oklch(0.975 0.004 var(--site-hue) / 9%);
-}
+.nav-icon-button:is(:hover, :focus-visible) { color: white; background: oklch(1 0 0 / 9%); }
 .nav-icon-button:focus-visible,
 .nav-menu:focus-visible,
 .nav-logo:focus-visible,
 .nav-desktop-menu__col a:focus-visible { outline: 2px solid var(--site-accent); outline-offset: 2px; }
-.nav-github .button-bg { background: oklch(0.32 0.012 var(--site-hue)); }
+.nav-github .button-bg { background: oklch(0.32 0 0); }
 
 .nav-bar__bottom {
   display: grid;
@@ -762,7 +672,7 @@ html[data-lenis] {
   overflow: auto;
   border-radius: 0 0 1em 1em;
   color: oklch(0.985 0 0);
-  background: oklch(0.205 0.012 var(--site-hue));
+  background: oklch(0.205 0 0);
 }
 .nav-desktop-menu {
   display: grid;
@@ -774,7 +684,7 @@ html[data-lenis] {
   min-height: 14em;
   padding: 2em;
   border-radius: 0.5em;
-  background: oklch(0.225 0.012 var(--site-hue));
+  background: oklch(0.269 0 0);
   transform: translateY(2em) rotate(0.001deg);
   transition: transform var(--duration-m) var(--cubic-default) 0s;
 }
@@ -884,7 +794,7 @@ html[data-lenis] {
 }
 .site-footer__github svg { width: 1.125rem; height: 1.125rem; }
 .site-footer__github:is(:hover, :focus-visible) {
-  color: oklch(0.17 0 0);
+  color: oklch(0.145 0 0);
   background: var(--site-accent);
   transform: translateY(-2px);
 }
@@ -988,7 +898,7 @@ html[data-lenis] {
 }
 .site-footer__credit a {
   border-color: transparent;
-  color: oklch(0.17 0 0);
+  color: oklch(0.145 0 0);
   background: var(--site-accent);
 }
 .site-footer__credit a:is(:hover, :focus-visible) {
