@@ -43,6 +43,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
   const rootStyle = {
     '--font-display': 'var(--font-clash-display)',
     '--font-mono': 'var(--font-jetbrains-mono)',
+    '--site-hue': site.accentHue,
     ...(site.accent ? { '--site-accent': site.accent } : {}),
   } as CSSProperties;
 

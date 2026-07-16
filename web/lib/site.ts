@@ -51,6 +51,8 @@ export interface SiteConfig {
   ctaBody?: string;
   /** Optional: per-site accent expressed as an OKLCH color */
   accent?: string;
+  /** OKLCH hue angle used to tint the site's neutral color ramp */
+  accentHue: number;
   /** Optional: human-readable accent name */
   accentName?: string;
   /** Optional: three-step getting-started sequence */
@@ -65,7 +67,8 @@ export const site: SiteConfig = {
   description:
     'A fast, scriptable CLI over the Jira REST API. Manage issues, JQL search, transitions, comments, boards, and sprints — built for humans and coding agents alike.',
   badge: 'Open-source · Cloud & Server/DC',
-  accent: 'oklch(0.72 0.13 235)',
+  accent: 'oklch(0.76 0.16 235)',
+  accentHue: 235,
   accentName: 'sky',
   installCommand:
     'curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh',
