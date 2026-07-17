@@ -1,13 +1,13 @@
 ---
 title: Output formats
-description: table, json, and yaml output — and the stdout/stderr contract.
+description: table, json, and yaml output, plus the stdout/stderr contract.
 ---
 
 Add `-o <format>` to any list/get command:
 
-- `-o table` — default, human-readable
-- `-o json` — parse with `jq`
-- `-o yaml` — YAML output
+- `-o table`: default, human-readable
+- `-o json`: parse with `jq`
+- `-o yaml`: YAML output
 
 <Callout type="info">
   **Agents: always use `-o json`.** Informational lines (e.g. "Created ABC-1", the

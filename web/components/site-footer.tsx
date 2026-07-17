@@ -4,9 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { InstallCommand } from '@/components/install-command';
-import { ActionButton } from '@/components/ui/action-button';
+import { OsmoButton } from '@/components/ui/osmo-button';
 import { site } from '@/lib/site';
-import { getOtherSuiteProjects } from '@/lib/suite';
 
 const documentationLinks = [
   { label: 'Introduction', href: '/docs' },
@@ -32,13 +31,6 @@ export function SiteFooter() {
         { label: 'License', href: `${repoUrl}/blob/main/LICENSE` },
       ],
     },
-    {
-      title: 'More tools',
-      links: getOtherSuiteProjects(site.repo).map(({ name, href }) => ({
-        label: name,
-        href,
-      })),
-    },
   ];
   const [activeGroup, setActiveGroup] = useState(groups[0]?.title ?? '');
 
@@ -47,7 +39,6 @@ export function SiteFooter() {
       <div className="site-footer__inner">
         <div className="site-footer__top">
           <div className="site-footer__start">
-            <p className="site-footer__eyebrow">Start building</p>
             <h2>Get started in seconds</h2>
             <p className="site-footer__intro">
               Install {site.binary}, then follow the quick start to connect your
@@ -58,10 +49,13 @@ export function SiteFooter() {
               className="site-footer__install"
             />
             <div className="site-footer__actions">
-              <ActionButton href="/docs" aria-label="Get started">
+              <OsmoButton
+                href="/docs"
+                aria-label="Get started"
+                icon={<ArrowRight />}
+              >
                 Get started
-                <ArrowRight className="size-4" />
-              </ActionButton>
+              </OsmoButton>
               <a
                 className="site-footer__github"
                 href={repoUrl}
@@ -152,8 +146,9 @@ export function SiteFooter() {
           </div>
           <div className="site-footer__details">
             <div className="site-footer__legal">
-              <Link href="/privacy-policy.html">Privacy</Link>
-              <Link href="/terms-of-service.html">Terms</Link>
+              <Link href="/privacy">Privacy</Link>
+              <Link href="/terms">Terms</Link>
+              <Link href="/contact">Contact</Link>
             </div>
             <p>
               © {year} {site.name}

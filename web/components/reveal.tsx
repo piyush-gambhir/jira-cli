@@ -24,6 +24,11 @@ export function Reveal({
 
     if (!element) return;
 
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      element.classList.add('is-inview');
+      return;
+    }
+
     if (!('IntersectionObserver' in window)) {
       element.classList.add('is-inview');
       return;

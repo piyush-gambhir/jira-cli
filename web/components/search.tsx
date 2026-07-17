@@ -34,14 +34,17 @@ export default function DefaultSearchDialog(props: SharedProps) {
 
   return (
     <SearchDialog search={search} onSearchChange={setSearch} isLoading={query.isLoading} {...props}>
-      <SearchDialogOverlay />
-      <SearchDialogContent>
-        <SearchDialogHeader>
-          <SearchDialogIcon />
-          <SearchDialogInput />
-          <SearchDialogClose />
+      <SearchDialogOverlay className="jira-search-overlay" />
+      <SearchDialogContent className="jira-search-dialog">
+        <SearchDialogHeader className="jira-search-header">
+          <SearchDialogIcon className="jira-search-icon" />
+          <SearchDialogInput className="jira-search-input" />
+          <SearchDialogClose className="jira-search-close" />
         </SearchDialogHeader>
-        <SearchDialogList items={query.data !== 'empty' ? query.data : null} />
+        <SearchDialogList
+          className="jira-search-results"
+          items={query.data !== 'empty' ? query.data : null}
+        />
       </SearchDialogContent>
     </SearchDialog>
   );

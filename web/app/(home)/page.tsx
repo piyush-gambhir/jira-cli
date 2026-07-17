@@ -1,10 +1,47 @@
+import Link from 'next/link';
 import { HomeHero } from '@/components/home-hero';
 import { Reveal } from '@/components/reveal';
 import { SiteFooter } from '@/components/site-footer';
-import { site, type SiteStep } from '@/lib/site';
+import {
+  licenseUrl,
+  repositoryUrl,
+  site,
+  siteMetadataDescription,
+  type SiteStep,
+} from '@/lib/site';
+import { siteUrl } from '@/lib/shared';
+import { getOtherSuiteProjects } from '@/lib/suite';
 
-const eyebrowClass =
-  'font-mono text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--site-accent)]';
+const revealDelays = ['0s', '0.075s', '0.15s'] as const;
+const contextualBodyLinks: Record<
+  string,
+  { href: string; text: string }
+> = {
+  Install: {
+    href: '/docs/installation',
+    text: 'Install the latest jira-cli binary',
+  },
+  Authenticate: {
+    href: '/docs/authentication',
+    text: 'Create a Jira profile',
+  },
+  Run: {
+    href: '/docs/quickstart',
+    text: 'Search, update, and automate Jira',
+  },
+  'JQL & issues': {
+    href: '/docs/commands/issues',
+    text: 'Search with raw JQL',
+  },
+  'Agent-friendly': {
+    href: '/docs/agents',
+    text: '-o json|yaml on every read',
+  },
+  'Agile built in': {
+    href: '/docs/commands/agile',
+    text: 'Boards, sprints, epics, backlogs',
+  },
+};
 
 export default function HomePage() {
   const firstExampleCommand =
@@ -30,98 +67,142 @@ export default function HomePage() {
     },
   ];
   const steps = site.steps?.length ? site.steps : fallbackSteps;
+  const relatedLinks = getOtherSuiteProjects(site.repo).map(({ href }) => href);
+  const softwareApplication = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    '@id': `${siteUrl}/#software-application`,
+    name: site.name,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: ['macOS', 'Linux', 'Windows'],
+    license: licenseUrl,
+    url: siteUrl,
+    sameAs: [repositoryUrl],
+    description: siteMetadataDescription,
+    relatedLink: relatedLinks,
+    featureList: [
+      'Structured JSON and YAML output for list and get commands used by coding agents',
+      'Read-only safety mode that blocks write commands',
+      'Non-interactive automation with no-input and quiet flags',
+      'Works with any coding agent or agent harness that can run shell commands',
+    ],
+    keywords: [
+      'coding agent',
+      'AI agent CLI',
+      'agent harness',
+      'MCP-free shell integration',
+      'terminal automation',
+      'jira automation',
+    ],
+  };
+  const website = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${siteUrl}/#website`,
+    name: site.name,
+    url: siteUrl,
+    inLanguage: 'en',
+    sameAs: [repositoryUrl],
+    description: siteMetadataDescription,
+    relatedLink: relatedLinks,
+  };
 
   return (
-    <main className="flex flex-1 flex-col">
+    <main className="osmo-home flex flex-1 flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(softwareApplication) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(website) }}
+      />
       <HomeHero />
 
       {/* Getting started */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-24 sm:py-[7.5rem]">
-        <Reveal className="max-w-2xl">
-          <p className={eyebrowClass}>Getting started</p>
-          <h2 className="mt-4 text-balance font-display text-4xl font-[550] leading-[1.02] tracking-[-0.04em] sm:text-5xl">
-            Up and running in three moves
-          </h2>
-        </Reveal>
+      <section className="osmo-section osmo-section--steps">
+        <div className="osmo-container">
+          <Reveal className="osmo-section__header">
+            <h2 className="osmo-section__title">
+              Up and running in three moves
+            </h2>
+          </Reveal>
 
-        <div className="mt-14 grid gap-5 md:grid-cols-3">
-          {steps.map(({ title, body, snippet }, index) => (
-            <Reveal
-              key={`${title}-${index}`}
-              delay={index * 100}
-              className="relative overflow-hidden rounded-xl bg-fd-muted/45 p-7 sm:p-8"
-            >
-              <span
-                aria-hidden
-                className="pointer-events-none absolute right-4 top-0 font-mono text-[6.5rem] font-semibold leading-none text-[color-mix(in_oklab,var(--site-accent)_15%,transparent)]"
+          <div className="osmo-card-grid osmo-card-grid--steps">
+            {steps.map(({ title, body, snippet }, index) => (
+              <Reveal
+                key={`${title}-${index}`}
+                delay={revealDelays[index % revealDelays.length]}
+                className="osmo-card osmo-step-card"
               >
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <span className={`${eyebrowClass} relative`}>
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <h3 className="relative mt-12 text-xl font-semibold">{title}</h3>
-              <p className="relative mt-3 text-sm leading-relaxed text-muted-foreground">
-                {body}
-              </p>
-              {snippet ? (
-                <code className="relative mt-6 block overflow-hidden text-ellipsis whitespace-nowrap rounded-lg bg-fd-muted px-3 py-2.5 font-mono text-xs text-fd-foreground">
-                  <span aria-hidden className="mr-2 text-[var(--site-accent)]">
-                    $
-                  </span>
-                  {snippet}
-                </code>
-              ) : null}
-            </Reveal>
-          ))}
+                <span className="osmo-eyebrow osmo-card__number">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <h3 className="osmo-card__title">{title}</h3>
+                <p className="osmo-card__body">
+                  <ContextualBody body={body} link={contextualBodyLinks[title]} />
+                </p>
+                {snippet ? (
+                  <code className="osmo-card__snippet">
+                    <span aria-hidden>$</span>
+                    {snippet}
+                  </code>
+                ) : null}
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Capabilities */}
       <section
-        className="capabilities-band"
+        className="osmo-section osmo-section--features"
         data-theme-section="dark"
         aria-labelledby="capabilities-heading"
       >
-        <div className="capabilities-band__inner">
-          <Reveal className="capabilities-band__header">
-            <p className="capabilities-band__eyebrow">Capabilities</p>
-            <h2 id="capabilities-heading" className="capabilities-band__title">
+        <div className="osmo-container">
+          <Reveal className="osmo-section__header">
+            <h2 id="capabilities-heading" className="osmo-section__title">
               {site.featuresTitle ?? 'Everything, from one binary'}
             </h2>
           </Reveal>
 
-          <div className="capabilities-grid">
+          <div className="osmo-card-grid osmo-card-grid--features">
             {site.features.map(({ title, body }, index) => (
               <Reveal
                 key={title}
-                delay={index * 60}
-                className="capabilities-grid__item"
+                delay={revealDelays[index % revealDelays.length]}
+                className="osmo-card osmo-feature-card"
               >
-                <span aria-hidden className="capabilities-grid__number">
+                <span className="osmo-eyebrow osmo-card__number">
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <h3 className="capabilities-grid__title">{title}</h3>
-                <p className="capabilities-grid__body">{body}</p>
+                <h3 className="osmo-card__title">{title}</h3>
+                <p className="osmo-card__body">
+                  <ContextualBody body={body} link={contextualBodyLinks[title]} />
+                </p>
               </Reveal>
             ))}
           </div>
 
           {site.compatible?.length ? (
-            <Reveal as="p" className="capabilities-band__compatible">
-              {site.compatible.map((item, index) => (
-                <span key={item}>
-                  {index > 0 ? (
-                    <span
-                      aria-hidden
-                      className="capabilities-band__separator"
-                    >
-                      {' · '}
-                    </span>
-                  ) : null}
-                  {item}
-                </span>
-              ))}
+            <Reveal className="compatible-marquee">
+              <div className="compatible-marquee__track">
+                {[false, true].map((hidden) => (
+                  <span
+                    className="compatible-marquee__list"
+                    aria-hidden={hidden || undefined}
+                    key={String(hidden)}
+                  >
+                    {site.compatible?.map((item) => (
+                      <span className="compatible-marquee__item" key={item}>
+                        {item}
+                        <span aria-hidden>{' · '}</span>
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </div>
             </Reveal>
           ) : null}
         </div>
@@ -130,4 +211,28 @@ export default function HomePage() {
       <SiteFooter />
     </main>
   );
+}
+
+function ContextualBody({
+  body,
+  link,
+}: {
+  body: string;
+  link?: { href: string; text: string };
+}) {
+  if (!link || !body.includes(link.text)) return body;
+
+  const [before, after] = body.split(link.text, 2);
+
+  return (
+    <>
+      {before}
+      <Link href={link.href}>{link.text}</Link>
+      {after}
+    </>
+  );
+}
+
+function serializeJsonLd(value: object): string {
+  return JSON.stringify(value).replace(/</g, '\\u003c');
 }

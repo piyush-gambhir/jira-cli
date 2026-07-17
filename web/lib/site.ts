@@ -63,7 +63,7 @@ export const site: SiteConfig = {
   repo: 'piyush-gambhir/jira-cli',
   tagline: 'Jira from your terminal',
   description:
-    'A fast, scriptable CLI over the Jira REST API. Manage issues, JQL search, transitions, comments, boards, and sprints — built for humans and coding agents alike.',
+    'A fast, scriptable CLI over the Jira REST API. Manage issues, JQL search, transitions, comments, boards, and sprints, built for humans and coding agents alike.',
   badge: 'Open-source · Cloud & Server/DC',
   accent: 'oklch(0.72 0.13 235)',
   accentName: 'sky',
@@ -97,7 +97,7 @@ export const site: SiteConfig = {
     {
       icon: KeyRound,
       title: 'Every auth method',
-      body: 'OAuth 2.0 (3LO), Cloud API tokens, scoped tokens, Server/DC PATs, and basic auth — with multiple named profiles.',
+      body: 'OAuth 2.0 (3LO), Cloud API tokens, scoped tokens, Server/DC PATs, and basic auth, with multiple named profiles.',
     },
     {
       icon: Bot,
@@ -140,3 +140,9 @@ jira issue transition ABC-123 "In Progress"`,
     "Server / DC",
   ],
 };
+
+export const repositoryUrl = `https://github.com/${site.repo}`;
+export const licenseUrl = `${repositoryUrl}/blob/main/LICENSE`;
+export const projectDescription =
+  'Jira CLI is an independent, unofficial open-source command-line interface for managing Jira Cloud and Server/Data Center from the terminal.';
+export const siteMetadataDescription = `${projectDescription} Search with JQL, manage issues and agile workflows, and automate Jira with scriptable output.`;

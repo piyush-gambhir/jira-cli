@@ -4,34 +4,13 @@ export interface SuiteProject {
 }
 
 export const suite: readonly SuiteProject[] = [
-  {
-    name: 'jira-cli',
-    href: 'https://github.com/piyush-gambhir/jira-cli',
-  },
-  {
-    name: 'jenkins-cli',
-    href: 'https://github.com/piyush-gambhir/jenkins-cli',
-  },
-  {
-    name: 'es-cli',
-    href: 'https://github.com/piyush-gambhir/es-cli',
-  },
-  {
-    name: 'grafana-cli',
-    href: 'https://github.com/piyush-gambhir/grafana-cli',
-  },
-  {
-    name: 'cubeapm-cli',
-    href: 'https://github.com/piyush-gambhir/cubeapm-cli',
-  },
-  {
-    name: 'nginxpm-cli',
-    href: 'https://github.com/piyush-gambhir/nginxpm-cli',
-  },
-  {
-    name: 'reckon',
-    href: 'https://github.com/piyush-gambhir/reckon',
-  },
+  { name: 'jira-cli', href: 'https://projects.piyushgambhir.com/jira-cli' },
+  { name: 'cubeapm-cli', href: 'https://projects.piyushgambhir.com/cubeapm-cli' },
+  { name: 'es-cli', href: 'https://projects.piyushgambhir.com/es-cli' },
+  { name: 'grafana-cli', href: 'https://projects.piyushgambhir.com/grafana-cli' },
+  { name: 'jenkins-cli', href: 'https://projects.piyushgambhir.com/jenkins-cli' },
+  { name: 'nginxpm-cli', href: 'https://projects.piyushgambhir.com/nginxpm-cli' },
+  { name: 'reckon', href: 'https://projects.piyushgambhir.com/reckon' },
 ];
 
 export function getOtherSuiteProjects(currentSite: string): SuiteProject[] {

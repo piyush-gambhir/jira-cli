@@ -4,6 +4,7 @@ description: The JSON output contract and safety flags for coding agents.
 ---
 
 Jira CLI is built to be driven by coding agents as well as humans.
+It works with Claude Code, OpenAI Codex, Cursor, or any coding agent or agent harness that can run shell commands.
 
 ## The output contract
 
@@ -28,7 +29,7 @@ JIRA_READ_ONLY=1 JIRA_NO_INPUT=1 jira issue search "project = ABC" -o json
 
 ## Configuration via environment
 
-No `auth login` step is needed — set credentials directly:
+No `auth login` step is needed. Set credentials directly:
 
 ```bash
 export JIRA_SITE=https://acme.atlassian.net

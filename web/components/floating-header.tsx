@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useSearchContext } from 'fumadocs-ui/contexts/search';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActionButton } from '@/components/ui/action-button';
+import { OsmoButton } from '@/components/ui/osmo-button';
 import { site } from '@/lib/site';
-import { getOtherSuiteProjects } from '@/lib/suite';
 
 type MenuLink = { label: string; href: string; external?: boolean };
 
@@ -15,6 +14,7 @@ export function FloatingHeader() {
   const { setTheme, resolvedTheme } = useTheme();
   const { setOpenSearch } = useSearchContext();
   const [open, setOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const focusTrap = useRef<HTMLDivElement>(null);
@@ -37,14 +37,6 @@ export function FloatingHeader() {
         { label: 'Issues', href: `${repoUrl}/issues`, external: true },
         { label: 'License', href: `${repoUrl}/blob/main/LICENSE`, external: true },
       ],
-    },
-    {
-      title: 'More tools',
-      links: getOtherSuiteProjects(site.repo).map(({ name, href }) => ({
-        label: name,
-        href,
-        external: true,
-      })),
     },
   ];
 
@@ -93,6 +85,24 @@ export function FloatingHeader() {
     };
   }, [closeMenu, open]);
 
+  useEffect(() => {
+    if (open) setHidden(false);
+  }, [open]);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastY;
+      // Small deltas are ignored so momentum jitter doesn't flicker the bar.
+      if (Math.abs(delta) < 8) return;
+      setHidden(y > 120 && delta > 0);
+      lastY = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const openSearch = () => {
     closeMenu(false);
     setOpenSearch(true);
@@ -102,6 +112,7 @@ export function FloatingHeader() {
     <nav
       className="nav"
       data-nav-status={open ? 'active' : 'not-active'}
+      data-nav-hidden={hidden || undefined}
       aria-label="Primary navigation"
     >
       <button
@@ -115,7 +126,6 @@ export function FloatingHeader() {
         <div className="nav-bar__width">
           <div ref={focusTrap} className="nav-bar">
             <div className="nav-bar__back" aria-hidden="true">
-              <span className="nav-bar__outline" />
               <span className="nav-bar__bg" />
             </div>
 
@@ -144,7 +154,10 @@ export function FloatingHeader() {
               <div className="nav-bar__logo">
                 <Link href="/" className="nav-logo" aria-label={`${site.name} home`}>
                   <span className="nav-logo__wordmark">
-                    <span>&gt;_</span> {site.binary}
+                    <span aria-hidden>
+                      &gt;<span className="nav-logo__cursor">_</span>
+                    </span>{' '}
+                    {site.binary}
                   </span>
                   <span className="nav-logo__icon" aria-hidden="true">&gt;_</span>
                 </Link>
@@ -168,7 +181,7 @@ export function FloatingHeader() {
                   <Sun className="hidden dark:block" />
                   <Moon className="dark:hidden" />
                 </button>
-                <ActionButton
+                <OsmoButton
                   href={repoUrl}
                   target="_blank"
                   rel="noreferrer"
@@ -177,10 +190,10 @@ export function FloatingHeader() {
                   className="nav-github"
                 >
                   GitHub
-                </ActionButton>
-                <ActionButton href="/docs" radius="pill" className="nav-get-started">
+                </OsmoButton>
+                <OsmoButton href="/docs" radius="pill" className="nav-get-started">
                   Get started
-                </ActionButton>
+                </OsmoButton>
               </div>
             </div>
 
@@ -197,7 +210,7 @@ export function FloatingHeader() {
                       <section className="nav-desktop-menu__col" key={group.title}>
                         <p className="nav-menu__eyebrow">{group.title}</p>
                         <ul>
-                          {group.links.map((link) => (
+                          {group.links.map((link, index) => (
                             <li key={link.label}>
                               <Link
                                 href={link.href}
@@ -205,6 +218,9 @@ export function FloatingHeader() {
                                 rel={link.external ? 'noreferrer' : undefined}
                                 onClick={() => closeMenu(false)}
                               >
+                                <span aria-hidden className="nav-menu-link__index">
+                                  {String(index + 1).padStart(2, '0')}
+                                </span>
                                 {link.label}
                               </Link>
                             </li>
