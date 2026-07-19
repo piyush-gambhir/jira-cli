@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPage } from '@/components/legal-page';
-import { createPageMetadata } from '@/lib/metadata';
+import { createPageMetadata, describePage } from '@/lib/metadata';
 
 export const metadata: Metadata = createPageMetadata({
   title: 'Terms of Service',
-  summary: 'Terms of Service covering the license, warranty, liability, and acceptable use of Jira CLI.',
+  description: describePage('Terms of Service covering the license, warranty, liability, and acceptable use of Jira CLI.'),
   path: '/terms',
 });
 

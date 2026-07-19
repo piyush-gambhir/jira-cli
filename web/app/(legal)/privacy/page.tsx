@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { LegalPage } from '@/components/legal-page';
-import { createPageMetadata } from '@/lib/metadata';
+import { createPageMetadata, describePage } from '@/lib/metadata';
 
 export const metadata: Metadata = createPageMetadata({
   title: 'Privacy Policy',
-  summary: 'Privacy Policy covering local credentials, network connections, and data handling in Jira CLI.',
+  description: describePage('Privacy Policy covering local credentials, network connections, and data handling in Jira CLI.'),
   path: '/privacy',
 });
 
