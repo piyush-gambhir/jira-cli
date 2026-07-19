@@ -53,6 +53,8 @@ export interface SiteConfig {
   accent?: string;
   /** Optional: human-readable accent name */
   accentName?: string;
+  /** Optional: hex twin of the accent, for surfaces without oklch() support (OG images) */
+  accentHex?: string;
   /** Optional: three-step getting-started sequence */
   steps?: SiteStep[];
 }
@@ -67,6 +69,7 @@ export const site: SiteConfig = {
   badge: 'Open-source · Cloud & Server/DC',
   accent: 'oklch(0.72 0.13 235)',
   accentName: 'sky',
+  accentHex: '#3fb1ea',
   installCommand:
     'curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh',
   steps: [
