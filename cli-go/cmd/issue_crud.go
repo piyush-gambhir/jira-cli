@@ -64,16 +64,17 @@ func printIssueDetail(i *client.Issue) {
 
 func newIssueCreateCmd() *cobra.Command {
 	var (
-		project     string
-		issueType   string
-		summary     string
-		description string
-		priority    string
-		assignee    string
-		labels      []string
-		parent      string
-		markdown    bool
-		extraFields []string
+		project        string
+		issueType      string
+		summary        string
+		description    string
+		priority       string
+		assignee       string
+		labels         []string
+		parent         string
+		markdown       bool
+		allowDuplicate bool
+		extraFields    []string
 	)
 	cmd := &cobra.Command{
 		Use:         "create",
@@ -84,13 +85,33 @@ func newIssueCreateCmd() *cobra.Command {
 The description is sent as ADF; use --markdown to interpret it as lightweight
 markdown. Set arbitrary fields with repeated --field name=value.
 
+To make agent reruns safe, create reuses an issue made by the current user in
+the same project during the last 10 minutes when its type, summary, and parent
+match exactly. Pass --allow-duplicate to intentionally create another one.
+
 Examples:
   jira issue create -p ABC --type Task --summary "Title" -d "Some details"
-  jira issue create -p ABC --type Bug --summary "Broken" -d "**bold** details" --markdown -a me@corp.com -l urgent`,
+  jira issue create -p ABC --type Bug --summary "Broken" -d "**bold** details" --markdown -a me@corp.com -l urgent
+  jira issue create -p ABC --type Task --summary "Repeated title" --allow-duplicate`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if project == "" || issueType == "" || summary == "" {
 				return fmt.Errorf("--project, --type and --summary are required")
+			}
+			if !allowDuplicate {
+				issues, err := jiraClient.SearchIssues(
+					recentCreateJQL(project),
+					[]string{"summary", "issuetype", "parent", "created"},
+					100,
+					false,
+				)
+				if err != nil {
+					return fmt.Errorf("checking for a recent duplicate: %w; pass --allow-duplicate to bypass the safety check", err)
+				}
+				if existing := findRecentDuplicate(issues, issueType, summary, parent); existing != nil {
+					info("Reused %s (matched a recent create; pass --allow-duplicate to create another)", existing.Key)
+					return render(existing, issueKeyTable())
+				}
 			}
 			fields := map[string]any{
 				"project":   map[string]string{"key": project},
@@ -144,8 +165,31 @@ Examples:
 	cmd.Flags().StringArrayVarP(&labels, "label", "l", nil, "Label (repeatable)")
 	cmd.Flags().StringVar(&parent, "parent", "", "Parent issue key (for subtasks)")
 	cmd.Flags().BoolVar(&markdown, "markdown", false, "Interpret --description as lightweight markdown")
+	cmd.Flags().BoolVar(&allowDuplicate, "allow-duplicate", false, "Create even if an exact recent issue already exists")
 	cmd.Flags().StringArrayVar(&extraFields, "field", nil, "Extra field as name=value (repeatable)")
 	return cmd
+}
+
+func recentCreateJQL(project string) string {
+	return "project = " + jqlQuote(project) +
+		" AND creator = currentUser() AND created >= -10m ORDER BY created DESC"
+}
+
+func findRecentDuplicate(issues []client.Issue, issueType, summary, parent string) *client.Issue {
+	for i := range issues {
+		issue := &issues[i]
+		if issue.Fields.Summary != summary || !strings.EqualFold(namedName(issue.Fields.IssueType), issueType) {
+			continue
+		}
+		existingParent := ""
+		if issue.Fields.Parent != nil {
+			existingParent = issue.Fields.Parent.Key
+		}
+		if strings.EqualFold(existingParent, parent) {
+			return issue
+		}
+	}
+	return nil
 }
 
 func newIssueEditCmd() *cobra.Command {

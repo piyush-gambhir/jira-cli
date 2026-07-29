@@ -23,8 +23,8 @@ Designed for both human operators and coding agents. All list/get commands suppo
 - **Around issues** — comments, worklogs, attachments (upload/download), links, watchers, votes.
 - **Projects, users, fields** and **Agile** boards / sprints / epics.
 - **ADF-aware** — descriptions and comments are sent as Atlassian Document Format; `--markdown` supported.
-- **Agent-friendly** — `-o json|yaml`, `--read-only` safety mode, `--no-input`, env-var config,
-  clean stdout/stderr separation, automatic rate-limit (429) backoff.
+- **Agent-friendly** — `-o json|yaml`, `--read-only` safety mode, duplicate-safe issue creation,
+  `--no-input`, env-var config, clean stdout/stderr separation, automatic rate-limit (429) backoff.
 - **Cross-platform** — macOS, Linux, Windows (amd64 and arm64). Multiple named profiles.
 
 ## Installation
@@ -92,6 +92,10 @@ jira issue create -p ABC --type Task --summary "Set up CI" -d "Details here"
 jira issue transition ABC-123 "In Progress"
 jira issue comment ABC-123 --body "On it"
 ```
+
+`issue create` is safe to rerun: an exact type/summary/parent match created by
+the current user in the same project within 10 minutes is reused. Pass
+`--allow-duplicate` when another identical issue is intentional.
 
 ## Authentication methods
 

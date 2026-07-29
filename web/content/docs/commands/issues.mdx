@@ -26,11 +26,16 @@ jira issue get ABC-123 --fields summary,status,assignee --expand changelog
 jira issue create -p ABC --type Task --summary "Title" -d "Plain description"
 jira issue create -p ABC --type Bug --summary "X" -d "**bold** details" --markdown -a me@acme.com -l urgent
 jira issue create -p ABC --type Task --summary "X" --field customfield_10010=5
+jira issue create -p ABC --type Task --summary "Repeated title" --allow-duplicate
 
 jira issue edit ABC-123 --summary "New title" --add-label triaged --remove-label blocker
 jira issue assign ABC-123 --to me@acme.com      # or @me, id:<accountId>, default, none
 jira issue delete ABC-123 --yes
 ```
+
+Create reuses an issue made by the current user in the same project during the
+last 10 minutes when its type, summary, and parent match exactly.
+`--allow-duplicate` bypasses this protection.
 
 ## Transition (change status)
 

@@ -98,6 +98,11 @@ jira issue assign ABC-123 --to me@acme.com      # or @me, id:<accountId>, defaul
 jira issue delete ABC-123 --yes
 ```
 
+Create is safe to rerun by default. If the current user created an issue in the
+same project during the last 10 minutes with the exact type, summary, and
+parent, the existing issue is returned. Use `--allow-duplicate` only when a
+second identical issue is intentional.
+
 ### Transition (change status)
 ```bash
 jira issue transitions ABC-123                  # list available transitions

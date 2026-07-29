@@ -131,6 +131,12 @@ Table mode prints a detail view; `-o json/yaml` returns the full raw issue.
 | `--label` | `-l` | Label (repeatable) |
 | `--parent` | | Parent issue key (subtasks) |
 | `--field` | | Extra field `name=value` (repeatable) |
+| `--allow-duplicate` | | Bypass recent exact-match protection and always create |
+
+By default, create is safe to rerun: it reuses an issue created by the current
+user in the same project during the last 10 minutes when the issue type,
+summary, and parent match exactly. The description may differ. Use
+`--allow-duplicate` only when another identical issue is intentional.
 
 ### `jira issue edit <key>`  *(write)*
 `--summary`, `--description`/`-d`, `--markdown`, `--priority`, `--assignee`/`-a`,

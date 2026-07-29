@@ -278,7 +278,9 @@ Get an issue. Flags: `--fields` (comma-separated), `--expand` (e.g. `renderedFie
 ```
 jira issue create [flags]
 ```
-**[mutates]** Create an issue. `-p, --project`, `--type`, and `--summary` are required. Flags: `-d, --description`, `--priority`, `-a, --assignee`, `-l, --label` (repeatable), `--parent` (parent key, for subtasks), `--markdown` (interpret description as lightweight markdown), `--field name=value` (repeatable, arbitrary fields incl. custom fields).
+**[mutates]** Create an issue. `-p, --project`, `--type`, and `--summary` are required. Flags: `-d, --description`, `--priority`, `-a, --assignee`, `-l, --label` (repeatable), `--parent` (parent key, for subtasks), `--markdown` (interpret description as lightweight markdown), `--field name=value` (repeatable, arbitrary fields incl. custom fields), `--allow-duplicate` (bypass duplicate protection).
+
+Create is safe to rerun by default. It reuses an issue created by the current user in the same project during the last 10 minutes when the issue type, summary, and parent match exactly, even if the description differs. Use `--allow-duplicate` only when another identical issue is intentional.
 
 ```
 jira issue edit <key> [flags]

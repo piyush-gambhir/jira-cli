@@ -64,6 +64,9 @@ jira status -o json     # site reachability + auth check + serverInfo
   Cloud paginates with a cursor; use `--all` to fetch everything, `--limit N` otherwise.
 - **Safety:** `--read-only` (or `read_only` in the profile) blocks every write command; `jira issue delete`
   and `jira project delete` need `--yes`. Use `--no-input` in non-interactive contexts.
+- **Issue creation is duplicate-safe by default.** If the current user created an issue in the same
+  project within the last 10 minutes with the exact type, summary, and parent, `issue create` returns
+  that issue instead of creating another. Use `--allow-duplicate` only when repetition is intentional.
 - **Multiple sites:** `--profile <name>`, managed with `jira auth list|use|logout`.
 
 ## 3. Common Workflows
@@ -174,7 +177,7 @@ jira epic get ABC-10 -o json     ;   jira epic issues ABC-10 -o json
 |---|---|
 | `issue list` | `-p/--project`, `--status`, `--assignee`, `--mine`, `--type`, `--label`, `-n/--limit`, `--all`, `--fields` |
 | `issue search` | `-j/--jql`, `-n/--limit`, `--all`, `--fields`, `--count` |
-| `issue create` | `-p/--project`, `--type`, `--summary`, `-d/--description`, `--markdown`, `--priority`, `-a/--assignee`, `-l/--label`, `--parent`, `--field k=v` |
+| `issue create` | `-p/--project`, `--type`, `--summary`, `-d/--description`, `--markdown`, `--priority`, `-a/--assignee`, `-l/--label`, `--parent`, `--field k=v`, `--allow-duplicate` |
 | `issue transition` | `--resolution`, `--comment`, `--markdown` |
 | `issue worklog` | `--time`, `--comment`, `--started`, `--adjust`, `--new-estimate` |
 | `auth login` | `--type`, `--name`, `--scope-preset read\|write\|admin\|all`, `--scope`, `--client-id/secret` |
