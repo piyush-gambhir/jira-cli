@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/gofrs/flock"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // persistMu serializes load-modify-save cycles within a process (notably OAuth

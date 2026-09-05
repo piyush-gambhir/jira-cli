@@ -1,11 +1,13 @@
 package output
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"reflect"
 
 	"github.com/olekukonko/tablewriter"
+	"github.com/olekukonko/tablewriter/tw"
 )
 
 // TableFormatter outputs data as an ASCII table.
@@ -20,19 +22,31 @@ func (f *TableFormatter) Format(data interface{}) error {
 
 // FormatTable outputs data as a table using the provided TableDef.
 func (f *TableFormatter) FormatTable(data interface{}, def *TableDef) error {
-	table := tablewriter.NewWriter(f.Writer)
-	table.SetHeader(def.Headers)
-	table.SetAutoWrapText(false)
-	table.SetAutoFormatHeaders(true)
-	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
-	table.SetAlignment(tablewriter.ALIGN_LEFT)
-	table.SetCenterSeparator("")
-	table.SetColumnSeparator("")
-	table.SetRowSeparator("")
-	table.SetHeaderLine(false)
-	table.SetBorder(false)
-	table.SetTablePadding("  ")
-	table.SetNoWhiteSpace(true)
+	if def == nil {
+		return f.Format(data)
+	}
+	// Render before writing: tablewriter does not propagate underlying writer errors.
+	var rendered bytes.Buffer
+	table := tablewriter.NewTable(&rendered,
+		tablewriter.WithConfig(tablewriter.Config{
+			Header: tw.CellConfig{
+				Formatting: tw.CellFormatting{AutoFormat: tw.On, AutoWrap: tw.WrapNone},
+				Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+				Padding:    tw.CellPadding{Global: tw.Padding{Right: "  "}},
+			},
+			Row: tw.CellConfig{
+				Formatting: tw.CellFormatting{AutoWrap: tw.WrapNone},
+				Alignment:  tw.CellAlignment{Global: tw.AlignLeft},
+				Padding:    tw.CellPadding{Global: tw.Padding{Right: "  "}},
+			},
+		}),
+		tablewriter.WithRendition(tw.Rendition{
+			Borders:  tw.BorderNone,
+			Symbols:  tw.NewSymbols(tw.StyleNone),
+			Settings: tw.Settings{Lines: tw.LinesNone, Separators: tw.SeparatorsNone},
+		}),
+	)
+	table.Header(def.Headers)
 
 	// Handle slice types
 	v := reflect.ValueOf(data)
@@ -43,16 +57,23 @@ func (f *TableFormatter) FormatTable(data interface{}, def *TableDef) error {
 	if v.Kind() == reflect.Slice {
 		for i := 0; i < v.Len(); i++ {
 			row := def.RowFunc(v.Index(i).Interface())
-			table.Append(row)
+			if err := table.Append(row); err != nil {
+				return err
+			}
 		}
 	} else {
 		// Single item
 		row := def.RowFunc(data)
-		table.Append(row)
+		if err := table.Append(row); err != nil {
+			return err
+		}
 	}
 
-	table.Render()
-	return nil
+	if err := table.Render(); err != nil {
+		return err
+	}
+	_, err := rendered.WriteTo(f.Writer)
+	return err
 }
 
 // PrintMessage prints a simple message to the writer.

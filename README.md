@@ -61,7 +61,7 @@ Assets are named `jira-cli_<os>_<arch>.tar.gz` (lowercase), where `<os>` is `dar
 
 ### Alternative (build from source, requires Go)
 
-Requires the Go 1.22+ toolchain. The CLI lives in the [`cli-go/`](cli-go) directory of this
+Requires the Go 1.26+ (Go 1.27.1 recommended) toolchain. The CLI lives in the [`cli-go/`](cli-go) directory of this
 monorepo (the marketing site and docs live in [`web/`](web)).
 
 ```bash
@@ -165,3 +165,7 @@ on GitHub, and local config (`commit.gpgsign`, `tag.gpgsign`) signs by default. 
 ## License
 
 See [LICENSE](LICENSE).
+
+## Compatibility and maintenance
+
+See [build requirements and upstream API compatibility](docs/COMPATIBILITY.md) for the checked API baseline and dependency update workflow.

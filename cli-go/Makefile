@@ -9,6 +9,12 @@ LDFLAGS := -s -w \
 	-X $(MODULE)/internal/version.Commit=$(COMMIT) \
 	-X $(MODULE)/internal/version.BuildTime=$(BUILD_TIME)
 
+# The main package is named cli-go; explicitly name the installed executable.
+INSTALL_DIR ?= $(shell go env GOBIN)
+ifeq ($(strip $(INSTALL_DIR)),)
+INSTALL_DIR := $(shell go env GOPATH)/bin
+endif
+
 .PHONY: build install test lint fmt vet clean tidy
 
 build:
@@ -17,7 +23,8 @@ build:
 
 install:
 	@echo "installing $(BINARY) $(VERSION)"
-	@go install -ldflags "$(LDFLAGS)" .
+	@mkdir -p "$(INSTALL_DIR)"
+	@go build -ldflags "$(LDFLAGS)" -o "$(INSTALL_DIR)/$(BINARY)$(shell go env GOEXE)" .
 
 test:
 	go test -v -race ./...

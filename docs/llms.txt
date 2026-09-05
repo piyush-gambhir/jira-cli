@@ -9,7 +9,7 @@ This is the canonical machine-readable manual for the `jira` command-line tool. 
 - **Binary name:** `jira`
 - **What it is:** An independent, open-source command-line wrapper over the Jira REST API. It speaks the Jira Cloud platform API (v3) and the Server/Data Center API (v2), plus the Jira Software (Agile) API for boards/sprints/epics.
 - **Unaffiliated:** This is an independent / unofficial project. It is **not** affiliated with, endorsed by, or sponsored by Atlassian, and it is unrelated to Atlassian's official `acli`.
-- **Supported platforms:** macOS, Linux, and Windows, on both `amd64` and `arm64` (Windows arm64 is not built). Written in Go (requires Go 1.22+ to build from source).
+- **Supported platforms:** macOS, Linux, and Windows, on both `amd64` and `arm64` (Windows arm64 is not built). Written in Go (requires Go 1.26+ (Go 1.27.1 recommended) to build from source).
 - **Design goals:** Agent-friendly. Machine-readable output (`-o json|yaml`), a `--read-only` safety mode, a `--no-input` mode that disables all prompts, env-var configuration, and clean stdout/stderr separation (data on stdout, informational messages on stderr).
 
 ## Links
@@ -40,10 +40,12 @@ curl -sSL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/ji
 sudo mv jira /usr/local/bin/
 ```
 
-### go install
+### Build from source
 
 ```bash
-go install github.com/piyush-gambhir/jira-cli@latest
+git clone https://github.com/piyush-gambhir/jira-cli.git
+cd jira-cli/cli-go
+make install
 ```
 
 ### From source
