@@ -3,11 +3,13 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/auth"
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/client"
@@ -46,7 +48,8 @@ var (
 	jiraClient        *client.Client
 	outFormat         output.Format
 
-	// OutputFormat is exported so main.go can format top-level errors.
+	// OutputFormat is the format resolved in PersistentPreRunE; ErrorFormat
+	// uses it to format top-level errors.
 	OutputFormat string
 
 	updateResult chan *update.UpdateInfo
@@ -77,13 +80,14 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Env fallbacks for the agent-friendly flags.
-		if !noInputFlag {
+		// Env fallbacks for the agent-friendly flags. An explicit flag, including
+		// --quiet=false or --no-input=false, wins over the environment.
+		if !cmd.Flags().Changed("no-input") {
 			if v, ok := os.LookupEnv("JIRA_NO_INPUT"); ok && truthy(v) {
 				noInputFlag = true
 			}
 		}
-		if !quietFlag {
+		if !cmd.Flags().Changed("quiet") {
 			if v, ok := os.LookupEnv("JIRA_QUIET"); ok && truthy(v) {
 				quietFlag = true
 			}
@@ -240,7 +244,8 @@ func truthy(v string) bool {
 // RootCmd returns the root command for use in main.go.
 func RootCmd() *cobra.Command { return rootCmd }
 
-// Execute runs the root command.
+// Execute runs the root command and reports a failure on stderr in the
+// selected output format (a structured object for -o json), exiting 1.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		statusCode := 0
@@ -248,9 +253,36 @@ func Execute() {
 		if errors.As(err, &apiErr) {
 			statusCode = apiErr.StatusCode
 		}
-		output.WriteError(os.Stderr, outFormat, err, statusCode)
+		output.WriteError(os.Stderr, ErrorFormat(os.Args[1:]), err, statusCode)
 		os.Exit(1)
 	}
+}
+
+// ErrorFormat picks the output format for a top-level error. PersistentPreRunE
+// resolves OutputFormat (including the config default), but Cobra rejects bad
+// arguments and unknown flags before that hook runs, so fall back to the
+// -o/--output value in args.
+func ErrorFormat(args []string) output.Format {
+	name := OutputFormat
+	if name == "" {
+		name = outputFlagFromArgs(args)
+	}
+	format, err := output.ParseFormat(name)
+	if err != nil {
+		return output.FormatTable
+	}
+	return format
+}
+
+// outputFlagFromArgs returns the -o/--output value in args. Every other flag is
+// ignored, so an unknown flag before -o cannot hide it.
+func outputFlagFromArgs(args []string) string {
+	fs := pflag.NewFlagSet("output", pflag.ContinueOnError)
+	fs.ParseErrorsAllowlist.UnknownFlags = true
+	fs.SetOutput(io.Discard)
+	format := fs.StringP("output", "o", "", "")
+	_ = fs.Parse(args)
+	return *format
 }
 
 func init() {
