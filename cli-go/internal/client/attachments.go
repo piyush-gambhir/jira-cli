@@ -114,9 +114,10 @@ func (c *Client) DownloadAttachment(id string) ([]byte, string, error) {
 }
 
 // sitePath turns an absolute URL Jira returned (such as an attachment's content
-// URL) into a path under the configured site. Only the path is kept, so the
-// request and its credentials always go to the configured site, even when
-// Jira's own base URL names another host.
+// URL) into a path under the configured site. The URL must be on the site's
+// exact origin (scheme, host, and port) and under its base path, with no ".."
+// segments, so the request and its credentials can only reach the configured
+// site's own resources.
 func (c *Client) sitePath(raw string) (string, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Path == "" {
@@ -125,6 +126,14 @@ func (c *Client) sitePath(raw string) (string, error) {
 	base, err := url.Parse(strings.TrimRight(c.auth.BaseURL(), "/"))
 	if err != nil {
 		return "", err
+	}
+	if (u.Scheme != "" || u.Host != "") && origin(u) != origin(base) {
+		return "", fmt.Errorf("URL %q is not on the configured site %s (set --site to Jira's base URL)", raw, c.auth.BaseURL())
+	}
+	for _, seg := range strings.FieldsFunc(u.Path, func(r rune) bool { return r == '/' || r == '\\' }) {
+		if seg == ".." {
+			return "", fmt.Errorf("URL %q contains a \"..\" path segment", raw)
+		}
 	}
 	p := u.EscapedPath()
 	if !strings.HasPrefix(p, base.EscapedPath()+"/") {

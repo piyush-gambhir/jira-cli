@@ -1,13 +1,33 @@
 package client
 
-import "net/url"
+import (
+	"errors"
+	"fmt"
+	"net/http"
+	"net/url"
+)
 
 // ListAllUsers returns all users on the site (GET /users/search with an empty
-// query returns every user). Use limit to cap the page size.
+// query returns every user). Use limit to cap the page size. Data Center has
+// GET /user/list instead, from 11.0 and recent 10.3 LTS releases.
 func (c *Client) ListAllUsers(limit int) ([]User, error) {
 	q := url.Values{}
 	if limit > 0 {
 		q.Set("maxResults", itoa(limit))
+	}
+	if c.IsServer() {
+		var page struct {
+			Values []User `json:"values"`
+		}
+		err := c.GetJSON(c.api("user/list"), q, &page)
+		var apiErr *APIError
+		if errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound {
+			return nil, fmt.Errorf("this Jira version has no user list endpoint (GET /rest/api/2/user/list needs Data Center 11.0 or a recent 10.3 LTS release); use `jira user search <query>` instead: %w", err)
+		}
+		if err != nil {
+			return nil, err
+		}
+		return page.Values, nil
 	}
 	var out []User
 	if err := c.GetJSON(c.api("users/search"), q, &out); err != nil {
@@ -21,7 +41,7 @@ func (c *Client) ListAllUsers(limit int) ([]User, error) {
 // page by default), so it follows startAt until the last page.
 func (c *Client) BulkUsers(ids []string) ([]User, error) {
 	if c.IsServer() {
-		return nil, errCloudOnly("bulk user lookup")
+		return nil, errCloudOnly("bulk user lookup", "")
 	}
 	all := []User{}
 	for startAt := 0; startAt < len(ids); {

@@ -121,6 +121,11 @@ func jitter(d time.Duration) time.Duration {
 // doJSON sends a request (optional JSON body) and decodes a JSON response into
 // out. out may be nil for endpoints that return 204 No Content.
 func (c *Client) doJSON(method, path string, query url.Values, body, out any, retryable bool) error {
+	return c.doJSONHeader(method, path, query, body, out, retryable, nil)
+}
+
+// doJSONHeader is doJSON with extra request headers.
+func (c *Client) doJSONHeader(method, path string, query url.Values, body, out any, retryable bool, header http.Header) error {
 	var bodyBytes []byte
 	if body != nil {
 		var err error
@@ -140,6 +145,9 @@ func (c *Client) doJSON(method, path string, query url.Values, body, out any, re
 		}
 		if bodyBytes != nil {
 			req.Header.Set("Content-Type", "application/json")
+		}
+		for k, v := range header {
+			req.Header[k] = v
 		}
 		return req, nil
 	}, retryable)

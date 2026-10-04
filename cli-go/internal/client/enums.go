@@ -28,8 +28,18 @@ func (c *Client) ListIssueTypes() ([]IssueType, error) {
 	return out, nil
 }
 
-// ListIssueTypesForProject returns the issue types associated with a project id.
+// ListIssueTypesForProject returns the issue types associated with a project
+// id. Server/DC has no issuetype/project; its project resource lists them.
 func (c *Client) ListIssueTypesForProject(projectID string) ([]IssueType, error) {
+	if c.IsServer() {
+		var p struct {
+			IssueTypes []IssueType `json:"issueTypes"`
+		}
+		if err := c.GetJSON(c.api("project/%s", projectID), nil, &p); err != nil {
+			return nil, err
+		}
+		return p.IssueTypes, nil
+	}
 	q := url.Values{"projectId": {projectID}}
 	var out []IssueType
 	if err := c.GetJSON(c.api("issuetype/project"), q, &out); err != nil {
@@ -84,8 +94,12 @@ func (c *Client) GetResolution(id string) (*Resolution, error) {
 }
 
 // ListLabels returns available issue labels (the PageBean values array). If
-// limit is positive at most that many labels are returned.
+// limit is positive at most that many labels are returned. Server/DC has no
+// label endpoint.
 func (c *Client) ListLabels(limit int) ([]string, error) {
+	if c.IsServer() {
+		return nil, errCloudOnly("label list", "")
+	}
 	q := url.Values{}
 	if limit > 0 {
 		q.Set("maxResults", itoa(limit))

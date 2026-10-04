@@ -120,7 +120,7 @@ func newPermissionPermittedProjectsCmd() *cobra.Command {
 	var keys string
 	cmd := &cobra.Command{
 		Use:   "permitted-projects",
-		Short: "List project ids where you hold all of the given permissions",
+		Short: "List project ids where you hold all of the given permissions (Cloud only)",
 		Long: `Return the ids of the projects in which the current user holds ALL of the
 given permissions. --keys is required.
 

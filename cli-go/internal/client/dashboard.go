@@ -1,6 +1,9 @@
 package client
 
-import "net/url"
+import (
+	"net/url"
+	"strings"
+)
 
 // Dashboard is a Jira dashboard (subset of fields).
 type Dashboard struct {
@@ -36,6 +39,9 @@ func (c *Client) ListDashboards(filter string, limit int) ([]Dashboard, error) {
 // SearchDashboards searches dashboards by name (GET /dashboard/search, a
 // PageBean returning {values:[...]}).
 func (c *Client) SearchDashboards(query string, limit int) ([]Dashboard, error) {
+	if c.IsServer() {
+		return c.searchDashboardsServer(query, limit)
+	}
 	q := url.Values{}
 	if query != "" {
 		q.Set("dashboardName", query)
@@ -50,6 +56,43 @@ func (c *Client) SearchDashboards(query string, limit int) ([]Dashboard, error) 
 		return nil, err
 	}
 	return out.Values, nil
+}
+
+// searchDashboardsServer searches dashboards on Server/DC, which has no
+// dashboard/search: it pages through GET dashboard and keeps the names that
+// contain query (case-insensitive, like Cloud's dashboardName).
+func (c *Client) searchDashboardsServer(query string, limit int) ([]Dashboard, error) {
+	needle := strings.ToLower(strings.TrimSpace(query))
+	out := []Dashboard{}
+	q := url.Values{"maxResults": {"100"}}
+	for startAt := 0; ; {
+		q.Set("startAt", itoa(startAt))
+		var page struct {
+			StartAt    int         `json:"startAt"`
+			MaxResults int         `json:"maxResults"`
+			Total      int         `json:"total"`
+			Dashboards []Dashboard `json:"dashboards"`
+		}
+		if err := c.GetJSON(c.api("dashboard"), q, &page); err != nil {
+			return nil, err
+		}
+		for _, d := range page.Dashboards {
+			if needle != "" && !strings.Contains(strings.ToLower(d.Name), needle) {
+				continue
+			}
+			out = append(out, d)
+			if limit > 0 && len(out) == limit {
+				return out, nil
+			}
+		}
+		// startAt must be a multiple of maxResults, so step by the page size the
+		// server actually used.
+		if len(page.Dashboards) == 0 || page.MaxResults <= 0 || page.StartAt+page.MaxResults >= page.Total {
+			return out, nil
+		}
+		startAt = page.StartAt + page.MaxResults
+		q.Set("maxResults", itoa(page.MaxResults))
+	}
 }
 
 // GetDashboard returns a single dashboard by id.

@@ -162,11 +162,11 @@ func TestServerCreateMetaReadsValues(t *testing.T) {
 
 func TestServerAttachmentDownloadUsesContentURL(t *testing.T) {
 	var gotAuth, gotAccept string
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	var ts *httptest.Server
+	ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.EscapedPath() {
 		case "/jira/rest/api/2/attachment/10000":
-			// Jira's own base URL may name another host; the path is what counts.
-			_, _ = io.WriteString(w, `{"id":10000,"filename":"a b.txt","content":"http://jira.internal:8080/jira/secure/attachment/10000/a%20b.txt"}`)
+			_, _ = io.WriteString(w, `{"id":10000,"filename":"a b.txt","content":"`+ts.URL+`/jira/secure/attachment/10000/a%20b.txt"}`)
 		case "/jira/secure/attachment/10000/a%20b.txt":
 			gotAuth, gotAccept = r.Header.Get("Authorization"), r.Header.Get("Accept")
 			_, _ = io.WriteString(w, "file bytes")
@@ -190,12 +190,42 @@ func TestServerAttachmentDownloadUsesContentURL(t *testing.T) {
 }
 
 func TestServerAttachmentDownloadRejectsForeignPath(t *testing.T) {
-	ts, _ := recorder(t, map[string]string{
+	ts, reqs := recorder(t, map[string]string{
 		"GET /jira/rest/api/2/attachment/1": `{"id":"1","filename":"x","content":"http://evil.example/other/x"}`,
 	})
 	c := serverClient(t, ts.URL+"/jira")
-	if _, _, err := c.DownloadAttachment("1"); err == nil || !strings.Contains(err.Error(), "outside the configured site") {
-		t.Fatalf("err = %v; want an outside-the-site error", err)
+	if _, _, err := c.DownloadAttachment("1"); err == nil || !strings.Contains(err.Error(), "not on the configured site") {
+		t.Fatalf("err = %v; want a not-on-the-site error", err)
+	}
+	if len(*reqs) != 1 {
+		t.Fatalf("requests = %#v; want only the metadata request", *reqs)
+	}
+}
+
+func TestSitePathAcceptsOnlyTheSiteOrigin(t *testing.T) {
+	c := serverClient(t, "https://jira.example.com/jira")
+	for raw, want := range map[string]string{
+		"https://jira.example.com/jira/secure/attachment/1/a.txt":     "/secure/attachment/1/a.txt",
+		"https://JIRA.example.com:443/jira/secure/attachment/1/a.txt": "/secure/attachment/1/a.txt",
+		"/jira/secure/attachment/1/a.txt":                             "/secure/attachment/1/a.txt",
+	} {
+		if got, err := c.sitePath(raw); err != nil || got != want {
+			t.Errorf("sitePath(%q) = %q, %v; want %q", raw, got, err, want)
+		}
+	}
+	for _, raw := range []string{
+		"https://jira.example.com:8443/jira/secure/attachment/1/a.txt", // another port
+		"http://jira.example.com/jira/secure/attachment/1/a.txt",       // another scheme
+		"https://cdn.jira.example.com/jira/secure/attachment/1/a.txt",  // a subdomain
+		"//evil.example/jira/secure/attachment/1/a.txt",                // scheme-relative
+		"https://jira.example.com/jira/secure/../../admin",             // .. segments
+		"https://jira.example.com/jira/secure/%2e%2e/rest/api/2/myself",
+		"https://jira.example.com/jira/secure/..%2frest/api/2/myself",
+		"https://jira.example.com/other/a.txt", // outside the base path
+	} {
+		if got, err := c.sitePath(raw); err == nil {
+			t.Errorf("sitePath(%q) = %q; want an error", raw, got)
+		}
 	}
 }
 

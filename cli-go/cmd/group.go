@@ -63,9 +63,12 @@ func newGroupListCmd() *cobra.Command {
 		Short: "List groups",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			groups, err := jiraClient.ListGroups(limit)
+			groups, total, err := jiraClient.ListGroups(limit)
 			if err != nil {
 				return err
+			}
+			if len(groups) < total && (limit <= 0 || len(groups) < limit) {
+				info("Showing %d of %d groups (the server caps this list); narrow it with 'jira group find <text>'", len(groups), total)
 			}
 			return render(groups, groupTable())
 		},
@@ -107,7 +110,7 @@ or, to disambiguate same-named groups, by --group-id.`,
 			return render(members, groupMemberTable())
 		},
 	}
-	cmd.Flags().StringVar(&groupID, "group-id", "", "Group id (preferred over name when groups share a name)")
+	cmd.Flags().StringVar(&groupID, "group-id", "", "Group id (preferred over name when groups share a name; Cloud only)")
 	cmd.Flags().IntVarP(&limit, "limit", "n", 50, "Maximum members to return")
 	cmd.Flags().BoolVar(&inactive, "inactive", false, "Include inactive (deactivated) users")
 	return cmd

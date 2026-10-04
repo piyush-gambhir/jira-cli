@@ -25,7 +25,12 @@ func newUserListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all users on the site",
-		Args:  cobra.NoArgs,
+		Long: `List all users on the site.
+
+On Server/Data Center this needs GET /rest/api/2/user/list, which Data Center
+11.0 and recent 10.3 LTS releases provide. On older versions use
+'jira user search <query>'.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			users, err := jiraClient.ListAllUsers(limit)
 			if err != nil {

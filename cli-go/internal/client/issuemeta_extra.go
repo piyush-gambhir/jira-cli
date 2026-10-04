@@ -35,8 +35,28 @@ type ChangelogEntry struct {
 	Items   []ChangelogItem `json:"items,omitempty"`
 }
 
-// GetChangelog returns an issue's change history (offset-paginated).
+// GetChangelog returns an issue's change history (offset-paginated). Server/DC
+// has no issue changelog resource, so it reads the issue with
+// expand=changelog (every history, oldest first) and pages locally.
 func (c *Client) GetChangelog(key string, startAt, max int) ([]ChangelogEntry, error) {
+	if c.IsServer() {
+		var issue struct {
+			Changelog struct {
+				Histories []ChangelogEntry `json:"histories"`
+			} `json:"changelog"`
+		}
+		if err := c.GetJSON(c.api("issue/%s", key), issueQuery("summary", "changelog"), &issue); err != nil {
+			return nil, err
+		}
+		h := issue.Changelog.Histories
+		if startAt > 0 {
+			h = h[min(startAt, len(h)):]
+		}
+		if max > 0 {
+			h = h[:min(max, len(h))]
+		}
+		return h, nil
+	}
 	q := url.Values{}
 	if startAt > 0 {
 		q.Set("startAt", itoa(startAt))

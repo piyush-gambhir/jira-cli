@@ -68,6 +68,9 @@ func (c *Client) ListPermissions() ([]Permission, error) {
 // the given permissions (POST /permissions/project, body {permissions:[...]} ->
 // {projects:[{id}]}).
 func (c *Client) PermittedProjects(keys []string) ([]string, error) {
+	if c.IsServer() {
+		return nil, errCloudOnly("permission permitted-projects", "on Server/Data Center check one project with `jira permission mine --project <key>`")
+	}
 	body := map[string]any{"permissions": keys}
 	var resp struct {
 		Projects []struct {
