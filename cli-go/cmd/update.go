@@ -112,8 +112,9 @@ install_method) and exits 0 whether or not an update is available.
 
 Update notice: in an interactive terminal, jira checks GitHub for a new release
 at most once a day in the background and, when one exists, prints a short
-notice on stderr after the command's output (once per version per day). It
-never runs when stderr is not a terminal, when CI is set, or with --quiet.
+notice on stderr after the command's output (once per version per day). Only
+the command that starts the day's check waits for it, for at most one second.
+It never runs when stderr is not a terminal, when CI is set, or with --quiet.
 Turn it off with JIRA_NO_UPDATE_NOTIFIER=1 or NO_UPDATE_NOTIFIER=1.
 
 Examples:
@@ -226,7 +227,6 @@ func runUpdate(cmd *cobra.Command, yes bool) error {
 		}
 		return fmt.Errorf("update failed: %w", err)
 	}
-	_ = newUpdateChecker(0).ClearCache()
 	fmt.Fprintf(out, "Updated jira v%s -> v%s\n", update.Normalize(current), latest)
 	fmt.Fprintf(out, "Release notes: %s\n", update.ReleaseURL(repoSlug, latest))
 	return nil

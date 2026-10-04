@@ -92,7 +92,7 @@ into a Go bin directory (`make install`) is not replaced: run `git pull && make 
 
 In an interactive terminal, jira checks GitHub for a new release at most once a day in the background
 and, when there is one, prints a notice on stderr after the command's output (at most once a day per
-version). It never delays a command:
+version). Only the command that starts the day's check can wait for it, for at most one second:
 
 ```
 A new version of jira is available: v0.1.10 -> v0.1.11

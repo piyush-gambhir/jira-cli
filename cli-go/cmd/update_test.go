@@ -270,25 +270,52 @@ func TestUpdateNotifierSuppressed(t *testing.T) {
 	}
 }
 
-func TestUpdateNoticeNeverDelaysOutput(t *testing.T) {
+// releaseAfter serves the releases/latest redirect to v<latest> after delay
+// (or when release is closed, whichever comes first) and becomes the release
+// source for the test.
+func releaseAfter(t *testing.T, latest string, delay time.Duration, release chan struct{}) {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(delay):
+		case <-release:
+		}
+		http.Redirect(w, r, "/"+repoSlug+"/releases/tag/v"+latest, http.StatusFound)
+	}))
+	t.Cleanup(srv.Close)
+	updateBaseURL = srv.URL
+}
+
+func TestUpdateNoticeWaitsBrieflyForTheDaysCheck(t *testing.T) {
 	e := newUpdateEnv(t, "0.1.11")
-	updateNoticeWait = 0
-	block := make(chan struct{})
-	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-block }))
-	t.Cleanup(slow.Close)
-	updateBaseURL = slow.URL
+	updateNoticeWait = updateNoticeGrace
+	releaseAfter(t, "0.1.11", 200*time.Millisecond, nil)
+	_, stderr, err := e.run("auth", "list")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasSuffix(stderr, wantNotice) {
+		t.Fatalf("stderr = %q; want the notice on the run that started the check", stderr)
+	}
+}
+
+func TestUpdateNoticeWaitsAtMostTheGrace(t *testing.T) {
+	e := newUpdateEnv(t, "0.1.11")
+	updateNoticeWait = updateNoticeGrace
+	release := make(chan struct{})
+	releaseAfter(t, "0.1.11", time.Minute, release)
 	start := time.Now()
 	_, stderr, err := e.run("auth", "list")
 	elapsed, pending := time.Since(start), updateResult
-	close(block)
+	close(release)
 	if pending != nil {
 		<-pending // let the background check finish before the temp dirs go away
 	}
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pending == nil || elapsed > time.Second || strings.Contains(stderr, "new version") {
-		t.Fatalf("check started=%v, command took %v, stderr %q; want no wait for the pending check", pending != nil, elapsed, stderr)
+	if pending == nil || elapsed > updateNoticeGrace+750*time.Millisecond || strings.Contains(stderr, "new version") {
+		t.Fatalf("check started=%v, command took %v, stderr %q; want at most a ~1s wait and no notice", pending != nil, elapsed, stderr)
 	}
 }
 
@@ -324,6 +351,11 @@ func TestUpdateCheckJSON(t *testing.T) {
 	}
 	if len(got) != len(want) || e.latestHits.Load() != 1 || e.dlHits.Load() != 0 {
 		t.Fatalf("got %v, api hits %d, downloads %d; want exactly the 5 fields, 1 API call, no download", got, e.latestHits.Load(), e.dlHits.Load())
+	}
+
+	// The notifier shares the answer instead of trusting its stale cache.
+	if v, ok := newUpdateChecker(0).CachedLatest(); !ok || v != "0.1.11" {
+		t.Fatalf("cached latest after --check = %q, %v; want 0.1.11", v, ok)
 	}
 
 	t.Setenv("GOBIN", filepath.Dir(e.exe))
@@ -365,8 +397,8 @@ func TestUpdateInstallsTheRelease(t *testing.T) {
 	if data, _ := os.ReadFile(e.exe); string(data) != "new binary" {
 		t.Fatalf("binary = %q; want the new release", data)
 	}
-	if _, err := os.Stat(filepath.Join(e.cfgDir, update.CacheFileName)); !os.IsNotExist(err) {
-		t.Fatalf("update cache not cleared: %v", err)
+	if v, ok := newUpdateChecker(0).CachedLatest(); !ok || v != "0.1.11" {
+		t.Fatalf("cached latest after update = %q, %v; want 0.1.11", v, ok)
 	}
 }
 
