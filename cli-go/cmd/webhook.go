@@ -20,7 +20,8 @@ func newWebhookCmd() *cobra.Command {
 
 Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as, so
 these commands require an OAuth login with the manage:jira-webhook scope (choose
-the "admin" or "all" scope preset at 'jira auth login'). Webhook ids are integers.
+the "all" scope preset, or add --scope manage:jira-webhook, at 'jira auth login').
+Webhook ids are integers.
 
 Examples:
   jira webhook list

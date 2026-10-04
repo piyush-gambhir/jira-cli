@@ -25,7 +25,7 @@ func newUpdateCmd() *cobra.Command {
 				if info.URL != "" {
 					fmt.Printf("  %s\n", info.URL)
 				}
-				fmt.Printf("Upgrade with: go install %s@latest\n", "github.com/"+repoSlug)
+				fmt.Printf("Upgrade with: curl -sSfL https://raw.githubusercontent.com/%s/main/install.sh | sh\n", repoSlug)
 			} else {
 				fmt.Printf("jira %s is up to date.\n", version.Version)
 			}

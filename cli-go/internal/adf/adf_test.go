@@ -75,3 +75,22 @@ func TestExtractText(t *testing.T) {
 		}
 	}
 }
+
+func TestFromPlainText_KeepsMarkdownLiteral(t *testing.T) {
+	in := "call f(**kwargs) and see [docs](http://e.com) or `x`"
+	js := toJSON(t, FromPlainText(in))
+	if strings.Contains(js, `"marks"`) {
+		t.Fatalf("plain text must not get marks: %s", js)
+	}
+	want, _ := json.Marshal(in)
+	if !strings.Contains(js, `"text":`+string(want)) {
+		t.Fatalf("plain text changed: %s", js)
+	}
+}
+
+func TestExtractText_PlainString(t *testing.T) {
+	// Server/DC (API v2) returns rich-text fields as plain strings.
+	if got := ExtractText("line one\nline two"); got != "line one\nline two" {
+		t.Fatalf("ExtractText(string) = %q", got)
+	}
+}

@@ -5,7 +5,8 @@ import (
 )
 
 // ExtractText walks an ADF document (as decoded generic JSON — map[string]any /
-// []any) and returns a readable plain-text rendering. Used to display issue
+// []any) and returns a readable plain-text rendering. A plain string (Server/DC
+// API v2 rich-text fields) is returned as is. Used to display issue
 // descriptions and comments in table/text output. It is lossy by design.
 func ExtractText(v any) string {
 	var sb strings.Builder
@@ -15,6 +16,8 @@ func ExtractText(v any) string {
 
 func walk(v any, sb *strings.Builder) {
 	switch n := v.(type) {
+	case string:
+		sb.WriteString(n)
 	case map[string]any:
 		typ, _ := n["type"].(string)
 		switch typ {

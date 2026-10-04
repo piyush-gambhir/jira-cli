@@ -14,12 +14,12 @@ This is the canonical machine-readable manual for the `jira` command-line tool. 
 
 ## Links
 
-- Home: https://jira-cli.pages.dev/
+- Home: https://projects.piyushgambhir.com/jira-cli
 - Source: https://github.com/piyush-gambhir/jira-cli
 - Issues: https://github.com/piyush-gambhir/jira-cli/issues
-- Privacy: https://jira-cli.pages.dev/privacy-policy
-- Terms: https://jira-cli.pages.dev/terms-of-service
-- Contact: https://jira-cli.pages.dev/contact
+- Privacy: https://projects.piyushgambhir.com/jira-cli/privacy
+- Terms: https://projects.piyushgambhir.com/jira-cli/terms
+- Contact: https://projects.piyushgambhir.com/jira-cli/contact
 - Skill (Claude Code agent skill): https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKILL.md
 
 ## Skill (Claude Code / agents)
@@ -77,7 +77,7 @@ The stored `auth_type` values are: `oauth2`, `api_token`, `scoped_token`, `pat`,
 ### Logging in
 
 ```bash
-# Browser OAuth, the default. (Released branded binaries: zero prompts, just click Accept.)
+# Browser OAuth, the default. Bring your own 3LO app: prompts for its client id and secret.
 jira auth login
 
 # API token instead (no app needed), prompts for site, email, API token
@@ -102,7 +102,7 @@ Inputs may be supplied via flags (`--site`, `--email`, `--token`, `--user`, `--p
 
 For `--type oauth2` you choose how much access to grant:
 
-- `--scope-preset read|write|admin|all`, an interactive picker is shown if omitted and the session is interactive; non-interactive (`--no-input`) defaults to `write`; branded (embedded-app) builds default to `all`.
+- `--scope-preset read|write|admin|all`, an interactive picker is shown if omitted and the session is interactive; non-interactive (`--no-input`) defaults to `write`.
 - `--scope <scope>` adds an individual scope on top of the preset (repeatable).
 - `--scopes "<space-separated>"` is a raw override that wins over the preset/`--scope`.
 - `offline_access` is always added automatically (so refresh works).
@@ -116,7 +116,7 @@ Preset → scopes (classic Jira OAuth 2.0 / 3LO scopes):
 | `admin` | the above + `manage:jira-project`, `manage:jira-configuration` |
 | `all` | the above + `manage:jira-webhook`, `manage:jira-data-provider` |
 
-Your app's Permissions in the Atlassian developer console must include whatever scopes you request. `project`/`group`/`webhook` management commands need the `admin` or `all` preset over OAuth.
+Your app's Permissions in the Atlassian developer console must include whatever scopes you request. `project`/`group` management commands need the `admin` or `all` preset over OAuth; `webhook` commands need `all` (or `--scope manage:jira-webhook`).
 
 ### Managing profiles
 
@@ -154,11 +154,11 @@ All optional. Useful for CI/agents (no `auth login` needed if `JIRA_SITE` + cred
 - `JIRA_NO_INPUT`, disable interactive prompts (bool; same as `--no-input`)
 - `JIRA_QUIET`, suppress informational output (bool; same as `--quiet`)
 
-Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); for `JIRA_NO_INPUT`/`JIRA_QUIET` any non-empty value other than `0`/`false` is treated as true.
+Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); `JIRA_NO_INPUT`/`JIRA_QUIET` are enabled only by `1` or `true` (any case).
 
 ### Precedence order
 
-**CLI flags > environment variables > config profile.** For example, `--site` overrides `JIRA_SITE`, which overrides the profile's `site`. For `--read-only`, an explicit flag overrides the profile's `read_only` setting.
+**CLI flags > environment variables > config profile.** For example, `--site` overrides `JIRA_SITE`, which overrides the profile's `site`. `--read-only` can only turn protection on: it cannot disable a profile's `read_only: true`.
 
 ## Global flags
 
@@ -675,7 +675,7 @@ jira backlog move <issueKey...> [-b, --board <id>]
 
 ### webhook, dynamic (OAuth-app) webhooks
 
-Group alias: `webhooks`. Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as, these require an OAuth login with the `manage:jira-webhook` scope (`admin`/`all` preset). Webhook ids are integers.
+Group alias: `webhooks`. Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as, these require an OAuth login with the `manage:jira-webhook` scope (`all` preset, or `--scope manage:jira-webhook`). Webhook ids are integers.
 
 ```
 jira webhook list [-n <limit>]

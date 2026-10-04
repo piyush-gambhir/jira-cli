@@ -11,19 +11,19 @@ func newAuthCmd() *cobra.Command {
 		Long: `Authenticate to Jira and manage connection profiles.
 
 Supported auth methods (see docs/CREDENTIALS.md for the full reference):
-  api_token     Cloud — Basic auth with an Atlassian API token (default)
-  scoped_token  Cloud — Basic auth with a scoped API token (api.atlassian.com gateway)
-  oauth2        Cloud — OAuth 2.0 (3LO) browser flow with refresh tokens
-  pat           Server/Data Center — Bearer personal access token
-  basic         Server/Data Center — Basic auth with username + password
+  api_token     Cloud: Basic auth with an Atlassian API token
+  scoped_token  Cloud: Basic auth with a scoped API token (api.atlassian.com gateway)
+  oauth2        Cloud: OAuth 2.0 (3LO) browser flow with refresh tokens (default)
+  pat           Server/Data Center: Bearer personal access token
+  basic         Server/Data Center: Basic auth with username + password
 
 Examples:
-  jira auth login                          # interactive Cloud API-token login
+  jira auth login --type api_token         # interactive Cloud API-token login
   jira auth login --type pat --site https://jira.company.com
   jira auth login --type oauth2 --client-id ... --client-secret ...
   jira auth list
   jira auth use staging
-  jira auth logout --profile staging`,
+  jira auth logout --name staging`,
 	}
 	cmd.AddCommand(newAuthLoginCmd())
 	cmd.AddCommand(newAuthListCmd())
