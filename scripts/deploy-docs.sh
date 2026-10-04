@@ -4,6 +4,13 @@
 # `wrangler login`, or put CLOUDFLARE_API_TOKEN in .env.deploy.production.
 set -euo pipefail
 
+# The Worker has no preview environment; refuse the old `development` argument
+# instead of silently deploying production.
+if [[ $# -gt 1 || ( $# -eq 1 && "$1" != "production" ) ]]; then
+  echo "usage: bash scripts/deploy-docs.sh [production]" >&2
+  exit 2
+fi
+
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DEPLOY_ENV_FILE="$ROOT_DIR/.env.deploy.production"
 
