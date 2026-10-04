@@ -32,11 +32,11 @@ The binary is `jira`. There is no Homebrew/Scoop/apt package; install one of the
 
 ### Download a prebuilt release
 
-Prebuilt binaries for every supported platform (linux/darwin/windows × amd64/arm64, except windows/arm64) are attached to each GitHub Release as `.tar.gz` archives (`.zip` on Windows), named `jira-cli_<Os>_<Arch>`. Download the archive for your OS/arch, extract, and put `jira` on your `PATH`.
+Prebuilt binaries for every supported platform (linux/darwin/windows × amd64/arm64, except windows/arm64) are attached to each GitHub Release as `.tar.gz` archives (`.zip` on Windows), named `jira-cli_<os>_<arch>` in lowercase (for example `jira-cli_darwin_arm64.tar.gz`, `jira-cli_windows_amd64.zip`). Download the archive for your OS/arch, extract, and put `jira` on your `PATH`.
 
 ```bash
 # example (macOS arm64), adjust the version/asset name for your platform
-curl -sSL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_Darwin_arm64.tar.gz | tar xz
+curl -sSL https://github.com/piyush-gambhir/jira-cli/releases/latest/download/jira-cli_darwin_arm64.tar.gz | tar xz
 sudo mv jira /usr/local/bin/
 ```
 
@@ -57,6 +57,20 @@ make install          # or: ./install.sh   (installs to $GOBIN / $GOPATH/bin)
 ```
 
 Other Make targets: `make build` (→ `bin/jira`), `make test` (`go test -race ./...`), `make vet`, `make fmt`, `make tidy`, `make clean`.
+
+### Updating
+
+`jira update` installs the latest release in place on macOS, Linux, and Windows: it downloads the archive for this OS/arch, verifies its SHA-256 against the release's `checksums.txt` (refusing on a mismatch or a missing entry), extracts only the `jira` binary, and atomically replaces the running executable (on Windows the old `jira.exe` is renamed to `jira.exe.old` and deleted on a later run). It asks `Update now? [Y/n]` when stdin is a terminal; `--yes`/`-y` skips the prompt, and under `--no-input` (or with a non-terminal stdin) it fails unless `--yes` is passed. If the binary's directory is not writable, it fails and leaves the old binary in place (re-run with `sudo jira update`, or reinstall with the install script into a writable `INSTALL_DIR`). A binary in a Go bin directory (`$GOBIN`, `$GOPATH/bin`, `~/go/bin`, where `make install` puts it) is not replaced; `jira update` prints `git pull && make install (in your jira-cli/cli-go checkout)` instead. `--read-only` blocks installing; `--check` stays allowed.
+
+**Update notice.** In an interactive terminal, jira checks GitHub for a new release at most once a day in the background (3-second timeout; the result, including a failure, is cached for 24h in `~/.config/jira-cli/update-check.json`) and, when there is one, prints this on stderr after the command's output, at most once a day per version. It never waits for the check, so it never delays a command:
+
+```
+A new version of jira is available: v0.1.10 -> v0.1.11
+Update with: jira update
+Release notes: https://github.com/piyush-gambhir/jira-cli/releases/tag/v0.1.11
+```
+
+For a binary in a Go bin directory the second line is `Update with: git pull && make install (in your jira-cli/cli-go checkout)`. The check is skipped entirely (no network, no output) when stderr is not a terminal, when `CI` is set to any non-empty value, when `JIRA_NO_UPDATE_NOTIFIER` or `NO_UPDATE_NOTIFIER` is set to any non-empty value, with `--quiet`/`JIRA_QUIET`, for development builds, and for `update`, `version`, `completion`, and `help`. Scripts, CI, and agents that capture stderr never see it.
 
 Note on OAuth: release binaries never embed OAuth client secrets. Use an API token (`jira auth login --type api_token`) or pass your own app's `--client-id`/`--client-secret`.
 
@@ -153,6 +167,7 @@ All optional. Useful for CI/agents (no `auth login` needed if `JIRA_SITE` + cred
 - `JIRA_PROFILE`, select the active profile (same as `--profile`)
 - `JIRA_NO_INPUT`, disable interactive prompts (bool; same as `--no-input`)
 - `JIRA_QUIET`, suppress informational output (bool; same as `--quiet`)
+- `JIRA_NO_UPDATE_NOTIFIER` (or `NO_UPDATE_NOTIFIER`), any non-empty value turns off the background update check and notice; `CI` set to any non-empty value does the same
 
 Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); `JIRA_NO_INPUT`/`JIRA_QUIET` are enabled only by `1` or `true` (any case), and an explicit `--no-input=false` / `--quiet=false` overrides them.
 
@@ -190,12 +205,12 @@ Note `jira version` (the CLI's own version) is distinct from the `jira release` 
 ```
 jira version
 ```
-Print the CLI version, formatted `jira version <v> (commit: <c>, built: <t>)`. No auth required.
+Print the CLI version, formatted `jira version <v> (commit: <c>, built: <t>)`. No auth required, no network. When a release check from the last 24 hours is cached, two more lines follow: `latest: <v>` and `update_available: true|false`.
 
 ```
-jira update
+jira update [--check] [-y, --yes]          # [mutates] (installs a new binary; --check is read-only)
 ```
-Check for a newer release of the CLI on GitHub. No auth required.
+Update the CLI to the latest GitHub release (see Install > Updating). No auth required. `--check` always queries GitHub (bypassing the cache), prints the current and latest versions, whether an update is available, and the release notes URL, and exits 0 either way; with `-o json` it prints `{"current_version", "latest_version", "update_available", "release_url", "install_method"}` where `install_method` is `self` or `go` (versions have no leading `v`). Without `--check`: already latest prints so and exits 0; otherwise it shows `v<current> -> v<latest>`, asks `Update now? [Y/n]` (default yes) when stdin is a terminal, installs, prints `Updated jira v<current> -> v<latest>` plus the release notes URL, and clears the update cache. Non-interactive use: `jira update --yes`.
 
 ```
 jira whoami

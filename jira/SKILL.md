@@ -22,6 +22,20 @@ git clone https://github.com/piyush-gambhir/jira-cli.git && cd jira-cli/cli-go &
 
 The binary is `jira`.
 
+### Update
+
+```bash
+jira update --check -o json   # current_version, latest_version, update_available, release_url, install_method
+jira update --yes             # install the latest release in place (checksum-verified; macOS, Linux, Windows)
+```
+
+`jira update` prompts `Update now? [Y/n]` in a terminal, so agents pass `--yes` (it fails under
+`--no-input` without it); `--read-only` blocks installing but not `--check`. A binary in a Go bin dir
+(`make install`) is not replaced: update the checkout with `git pull && make install`. In an interactive
+terminal, a once-a-day background check prints a short "new version" notice on stderr after a
+command's output; it never runs when stderr is not a terminal or `CI` is set, and
+`JIRA_NO_UPDATE_NOTIFIER=1` (or `NO_UPDATE_NOTIFIER=1`) turns it off.
+
 ### Authenticate
 
 Easiest (and best for CI/agents) — set environment variables, no `auth login` needed:

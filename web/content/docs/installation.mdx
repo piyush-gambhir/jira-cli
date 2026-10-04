@@ -52,3 +52,41 @@ The binary is `jira`.
 ```bash
 jira version
 ```
+
+## Updating
+
+`jira update` installs the latest release in place on macOS, Linux, and Windows.
+It downloads the archive for your OS/arch, verifies its SHA-256 against the
+release's `checksums.txt`, and atomically replaces the running binary (on Windows
+the old `jira.exe` is renamed to `jira.exe.old` and deleted on a later run). In a
+terminal it asks `Update now? [Y/n]`; pass `--yes` in scripts and under
+`--no-input`.
+
+```bash
+jira update --check            # current vs latest version; add -o json for scripts
+jira update                    # install the latest release
+```
+
+If the binary's directory is not writable, nothing changes: re-run with
+`sudo jira update`, or reinstall with the install script into a directory you own
+(`INSTALL_DIR=~/.local/bin`). A binary built from source into a Go bin directory
+(`make install`) is not replaced: run `git pull && make install` in your
+`jira-cli/cli-go` checkout instead. `--read-only` blocks installing, but not
+`--check`.
+
+### Update notice
+
+In an interactive terminal, jira checks GitHub for a new release at most once a
+day in the background and, when there is one, prints a notice on stderr after the
+command's output (at most once a day per version). It never delays a command:
+
+```
+A new version of jira is available: v0.1.10 -> v0.1.11
+Update with: jira update
+Release notes: https://github.com/piyush-gambhir/jira-cli/releases/tag/v0.1.11
+```
+
+The check never runs (no network, no output) when stderr is not a terminal, when
+`CI` is set, with `--quiet` or `JIRA_QUIET`, or for `update`, `version`,
+`completion`, and `help`. Turn it off with `JIRA_NO_UPDATE_NOTIFIER=1` or
+`NO_UPDATE_NOTIFIER=1`.
