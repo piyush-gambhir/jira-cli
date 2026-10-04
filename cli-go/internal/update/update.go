@@ -163,10 +163,11 @@ func (c *Checker) fetch(ctx context.Context) (string, error) {
 }
 
 // tagFromRedirect extracts the version from a releases/latest redirect. Only a
-// redirect to <base host>/<repo>/releases/tag/v<semver> counts.
+// 302 to <base host>/<repo>/releases/tag/v<semver> counts (exactly, no
+// surrounding whitespace).
 func tagFromRedirect(resp *http.Response, base *url.URL, repo string) (string, error) {
-	if resp.StatusCode < 300 || resp.StatusCode > 399 {
-		return "", fmt.Errorf("GitHub answered %s for the latest release, not a redirect", resp.Status)
+	if resp.StatusCode != http.StatusFound {
+		return "", fmt.Errorf("GitHub answered %s for the latest release, not a 302 redirect", resp.Status)
 	}
 	loc, err := resp.Location()
 	if err != nil {
@@ -180,7 +181,7 @@ func tagFromRedirect(resp *http.Response, base *url.URL, repo string) (string, e
 	if len(loc.Path) > len(prefix) && strings.EqualFold(loc.Path[:len(prefix)], prefix) {
 		tag = loc.Path[len(prefix):]
 	}
-	if !strings.HasPrefix(tag, "v") || !IsRelease(tag) {
+	if tag != "v"+Normalize(tag) || !IsRelease(tag) {
 		return "", fmt.Errorf("the latest-release redirect (%s) does not name a v<major>.<minor>.<patch> tag", loc.Redacted())
 	}
 	return Normalize(tag), nil

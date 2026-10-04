@@ -246,6 +246,10 @@ func TestLatestFromTheReleasesRedirect(t *testing.T) {
 		"no releases":        {location: "/o/r/releases", status: http.StatusFound},
 		"other repo":         {location: "/x/y/releases/tag/v0.1.11", status: http.StatusFound},
 		"not a redirect":     {status: http.StatusOK},
+		"not a 302":          {location: "/o/r/releases/tag/v0.1.11", status: http.StatusNotModified},
+		"encoded space":      {location: "/o/r/releases/tag/v1.2.3%20", status: http.StatusFound},
+		"encoded newline":    {location: "/o/r/releases/tag/v1.2.3%0A", status: http.StatusFound},
+		"trailing segment":   {location: "/o/r/releases/tag/v1.2.3/x", status: http.StatusFound},
 		"rate limited":       {status: http.StatusForbidden},
 	} {
 		t.Run(name, func(t *testing.T) {
