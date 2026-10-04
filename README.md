@@ -139,7 +139,7 @@ so `jira ... -o json | jq` is always safe.
 ## Releasing (maintainers)
 
 Releases are built by [GoReleaser](https://goreleaser.com) via GitHub Actions on any `v*` tag — see
-[`.github/workflows/release.yml`](.github/workflows/release.yml) and [`.goreleaser.yaml`](.goreleaser.yaml).
+[`.github/workflows/release.yml`](.github/workflows/release.yml) and [`cli-go/.goreleaser.yaml`](cli-go/.goreleaser.yaml).
 
 ```bash
 git tag -s v0.1.0 -m "v0.1.0"     # signed tag

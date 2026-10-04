@@ -62,8 +62,8 @@ projects, users, boards and sprints from the terminal. Designed for both humans
 and coding agents.
 
 Quick start:
-  jira auth login                 # authenticate (Cloud API token by default)
-  jira whoami                     # confirm who you are
+  jira auth login --type api_token  # authenticate with a Cloud API token
+  jira whoami                       # confirm who you are
   jira issue search --jql "assignee = currentUser() AND statusCategory != Done"
   jira issue create -p PROJ --type Task --summary "Title" -d "Description"
 
@@ -72,7 +72,7 @@ username/password) — see "jira auth login --help" and docs/CREDENTIALS.md.
 
 All list/get commands support -o json and -o yaml for machine-readable output.
 
-Full command reference (for agents/LLMs): https://jira-cli.pages.dev/llms.txt
+Full command reference (for agents/LLMs): https://github.com/piyush-gambhir/jira-cli/blob/main/docs/llms.txt
 Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKILL.md`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
