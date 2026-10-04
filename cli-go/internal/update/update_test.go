@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -204,5 +205,23 @@ func TestInGoBin(t *testing.T) {
 		if got := InGoBin(tc.exe, getenv, home); got != tc.want {
 			t.Errorf("InGoBin(%s) = %v; want %v", tc.exe, got, tc.want)
 		}
+	}
+}
+
+func TestClaimNoticeFailsWhenItCannotBeRecorded(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("needs POSIX permissions and a non-root user")
+	}
+	srv, _ := releaseServer(t, "v0.1.11", 0)
+	ch := newChecker(t, srv, &clock{time.Now()})
+	if _, err := ch.Latest(context.Background(), false); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(ch.CacheDir, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(ch.CacheDir, 0o755) })
+	if ch.ClaimNotice("0.1.11") {
+		t.Fatal("ClaimNotice reported true without recording the claim, so the notice would repeat on every command")
 	}
 }

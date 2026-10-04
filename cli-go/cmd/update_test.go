@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
@@ -11,6 +12,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -110,18 +112,29 @@ func (e *updateEnv) setLatest(v string) {
 	e.latest = v
 }
 
-// serveRelease publishes a tar.gz with binary inside and its checksum.
+// serveRelease publishes the release archive for this platform (a zip with
+// jira.exe on Windows, else a tar.gz with jira) and its checksum.
 func (e *updateEnv) serveRelease(binary string) {
 	e.t.Helper()
 	var buf bytes.Buffer
-	gz := gzip.NewWriter(&buf)
-	tw := tar.NewWriter(gz)
-	if err := tw.WriteHeader(&tar.Header{Name: "jira", Mode: 0o755, Size: int64(len(binary)), Typeflag: tar.TypeReg}); err != nil {
-		e.t.Fatal(err)
+	if updateGOOS == "windows" {
+		zw := zip.NewWriter(&buf)
+		w, err := zw.Create("jira.exe")
+		if err != nil {
+			e.t.Fatal(err)
+		}
+		_, _ = w.Write([]byte(binary))
+		_ = zw.Close()
+	} else {
+		gz := gzip.NewWriter(&buf)
+		tw := tar.NewWriter(gz)
+		if err := tw.WriteHeader(&tar.Header{Name: "jira", Mode: 0o755, Size: int64(len(binary)), Typeflag: tar.TypeReg}); err != nil {
+			e.t.Fatal(err)
+		}
+		_, _ = tw.Write([]byte(binary))
+		_ = tw.Close()
+		_ = gz.Close()
 	}
-	_, _ = tw.Write([]byte(binary))
-	_ = tw.Close()
-	_ = gz.Close()
 	asset := (&update.Installer{Project: releaseProject, Binary: "jira", GOOS: updateGOOS}).AssetName()
 	sum := sha256.Sum256(buf.Bytes())
 	e.mu.Lock()
@@ -409,8 +422,8 @@ func TestUpdateReadOnlyBlocksInstallNotCheck(t *testing.T) {
 }
 
 func TestUpdateUnwritableDirKeepsTheOldBinary(t *testing.T) {
-	if os.Geteuid() == 0 {
-		t.Skip("root can write anywhere")
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("needs POSIX permissions and a non-root user")
 	}
 	e := newUpdateEnv(t, "0.1.11")
 	e.serveRelease("new binary")
@@ -482,5 +495,23 @@ func TestUpdatePromptAnswers(t *testing.T) {
 		if !tc.install && !strings.Contains(stdout, "Update cancelled.") {
 			t.Fatalf("%q: stdout = %q; want a cancellation", tc.input, stdout)
 		}
+	}
+}
+
+func TestUpdateFailsClosedOnAnUnreadableConfig(t *testing.T) {
+	e := newUpdateEnv(t, "0.1.11")
+	e.serveRelease("new binary")
+	if err := os.MkdirAll(e.cfgDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(e.cfgDir, "config.yaml"), []byte("profiles: [not: a map"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err := e.run("update", "--yes")
+	if err == nil || !strings.Contains(err.Error(), "read-only mode") {
+		t.Fatalf("err = %v; want a refusal while read-only mode cannot be checked", err)
+	}
+	if data, _ := os.ReadFile(e.exe); string(data) != "old binary" || e.dlHits.Load() != 0 {
+		t.Fatalf("binary = %q, downloads = %d; want nothing installed", data, e.dlHits.Load())
 	}
 }

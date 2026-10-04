@@ -244,18 +244,18 @@ func notWritableHint() string {
 // profile with read_only. update skips the client setup in PersistentPreRunE
 // (where read-only is normally enforced), so it resolves the profile here.
 func checkUpdateReadOnly(cmd *cobra.Command) error {
-	empty := &config.Config{Profiles: map[string]config.Profile{}}
+	// Fail closed: a config that cannot be read could hide a read_only profile.
 	cfg, err := config.Load()
 	if err != nil {
-		cfg = empty
+		return fmt.Errorf("loading config to check read-only mode: %w", err)
 	}
 	name := profileFlag
 	if name == "" {
 		name = os.Getenv("JIRA_PROFILE")
 	}
 	profile, err := config.ResolveAuth(config.FlagValues{}, os.LookupEnv, cfg, name)
-	if err != nil { // unknown profile: still honor JIRA_READ_ONLY
-		profile, _ = config.ResolveAuth(config.FlagValues{}, os.LookupEnv, empty, "")
+	if err != nil {
+		return fmt.Errorf("resolving the profile to check read-only mode: %w", err)
 	}
 	if err := checkReadOnly(cmd, profile); err != nil {
 		return fmt.Errorf("%w (jira update --check still works)", err)

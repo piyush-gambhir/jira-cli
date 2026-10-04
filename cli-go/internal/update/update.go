@@ -67,6 +67,8 @@ func (c *Checker) Latest(ctx context.Context, force bool) (string, error) {
 		return Normalize(cache.LatestVersion), nil
 	}
 	latest, err := c.fetch(ctx)
+	// Re-read: another process may have recorded a notice during the fetch.
+	cache, _ = c.read()
 	cache.CheckedAt = c.now()
 	cache.LatestVersion = latest
 	cache.Error = ""
@@ -100,7 +102,8 @@ func (c *Checker) CachedLatest() (string, bool) {
 
 // ClaimNotice reports whether the update notice for latest should be shown now,
 // and if so records it, so the notice appears at most once per version per
-// CheckInterval.
+// CheckInterval. If the claim cannot be recorded, it reports false rather than
+// repeating the notice on every command.
 func (c *Checker) ClaimNotice(latest string) bool {
 	cache, _ := c.read()
 	latest = Normalize(latest)
@@ -109,8 +112,7 @@ func (c *Checker) ClaimNotice(latest string) bool {
 	}
 	cache.NotifiedVersion = latest
 	cache.NotifiedAt = c.now()
-	_ = c.write(cache)
-	return true
+	return c.write(cache) == nil
 }
 
 // ClearCache removes the cache file (after an update the cached answer is stale).

@@ -57,8 +57,9 @@ export default function PrivacyPage() {
             <strong>GitHub</strong>, to check whether a newer release of the
             CLI is available, and, when you run <code>jira update</code>, to
             download the release archive and its checksums. The automatic check
-            runs at most once a day and only in an interactive terminal (never
-            when output is redirected or <code>CI</code> is set); turn it off
+            runs at most once a day and only when stderr is an interactive
+            terminal (never when stderr is redirected or <code>CI</code> is
+            set); turn it off
             with <code>JIRA_NO_UPDATE_NOTIFIER=1</code> or{' '}
             <code>NO_UPDATE_NOTIFIER=1</code>. These requests contain no
             personal data.
