@@ -105,7 +105,11 @@ Examples:
 				if err != nil {
 					return err
 				}
-				body["leadAccountId"] = acct
+				if jiraClient.IsServer() {
+					body["leadUserName"] = acct
+				} else {
+					body["leadAccountId"] = acct
+				}
 			}
 			c, err := jiraClient.CreateComponent(body)
 			if err != nil {
@@ -146,7 +150,11 @@ func newComponentUpdateCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				body["leadAccountId"] = acct
+				if jiraClient.IsServer() {
+					body["leadUserName"] = acct
+				} else {
+					body["leadAccountId"] = acct
+				}
 			}
 			if len(body) == 0 {
 				return fmt.Errorf("nothing to update; pass --name/--description/--lead/--assignee-type")

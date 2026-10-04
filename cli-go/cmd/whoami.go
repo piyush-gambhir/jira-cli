@@ -21,10 +21,10 @@ func newWhoamiCmd() *cobra.Command {
 			}
 			info("Authenticated via %s", jiraClient.AuthDescription())
 			def := &output.TableDef{
-				Headers: []string{"ACCOUNT ID", "NAME", "EMAIL", "ACTIVE", "TIMEZONE"},
+				Headers: []string{"ID", "NAME", "EMAIL", "ACTIVE", "TIMEZONE"},
 				RowFunc: func(item interface{}) []string {
 					u := item.(*client.User)
-					return []string{u.AccountID, u.DisplayName, dash(u.EmailAddress), fmt.Sprintf("%v", u.Active), dash(u.TimeZone)}
+					return []string{userID(*u), u.DisplayName, dash(u.EmailAddress), fmt.Sprintf("%v", u.Active), dash(u.TimeZone)}
 				},
 			}
 			return render(me, def)

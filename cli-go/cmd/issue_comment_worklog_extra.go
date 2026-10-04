@@ -62,11 +62,9 @@ func newIssueCommentEditCmd() *cobra.Command {
 			if body == "" {
 				return fmt.Errorf("--body is required")
 			}
-			var doc any
-			if markdown {
-				doc = adf.FromMarkdown(body)
-			} else {
-				doc = adf.FromPlainText(body)
+			doc, err := richText(body, markdown)
+			if err != nil {
+				return err
 			}
 			c, err := jiraClient.UpdateComment(args[0], args[1], doc)
 			if err != nil {
@@ -149,11 +147,11 @@ Examples:
 				body["started"] = started
 			}
 			if comment != "" {
-				if markdown {
-					body["comment"] = adf.FromMarkdown(comment)
-				} else {
-					body["comment"] = adf.FromPlainText(comment)
+				doc, err := richText(comment, markdown)
+				if err != nil {
+					return err
 				}
+				body["comment"] = doc
 			}
 			if len(body) == 0 {
 				return fmt.Errorf("nothing to edit; pass --time/--comment/--started")

@@ -1,6 +1,12 @@
 package client
 
-import "strings"
+import (
+	"bytes"
+	"encoding/json"
+	"reflect"
+	"sort"
+	"strings"
+)
 
 // flexString unmarshals from a JSON string OR number. Some Jira endpoints return
 // ids both ways (e.g. attachment id is a string in an issue's attachment list but
@@ -17,9 +23,12 @@ func (f *flexString) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// User is a Jira user (identified by accountId on Cloud).
+// User is a Jira user, identified by accountId on Cloud and by name (the
+// username) on Server/DC, which also has a stable key.
 type User struct {
 	AccountID    string `json:"accountId,omitempty"`
+	Name         string `json:"name,omitempty"`
+	Key          string `json:"key,omitempty"`
 	AccountType  string `json:"accountType,omitempty"`
 	DisplayName  string `json:"displayName,omitempty"`
 	EmailAddress string `json:"emailAddress,omitempty"`
@@ -60,7 +69,9 @@ type Project struct {
 	Self           string `json:"self,omitempty"`
 }
 
-// IssueFields holds the common navigable fields of an issue.
+// IssueFields holds the common navigable fields of an issue. Every other field
+// Jira returns (custom fields, components, ...) is kept in Extra, so JSON and
+// YAML output include whatever --fields requested.
 type IssueFields struct {
 	Summary     string   `json:"summary,omitempty"`
 	Status      *Status  `json:"status,omitempty"`
@@ -76,6 +87,73 @@ type IssueFields struct {
 	Resolution  *Named   `json:"resolution,omitempty"`
 	Parent      *Issue   `json:"parent,omitempty"`
 	Description any      `json:"description,omitempty"` // ADF (Cloud v3) or string (v2)
+
+	Extra map[string]json.RawMessage `json:"-"`
+}
+
+// issueFieldKeys is the set of JSON keys IssueFields decodes into typed fields.
+var issueFieldKeys = func() map[string]bool {
+	keys := map[string]bool{}
+	t := reflect.TypeFor[IssueFields]()
+	for i := range t.NumField() {
+		if name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ","); name != "" && name != "-" {
+			keys[name] = true
+		}
+	}
+	return keys
+}()
+
+// UnmarshalJSON decodes the typed fields and keeps the rest in Extra.
+func (f *IssueFields) UnmarshalJSON(b []byte) error {
+	type typed IssueFields
+	if err := json.Unmarshal(b, (*typed)(f)); err != nil {
+		return err
+	}
+	var all map[string]json.RawMessage
+	if err := json.Unmarshal(b, &all); err != nil {
+		return err
+	}
+	f.Extra = nil
+	for k, v := range all {
+		if !issueFieldKeys[k] {
+			if f.Extra == nil {
+				f.Extra = map[string]json.RawMessage{}
+			}
+			f.Extra[k] = v
+		}
+	}
+	return nil
+}
+
+// MarshalJSON writes the typed fields followed by Extra (sorted by key).
+func (f IssueFields) MarshalJSON() ([]byte, error) {
+	type typed IssueFields
+	b, err := json.Marshal(typed(f))
+	if err != nil || len(f.Extra) == 0 {
+		return b, err
+	}
+	keys := make([]string, 0, len(f.Extra))
+	for k := range f.Extra {
+		if !issueFieldKeys[k] {
+			keys = append(keys, k)
+		}
+	}
+	sort.Strings(keys)
+	out := bytes.NewBuffer(append([]byte(nil), b[:len(b)-1]...)) // drop the closing brace
+	for _, k := range keys {
+		if out.Len() > 1 {
+			out.WriteByte(',')
+		}
+		name, err := json.Marshal(k)
+		if err != nil {
+			return nil, err
+		}
+		out.Write(name)
+		out.WriteByte(':')
+		out.Write(f.Extra[k])
+	}
+	out.WriteByte('}')
+	return out.Bytes(), nil
 }
 
 // Issue is a Jira issue (typed subset; use GetIssueRaw for full fidelity).

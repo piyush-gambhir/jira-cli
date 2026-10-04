@@ -7,7 +7,10 @@ Add `-o <format>` to any list/get command:
 
 - `-o table`: default, human-readable
 - `-o json`: parse with `jq`
-- `-o yaml`: YAML output
+- `-o yaml`: YAML output (same keys and values as `-o json`)
+
+With `-o json`, a failure (including a usage error such as a missing argument or an
+unknown flag) prints `{"error": "...", "status_code": N}` to stderr and exits 1.
 
 <Callout type="info">
   **Agents: always use `-o json`.** Informational lines (e.g. "Created ABC-1", the
@@ -21,11 +24,13 @@ jira issue search "project = ABC" -o json | jq '.[].key'
 
 ## Notes & gotchas
 
-- **Users are accountIds (GDPR).** Commands accept email / display name / `@me` /
-  `id:<accountId>` and resolve to an accountId via user search before use.
-- **Rich text is ADF.** Descriptions, comments, and worklog comments are sent as
-  Atlassian Document Format. `--markdown` interprets input as lightweight markdown
-  (headings, lists, bold/italic/code/links).
+- **Users are accountIds on Cloud, usernames on Server/DC.** Commands accept email /
+  display name / `@me` / `id:<accountId>` (`id:<username>` on Server/DC) and resolve
+  to that identifier via user search before use.
+- **Rich text is ADF on Cloud.** Descriptions, comments, and worklog comments are sent
+  as Atlassian Document Format. `--markdown` interprets input as lightweight markdown
+  (headings, lists, bold/italic/code/links). On Server/DC (API v2) the text is sent as
+  Jira wiki markup and `--markdown` is rejected.
 - **Transitions are discover-then-do.** There is no "set status"; the CLI lists
   transitions and matches your argument against the transition name or its target
   status.

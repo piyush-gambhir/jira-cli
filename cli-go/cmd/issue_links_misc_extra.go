@@ -301,7 +301,7 @@ func newIssueNotifyCmd() *cobra.Command {
 		Long: `Send an email notification about an issue. --subject and --body are required.
 
 Recipients are chosen with --to (any of reporter,assignee,watchers,voters) and/or
---users (a comma-separated list of accountIds). By default --body is sent as the
+--users (a comma-separated list of accountIds; usernames on Server/DC). By default --body is sent as the
 plain-text body; use --markdown to send it as the HTML body instead.
 
 Examples:
@@ -334,13 +334,13 @@ Examples:
 					return fmt.Errorf("invalid --to value %q (want reporter, assignee, watchers, or voters)", t)
 				}
 			}
-			var userObjs []map[string]string
+			var userObjs []map[string]any
 			for _, u := range users {
 				u = strings.TrimSpace(u)
 				if u == "" {
 					continue
 				}
-				userObjs = append(userObjs, map[string]string{"accountId": u})
+				userObjs = append(userObjs, jiraClient.UserRef(u))
 			}
 			if len(userObjs) > 0 {
 				recipients["users"] = userObjs
@@ -359,7 +359,7 @@ Examples:
 	cmd.Flags().StringVar(&subject, "subject", "", "Notification subject (required)")
 	cmd.Flags().StringVar(&bodyText, "body", "", "Notification body (required)")
 	cmd.Flags().StringSliceVar(&to, "to", nil, "Audience: reporter,assignee,watchers,voters (comma-separated)")
-	cmd.Flags().StringSliceVar(&users, "users", nil, "Specific recipients by accountId (comma-separated)")
+	cmd.Flags().StringSliceVar(&users, "users", nil, "Specific recipients by accountId, or username on Server/DC (comma-separated)")
 	cmd.Flags().BoolVar(&markdown, "markdown", false, "Send --body as the HTML body instead of plain text")
 	return cmd
 }

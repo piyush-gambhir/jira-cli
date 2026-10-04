@@ -78,10 +78,10 @@ func newIssueWatchersCmd() *cobra.Command {
 			}
 			info("%d watcher(s)", w.WatchCount)
 			def := &output.TableDef{
-				Headers: []string{"ACCOUNT ID", "NAME", "ACTIVE"},
+				Headers: []string{"ID", "NAME", "ACTIVE"},
 				RowFunc: func(item interface{}) []string {
 					u := item.(client.User)
-					return []string{u.AccountID, u.DisplayName, fmt.Sprintf("%v", u.Active)}
+					return []string{userID(u), u.DisplayName, fmt.Sprintf("%v", u.Active)}
 				},
 			}
 			return render(w.Watchers, def)
@@ -136,10 +136,10 @@ func newIssueVotesCmd() *cobra.Command {
 			}
 			info("%d vote(s)", v.Votes)
 			def := &output.TableDef{
-				Headers: []string{"ACCOUNT ID", "NAME", "ACTIVE"},
+				Headers: []string{"ID", "NAME", "ACTIVE"},
 				RowFunc: func(item interface{}) []string {
 					u := item.(client.User)
-					return []string{u.AccountID, u.DisplayName, fmt.Sprintf("%v", u.Active)}
+					return []string{userID(u), u.DisplayName, fmt.Sprintf("%v", u.Active)}
 				},
 			}
 			return render(v.Voters, def)

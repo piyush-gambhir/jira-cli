@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/piyush-gambhir/jira-cli/cli-go/internal/adf"
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/client"
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
@@ -103,10 +102,9 @@ Examples:
 			}
 			var c any
 			if comment != "" {
-				if markdown {
-					c = adf.FromMarkdown(comment)
-				} else {
-					c = adf.FromPlainText(comment)
+				var err error
+				if c, err = richText(comment, markdown); err != nil {
+					return err
 				}
 			}
 			// from = outwardIssue, to = inwardIssue.

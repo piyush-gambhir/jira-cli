@@ -53,10 +53,14 @@ jira status -o json     # site reachability + auth check + serverInfo
 
 - **ALWAYS use `-o json` for parsing.** Every list/get supports `-o json` / `-o yaml`; default is human
   `table`. Informational lines go to **stderr**, data to **stdout**, so `jira ... -o json | jq` is safe.
-- **Users are accountIds (GDPR — no usernames).** Pass an email, display name, `@me`, or `id:<accountId>`
-  to `--assignee` / `--to` / `--user`; the CLI resolves it. To look one up: `jira user search "<name>" -o json`.
-- **Rich text is ADF.** `--description` / `--body` / `--comment` are sent as Atlassian Document Format.
-  Add `--markdown` to interpret the text as lightweight markdown (headings, lists, bold/italic/code/links).
+- **Users are accountIds on Cloud, usernames on Server/DC.** Pass an email, display name, `@me`, or
+  `id:<accountId>` (`id:<username>` on Server/DC) to `--assignee` / `--to` / `--user`; the CLI resolves
+  it. To look one up: `jira user search "<name>" -o json`.
+- **Rich text is ADF on Cloud.** `--description` / `--body` / `--comment` are sent as Atlassian Document
+  Format. Add `--markdown` to interpret the text as lightweight markdown (headings, lists,
+  bold/italic/code/links). On Server/DC (API v2) the text is sent as Jira wiki markup and `--markdown`
+  is rejected.
+- **Cloud-only commands** fail on Server/DC: `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
 - **Transitions are discover-then-do.** There is no "set status". List first, then move:
   `jira issue transitions ABC-1` → `jira issue transition ABC-1 "In Progress"` (matches status OR
   transition name, case-insensitively).
@@ -205,8 +209,8 @@ Full reference (flows, scopes, gateway/cloudId, refresh): [../docs/CREDENTIALS.m
 | **403 Forbidden** | The user lacks permission for that action/project (or, for OAuth, the scope isn't granted). |
 | **400 on search** | JQL must be **bounded** — add a restriction (project/assignee/date), not just `ORDER BY`. |
 | **"no transition matching X"** | Run `jira issue transitions KEY` to see valid targets; match the status or transition name. |
-| **Assignee/user not found** | Resolve via `jira user search "<email-or-name>"`; pass the accountId or `@me`. |
-| **Description/comment looks wrong** | v3 needs ADF — the CLI converts text automatically; use `--markdown` for formatting. |
+| **Assignee/user not found** | Resolve via `jira user search "<email-or-name>"`; pass the accountId (username on Server/DC) or `@me`. |
+| **Description/comment looks wrong** | v3 needs ADF, which the CLI builds from your text; use `--markdown` for formatting. On v2 (Server/DC) write Jira wiki markup. |
 | **429 Too Many Requests** | The CLI retries with backoff automatically; if persistent, slow down or reduce `--all` sweeps. |
 | **scoped token fails on site URL** | A scoped token must use the gateway; `jira auth login --type scoped` resolves the cloudId for you. |
 | **Wrong site/profile** | Pass `--profile <name>` or `--site`; inspect `~/.config/jira-cli/config.yaml`. |

@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // AddAttachment uploads one or more files to an issue. It sends the mandatory
@@ -89,18 +91,46 @@ func (c *Client) GetAttachmentMeta(id string) (*Attachment, error) {
 	return &out, nil
 }
 
-// DownloadAttachment fetches an attachment's bytes (following the redirect to
-// the media store) along with its filename.
+// DownloadAttachment fetches an attachment's bytes along with its filename. On
+// Cloud it uses attachment/content/{id} (following the redirect to the media
+// store); Server/DC has no such endpoint, so it downloads the metadata's
+// content URL instead.
 func (c *Client) DownloadAttachment(id string) ([]byte, string, error) {
 	meta, err := c.GetAttachmentMeta(id)
 	if err != nil {
 		return nil, "", err
 	}
-	data, _, err := c.GetBytes(c.api("attachment/content/%s", id), nil, "*/*")
+	path := c.api("attachment/content/%s", id)
+	if c.IsServer() {
+		if path, err = c.sitePath(meta.Content); err != nil {
+			return nil, "", fmt.Errorf("downloading attachment %s: %w", id, err)
+		}
+	}
+	data, _, err := c.GetBytes(path, nil, "*/*")
 	if err != nil {
 		return nil, "", err
 	}
 	return data, meta.Filename, nil
+}
+
+// sitePath turns an absolute URL Jira returned (such as an attachment's content
+// URL) into a path under the configured site. Only the path is kept, so the
+// request and its credentials always go to the configured site, even when
+// Jira's own base URL names another host.
+func (c *Client) sitePath(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil || u.Path == "" {
+		return "", fmt.Errorf("unusable URL %q", raw)
+	}
+	base, err := url.Parse(strings.TrimRight(c.auth.BaseURL(), "/"))
+	if err != nil {
+		return "", err
+	}
+	p := u.EscapedPath()
+	if !strings.HasPrefix(p, base.EscapedPath()+"/") {
+		return "", fmt.Errorf("URL %q is outside the configured site %s", raw, c.auth.BaseURL())
+	}
+	return strings.TrimPrefix(p, base.EscapedPath()), nil
 }
 
 // DeleteAttachment removes an attachment.

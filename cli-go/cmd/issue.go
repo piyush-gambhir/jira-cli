@@ -118,5 +118,14 @@ func userName(u *client.User) string {
 	if u.DisplayName != "" {
 		return u.DisplayName
 	}
-	return dash(u.AccountID)
+	return userID(*u)
+}
+
+// userID is the identifier shown for a user: the accountId on Cloud, the
+// username on Server/DC.
+func userID(u client.User) string {
+	if u.AccountID != "" {
+		return u.AccountID
+	}
+	return dash(u.Name)
 }

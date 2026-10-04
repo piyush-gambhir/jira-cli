@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/piyush-gambhir/jira-cli/cli-go/internal/adf"
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 	"golang.org/x/term"
 )
@@ -93,4 +94,21 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return string(r[:n-1]) + "…"
+}
+
+// richText builds the value for a rich-text field (description, comment,
+// worklog comment). REST API v3 (Cloud) takes ADF; API v2 (Server/Data Center)
+// takes a string that Jira renders as wiki markup, so the text is sent as-is.
+// --markdown converts to ADF, so it is rejected on API v2.
+func richText(text string, markdown bool) (any, error) {
+	if jiraClient.APIVer() == "2" {
+		if markdown {
+			return nil, fmt.Errorf("--markdown needs REST API v3 (Jira Cloud); on API v2 (Server/Data Center) the text is sent as Jira wiki markup, so drop --markdown")
+		}
+		return text, nil
+	}
+	if markdown {
+		return adf.FromMarkdown(text), nil
+	}
+	return adf.FromPlainText(text), nil
 }

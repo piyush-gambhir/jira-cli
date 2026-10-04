@@ -113,7 +113,11 @@ Examples:
 				if err != nil {
 					return err
 				}
-				body["leadAccountId"] = acct
+				if jiraClient.IsServer() {
+					body["lead"] = acct // Server/DC takes the lead's username
+				} else {
+					body["leadAccountId"] = acct
+				}
 			}
 			for _, kv := range extraFields {
 				k, v, ok := strings.Cut(kv, "=")
@@ -161,7 +165,11 @@ func newProjectUpdateCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				body["leadAccountId"] = acct
+				if jiraClient.IsServer() {
+					body["lead"] = acct // Server/DC takes the lead's username
+				} else {
+					body["leadAccountId"] = acct
+				}
 			}
 			for _, kv := range extraFields {
 				k, v, ok := strings.Cut(kv, "=")

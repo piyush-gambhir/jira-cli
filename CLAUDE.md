@@ -133,7 +133,7 @@ jira project create --key MOB --name "Mobile" --lead @me --template <projectTemp
 jira project update ABC --name "New name" --lead me@acme.com
 jira project delete ABC --enable-undo --yes
 jira user search "jane" -o json      # resolve a person to an accountId
-jira user get <accountId>
+jira user get <accountId>             # a username on Server/DC
 jira field list --custom             # field ids + JQL clause names
 ```
 
@@ -149,16 +149,21 @@ jira epic get ABC-10 ; jira epic issues ABC-10
 
 ## Notes & gotchas (Jira-specific)
 
-- **Users are accountIds (GDPR).** Commands accept email / display name / `@me` / `id:<accountId>`
-  and resolve to an accountId via user search before use.
-- **Rich text is ADF.** Descriptions/comments/worklog comments are sent as Atlassian Document Format.
-  `--markdown` interprets the text as lightweight markdown (headings, lists, bold/italic/code/links).
+- **Users are accountIds on Cloud, usernames on Server/DC.** Commands accept email / display name /
+  `@me` / `id:<accountId>` (`id:<username>` on Server/DC) and resolve to that identifier via user
+  search before use.
+- **Rich text is ADF on Cloud.** Descriptions/comments/worklog comments are sent as Atlassian Document
+  Format (API v3). `--markdown` interprets the text as lightweight markdown (headings, lists,
+  bold/italic/code/links). On API v2 (Server/DC) the text is sent as-is, Jira renders it as wiki
+  markup, and `--markdown` is rejected.
 - **Transitions are discover-then-do.** There's no "set status"; the CLI lists transitions and matches
   your argument against the transition name or its target status.
 - **Search pagination differs by deployment.** Cloud uses the cursor-based `/search/jql`; Server/DC
   uses the classic `/search`. The CLI handles both. JQL must be bounded.
 - **Rate limits (429)** are retried automatically (honor `Retry-After`, else exponential backoff).
 - **API version** defaults to v3 on Cloud, v2 on Server/DC; override with `--api-version`.
+- **Cloud-only commands.** These call endpoints Server/DC does not have, so they fail there:
+  `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
 - **Agile commands over OAuth:** `board`/`sprint`/`epic` use the Jira Software (Agile) API, which over
   OAuth needs granular `jira-software` scopes — classic scopes give `401 "scope does not match"`. They
   work with API-token/PAT auth. See `docs/CREDENTIALS.md`.

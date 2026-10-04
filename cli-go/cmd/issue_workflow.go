@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/piyush-gambhir/jira-cli/cli-go/internal/adf"
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/client"
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
@@ -18,8 +17,9 @@ func newIssueAssignCmd() *cobra.Command {
 		Short:       "Assign an issue to a user",
 		Annotations: mutates,
 		Args:        cobra.ExactArgs(1),
-		Long: `Assign an issue. --to accepts an email, display name, @me, id:<accountId>,
-"default" (the project's default assignee), or "none"/"unassign" to clear it.`,
+		Long: `Assign an issue. --to accepts an email, display name, @me, id:<accountId>
+(id:<username> on Server/DC), "default" (the project's default assignee), or
+"none"/"unassign" to clear it.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key := args[0]
 			var accountID any
@@ -111,11 +111,9 @@ Examples:
 				fields = map[string]any{"resolution": map[string]string{"name": resolution}}
 			}
 			if comment != "" {
-				var body any
-				if markdown {
-					body = adf.FromMarkdown(comment)
-				} else {
-					body = adf.FromPlainText(comment)
+				body, err := richText(comment, markdown)
+				if err != nil {
+					return err
 				}
 				update = map[string]any{"comment": []map[string]any{{"add": map[string]any{"body": body}}}}
 			}
