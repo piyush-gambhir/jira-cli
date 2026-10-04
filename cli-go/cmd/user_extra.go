@@ -42,7 +42,7 @@ func newUserBulkCmd() *cobra.Command {
 	var accountIDs []string
 	cmd := &cobra.Command{
 		Use:   "bulk",
-		Short: "Get multiple users by accountId in one request",
+		Short: "Get multiple users by accountId (Cloud only)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(accountIDs) == 0 {
@@ -93,7 +93,7 @@ This is the correct picker to use before 'issue assign' or 'issue create'.`,
 
 func newUserGroupsCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "groups <accountId>",
+		Use:   "groups <accountId|username>",
 		Short: "List the groups a user belongs to",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -33,7 +33,9 @@ func (c *Client) doRetry(build buildFunc, retryable bool) (*http.Response, error
 		if err != nil {
 			return nil, err
 		}
-		req.Header.Set("Accept", "application/json")
+		if req.Header.Get("Accept") == "" { // GetBytes may ask for another type
+			req.Header.Set("Accept", "application/json")
+		}
 		if err := c.auth.Apply(req); err != nil {
 			return nil, err
 		}

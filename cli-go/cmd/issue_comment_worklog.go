@@ -22,11 +22,9 @@ func newIssueCommentCmd() *cobra.Command {
 			if body == "" {
 				return fmt.Errorf("--body is required")
 			}
-			var doc any
-			if markdown {
-				doc = adf.FromMarkdown(body)
-			} else {
-				doc = adf.FromPlainText(body)
+			doc, err := richText(body, markdown)
+			if err != nil {
+				return err
 			}
 			c, err := jiraClient.AddComment(args[0], doc, nil)
 			if err != nil {
@@ -88,11 +86,11 @@ Examples:
 				body["started"] = started
 			}
 			if comment != "" {
-				if markdown {
-					body["comment"] = adf.FromMarkdown(comment)
-				} else {
-					body["comment"] = adf.FromPlainText(comment)
+				doc, err := richText(comment, markdown)
+				if err != nil {
+					return err
 				}
+				body["comment"] = doc
 			}
 			w, err := jiraClient.AddWorklog(args[0], body, adjust, newEstimate)
 			if err != nil {

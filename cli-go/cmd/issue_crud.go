@@ -82,8 +82,9 @@ func newIssueCreateCmd() *cobra.Command {
 		Annotations: mutates,
 		Long: `Create an issue. --project, --type and --summary are required.
 
-The description is sent as ADF; use --markdown to interpret it as lightweight
-markdown. Set arbitrary fields with repeated --field name=value.
+The description is sent as ADF on Cloud (use --markdown to interpret it as
+lightweight markdown) and as Jira wiki markup on Server/DC (API v2), where
+--markdown is rejected. Set arbitrary fields with repeated --field name=value.
 
 To make agent reruns safe, create reuses an issue made by the current user in
 the same project during the last 10 minutes when its type, summary, and parent
@@ -119,11 +120,11 @@ Examples:
 				"summary":   summary,
 			}
 			if description != "" {
-				if markdown {
-					fields["description"] = adf.FromMarkdown(description)
-				} else {
-					fields["description"] = adf.FromPlainText(description)
+				doc, err := richText(description, markdown)
+				if err != nil {
+					return err
 				}
+				fields["description"] = doc
 			}
 			if priority != "" {
 				fields["priority"] = map[string]string{"name": priority}
@@ -139,7 +140,7 @@ Examples:
 				if err != nil {
 					return err
 				}
-				fields["assignee"] = map[string]string{"accountId": acct}
+				fields["assignee"] = jiraClient.UserRef(acct)
 			}
 			for _, kv := range extraFields {
 				k, v, ok := strings.Cut(kv, "=")
@@ -215,11 +216,11 @@ func newIssueEditCmd() *cobra.Command {
 				update.Fields["summary"] = summary
 			}
 			if description != "" {
-				if markdown {
-					update.Fields["description"] = adf.FromMarkdown(description)
-				} else {
-					update.Fields["description"] = adf.FromPlainText(description)
+				doc, err := richText(description, markdown)
+				if err != nil {
+					return err
 				}
+				update.Fields["description"] = doc
 			}
 			if priority != "" {
 				update.Fields["priority"] = map[string]string{"name": priority}
@@ -229,7 +230,7 @@ func newIssueEditCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				update.Fields["assignee"] = map[string]string{"accountId": acct}
+				update.Fields["assignee"] = jiraClient.UserRef(acct)
 			}
 			var labelOps []map[string]string
 			for _, l := range addLabels {

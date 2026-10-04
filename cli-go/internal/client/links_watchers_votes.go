@@ -1,7 +1,5 @@
 package client
 
-import "net/url"
-
 // ListLinkTypes returns the available issue link types and their direction labels.
 func (c *Client) ListLinkTypes() ([]LinkType, error) {
 	var out struct {
@@ -42,7 +40,8 @@ func (c *Client) GetWatchers(key string) (*Watchers, error) {
 }
 
 // AddWatcher adds a watcher. An empty accountID adds the calling user. The add
-// endpoint takes a bare JSON string body (the accountId).
+// endpoint takes a bare JSON string body (the accountId, or the username on
+// Server/DC).
 func (c *Client) AddWatcher(key, accountID string) error {
 	if accountID == "" {
 		return c.PostJSON(c.api("issue/%s/watchers", key), nil, nil, nil)
@@ -50,9 +49,9 @@ func (c *Client) AddWatcher(key, accountID string) error {
 	return c.PostJSON(c.api("issue/%s/watchers", key), nil, accountID, nil)
 }
 
-// RemoveWatcher removes a watcher (identified by accountId query param).
+// RemoveWatcher removes a watcher (accountId on Cloud, username on Server/DC).
 func (c *Client) RemoveWatcher(key, accountID string) error {
-	return c.Delete(c.api("issue/%s/watchers", key), url.Values{"accountId": {accountID}})
+	return c.Delete(c.api("issue/%s/watchers", key), c.userQuery(accountID))
 }
 
 // GetVotes returns vote info for an issue.

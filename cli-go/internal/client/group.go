@@ -63,16 +63,18 @@ func (c *Client) GroupMembers(name, groupID string, limit int, includeInactive b
 	return out.Values, nil
 }
 
-// AddGroupUser adds the user (accountId) to the named group.
+// AddGroupUser adds the user (accountId, or username on Server/DC) to the
+// named group.
 func (c *Client) AddGroupUser(name, accountID string) error {
 	q := url.Values{"groupname": {name}}
-	body := map[string]any{"accountId": accountID}
-	return c.PostJSON(c.api("group/user"), q, body, nil)
+	return c.PostJSON(c.api("group/user"), q, c.UserRef(accountID), nil)
 }
 
-// RemoveGroupUser removes the user (accountId) from the named group.
+// RemoveGroupUser removes the user (accountId, or username on Server/DC) from
+// the named group.
 func (c *Client) RemoveGroupUser(name, accountID string) error {
-	q := url.Values{"groupname": {name}, "accountId": {accountID}}
+	q := c.userQuery(accountID)
+	q.Set("groupname", name)
 	return c.Delete(c.api("group/user"), q)
 }
 

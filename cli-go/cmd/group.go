@@ -44,14 +44,14 @@ func groupTable() *output.TableDef {
 
 func groupMemberTable() *output.TableDef {
 	return &output.TableDef{
-		Headers: []string{"ACCOUNT ID", "NAME", "EMAIL", "ACTIVE"},
+		Headers: []string{"ID", "NAME", "EMAIL", "ACTIVE"},
 		RowFunc: func(item interface{}) []string {
 			u := item.(client.User)
 			active := "no"
 			if u.Active {
 				active = "yes"
 			}
-			return []string{dash(u.AccountID), dash(u.DisplayName), dash(u.EmailAddress), active}
+			return []string{userID(u), dash(u.DisplayName), dash(u.EmailAddress), active}
 		},
 	}
 }

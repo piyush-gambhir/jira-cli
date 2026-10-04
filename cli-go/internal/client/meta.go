@@ -24,9 +24,10 @@ func (c *Client) Myself() (*User, error) {
 	return &out, nil
 }
 
-// SearchUsers finds users matching a query (display name or email).
+// SearchUsers finds users matching a query (display name or email; Server/DC
+// also matches the username).
 func (c *Client) SearchUsers(query string, limit int) ([]User, error) {
-	q := url.Values{"query": {query}}
+	q := url.Values{c.userSearchParam(): {query}}
 	if limit > 0 {
 		q.Set("maxResults", itoa(limit))
 	}
@@ -37,18 +38,61 @@ func (c *Client) SearchUsers(query string, limit int) ([]User, error) {
 	return out, nil
 }
 
-// GetUser returns a single user by accountId.
-func (c *Client) GetUser(accountID string) (*User, error) {
+// GetUser returns a single user by accountId (Cloud) or username (Server/DC).
+func (c *Client) GetUser(id string) (*User, error) {
 	var out User
-	if err := c.GetJSON(c.api("user"), url.Values{"accountId": {accountID}}, &out); err != nil {
+	if err := c.GetJSON(c.api("user"), c.userQuery(id), &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
 }
 
-// ResolveUser turns a user reference into an accountId. It accepts "@me"/"me"
-// (the current user), an explicit "id:<accountId>", or a name/email which is
-// resolved via user search (first match wins).
+// UserID returns the identifier the deployment uses for u: the accountId on
+// Cloud, the username on Server/DC.
+func (c *Client) UserID(u User) string {
+	if c.IsServer() {
+		return u.Name
+	}
+	return u.AccountID
+}
+
+// UserRef is the JSON object that identifies a user in a request body:
+// {"accountId": id} on Cloud, {"name": id} on Server/DC. id may also be "-1"
+// (default assignee) or nil (unassigned) where the endpoint allows it.
+func (c *Client) UserRef(id any) map[string]any {
+	if c.IsServer() {
+		return map[string]any{"name": id}
+	}
+	return map[string]any{"accountId": id}
+}
+
+// userQuery identifies a user in a query string: accountId on Cloud, username
+// on Server/DC.
+func (c *Client) userQuery(id string) url.Values {
+	if c.IsServer() {
+		return url.Values{"username": {id}}
+	}
+	return url.Values{"accountId": {id}}
+}
+
+// userSearchParam is the user-search query parameter: Cloud's "query", or
+// Server/DC's "username" (which matches username, name, or email).
+func (c *Client) userSearchParam() string {
+	if c.IsServer() {
+		return "username"
+	}
+	return "query"
+}
+
+// errCloudOnly reports an endpoint that Jira Server/Data Center does not have.
+func errCloudOnly(what string) error {
+	return fmt.Errorf("%s is only available on Jira Cloud (REST API v3)", what)
+}
+
+// ResolveUser turns a user reference into the user identifier the deployment
+// uses (accountId on Cloud, username on Server/DC). It accepts "@me"/"me" (the
+// current user), an explicit "id:<accountId or username>", or a name/email
+// which is resolved via user search (first match wins).
 func (c *Client) ResolveUser(ref string) (string, error) {
 	ref = strings.TrimSpace(ref)
 	switch ref {
@@ -57,7 +101,7 @@ func (c *Client) ResolveUser(ref string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return me.AccountID, nil
+		return c.UserID(*me), nil
 	}
 	if strings.HasPrefix(ref, "id:") {
 		return strings.TrimPrefix(ref, "id:"), nil
@@ -69,11 +113,14 @@ func (c *Client) ResolveUser(ref string) (string, error) {
 	if len(users) == 0 {
 		return "", fmt.Errorf("no user found matching %q", ref)
 	}
-	return users[0].AccountID, nil
+	return c.UserID(users[0]), nil
 }
 
 // ListProjects returns projects, optionally filtered by a query string.
 func (c *Client) ListProjects(query string, limit int) ([]Project, error) {
+	if c.IsServer() {
+		return c.listProjectsServer(query, limit)
+	}
 	q := url.Values{}
 	if query != "" {
 		q.Set("query", query)
@@ -88,6 +135,28 @@ func (c *Client) ListProjects(query string, limit int) ([]Project, error) {
 		return nil, err
 	}
 	return out.Values, nil
+}
+
+// listProjectsServer lists projects on Server/DC, which has no project/search:
+// GET project returns every visible project as an array, so the key/name filter
+// (case-insensitive, like Cloud's query) and the limit are applied here.
+func (c *Client) listProjectsServer(query string, limit int) ([]Project, error) {
+	var all []Project
+	if err := c.GetJSON(c.api("project"), nil, &all); err != nil {
+		return nil, err
+	}
+	needle := strings.ToLower(strings.TrimSpace(query))
+	out := []Project{}
+	for _, p := range all {
+		if needle != "" && !strings.Contains(strings.ToLower(p.Key), needle) && !strings.Contains(strings.ToLower(p.Name), needle) {
+			continue
+		}
+		out = append(out, p)
+		if limit > 0 && len(out) == limit {
+			break
+		}
+	}
+	return out, nil
 }
 
 // GetProject returns a single project by id or key.

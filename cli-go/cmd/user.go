@@ -22,10 +22,10 @@ func newUserCmd() *cobra.Command {
 
 func userTable() *output.TableDef {
 	return &output.TableDef{
-		Headers: []string{"ACCOUNT ID", "NAME", "EMAIL", "ACTIVE"},
+		Headers: []string{"ID", "NAME", "EMAIL", "ACTIVE"},
 		RowFunc: func(item interface{}) []string {
 			u := item.(client.User)
-			return []string{u.AccountID, u.DisplayName, dash(u.EmailAddress), fmt.Sprintf("%v", u.Active)}
+			return []string{userID(u), u.DisplayName, dash(u.EmailAddress), fmt.Sprintf("%v", u.Active)}
 		},
 	}
 }
@@ -50,8 +50,8 @@ func newUserSearchCmd() *cobra.Command {
 
 func newUserGetCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "get <accountId>",
-		Short: "Get a user by accountId",
+		Use:   "get <accountId|username>",
+		Short: "Get a user by accountId (username on Server/DC)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			u, err := jiraClient.GetUser(args[0])

@@ -68,6 +68,11 @@ func (c *Client) WithContext(ctx context.Context) *Client {
 // APIVer returns the platform REST API version in use ("3" or "2").
 func (c *Client) APIVer() string { return c.apiVersion }
 
+// IsServer reports whether the client targets Jira Server/Data Center. The
+// platform API version is the deployment signal: v2 is the Server/DC default,
+// v3 is Cloud (see config.Profile.EffectiveAPIVersion).
+func (c *Client) IsServer() bool { return c.apiVersion == "2" }
+
 // BaseURL returns the site base URL the client targets.
 func (c *Client) BaseURL() string { return c.auth.BaseURL() }
 

@@ -70,10 +70,10 @@ func (c *Client) DeleteIssue(key string, deleteSubtasks bool) error {
 	return c.Delete(c.api("issue/%s", key), q)
 }
 
-// AssignIssue assigns an issue. accountID may be a real id, "-1" (default
-// assignee), or nil (unassign).
-func (c *Client) AssignIssue(key string, accountID any) error {
-	return c.PutJSON(c.api("issue/%s/assignee", key), nil, map[string]any{"accountId": accountID}, nil)
+// AssignIssue assigns an issue. id may be a user id (see ResolveUser), "-1"
+// (default assignee), or nil (unassign).
+func (c *Client) AssignIssue(key string, id any) error {
+	return c.PutJSON(c.api("issue/%s/assignee", key), nil, c.UserRef(id), nil)
 }
 
 // GetTransitions lists the transitions available on an issue (with screen fields).
@@ -117,29 +117,40 @@ type FieldMeta struct {
 	} `json:"schema"`
 }
 
-// CreateMetaIssueTypes lists creatable issue types for a project.
+// CreateMetaIssueTypes lists creatable issue types for a project. Cloud returns
+// them under "issueTypes", Server/DC under "values".
 func (c *Client) CreateMetaIssueTypes(projectKey string) ([]IssueType, error) {
 	var out struct {
 		IssueTypes []IssueType `json:"issueTypes"`
+		Values     []IssueType `json:"values"`
 	}
 	q := url.Values{"maxResults": {"200"}}
 	if err := c.GetJSON(c.api("issue/createmeta/%s/issuetypes", projectKey), q, &out); err != nil {
 		return nil, err
 	}
+	if len(out.IssueTypes) == 0 {
+		return out.Values, nil
+	}
 	return out.IssueTypes, nil
 }
 
 // CreateMetaFields lists the create-screen fields for a project + issue type.
+// Cloud returns them under "fields", Server/DC under "values".
 func (c *Client) CreateMetaFields(projectKey, issueTypeID string) (map[string]FieldMeta, error) {
+	type fieldMeta struct {
+		FieldMeta
+		FieldID string `json:"fieldId"`
+	}
 	var out struct {
-		Fields []struct {
-			FieldMeta
-			FieldID string `json:"fieldId"`
-		} `json:"fields"`
+		Fields []fieldMeta `json:"fields"`
+		Values []fieldMeta `json:"values"`
 	}
 	q := url.Values{"maxResults": {"200"}}
 	if err := c.GetJSON(c.api("issue/createmeta/%s/issuetypes/%s", projectKey, issueTypeID), q, &out); err != nil {
 		return nil, err
+	}
+	if len(out.Fields) == 0 {
+		out.Fields = out.Values
 	}
 	m := make(map[string]FieldMeta, len(out.Fields))
 	for _, f := range out.Fields {
