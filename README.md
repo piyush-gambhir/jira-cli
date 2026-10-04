@@ -22,7 +22,8 @@ Designed for both human operators and coding agents. All list/get commands suppo
 - **Issues** — JQL search, list, get, create, edit, delete, assign, transition.
 - **Around issues** — comments, worklogs, attachments (upload/download), links, watchers, votes.
 - **Projects, users, fields** and **Agile** boards / sprints / epics.
-- **ADF-aware** — descriptions and comments are sent as Atlassian Document Format; `--markdown` supported.
+- **ADF-aware**: on Cloud, descriptions and comments are sent as Atlassian Document Format (`--markdown`
+  supported); on Server/DC they are sent as wiki-markup strings.
 - **Agent-friendly** — `-o json|yaml`, `--read-only` safety mode, duplicate-safe issue creation,
   `--no-input`, env-var config, clean stdout/stderr separation, automatic rate-limit (429) backoff.
 - **Cross-platform** — macOS, Linux, Windows (amd64 and arm64). Multiple named profiles.
@@ -116,6 +117,9 @@ jira auth list   ;   jira auth use staging   ;   jira auth logout --name staging
 OAuth scopes are selectable: `--scope-preset read|write|admin|all` (or an interactive picker), plus
 granular `--scope`. See [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
 
+On Server/DC, users are identified by username (`id:<username>`) instead of accountId, and
+`--markdown` is not available. These commands are Cloud-only: `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
+
 ### For end users
 
 Everyone authenticates to **their own** Jira account. For OAuth, register a 3LO app and pass its
@@ -124,8 +128,9 @@ simplest setup, run `jira auth login --type api_token` and paste a token from id
 
 ## Output
 
-`-o table` (default), `-o json`, `-o yaml`. Informational messages go to stderr; data goes to stdout,
-so `jira ... -o json | jq` is always safe.
+`-o table` (default), `-o json`, `-o yaml` (same keys and values as JSON). Informational messages go
+to stderr; data goes to stdout, so `jira ... -o json | jq` is always safe. With `-o json`, errors are a
+JSON object on stderr (`{"error": ..., "status_code": ...}`), including usage errors.
 
 ## Documentation
 

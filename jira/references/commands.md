@@ -27,6 +27,9 @@ Configuration precedence: **flags > environment variables > config profile**. En
 `JIRA_API_VERSION`, `JIRA_INSECURE`, `JIRA_READ_ONLY`, `JIRA_OAUTH_CLIENT_ID`,
 `JIRA_OAUTH_CLIENT_SECRET`, `JIRA_NO_INPUT`, `JIRA_QUIET`.
 
+Server/DC (API v2): users are identified by username (`id:<username>`), rich text is sent as Jira
+wiki markup, and `--markdown` is rejected. Cloud-only commands: `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
+
 ---
 
 ## auth
@@ -72,7 +75,8 @@ Remove a profile (and its stored credentials). Defaults to the current profile.
 ---
 
 ## whoami
-Show the authenticated user (`GET /myself`). Columns: ACCOUNT ID, NAME, EMAIL, ACTIVE, TIMEZONE.
+Show the authenticated user (`GET /myself`). Columns: ID (accountId; username on Server/DC), NAME, EMAIL,
+ACTIVE, TIMEZONE.
 
 ## status
 Show site connectivity + auth status (`serverInfo` + `myself`). Columns: SITE, VERSION, DEPLOYMENT,
@@ -199,8 +203,8 @@ List available link types (ID, NAME, OUTWARD, INWARD).
 
 ## user (alias `users`)
 
-- `jira user search <query> [--limit/-n N]` — resolve a person to an accountId.
-- `jira user get <accountId>`
+- `jira user search <query> [--limit/-n N]`: resolve a person to an accountId (username on Server/DC).
+- `jira user get <accountId>` (a username on Server/DC)
 
 ## field (alias `fields`)
 

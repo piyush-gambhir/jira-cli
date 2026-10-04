@@ -24,8 +24,8 @@ supports `-o json` and `-o yaml` for machine-readable output.
 - **Around issues:** comments, worklogs, attachments (upload/download), links,
   watchers, votes.
 - **Projects, users, fields** and **Agile** boards / sprints / epics.
-- **ADF-aware:** descriptions and comments are sent as Atlassian Document Format;
-  `--markdown` supported.
+- **ADF-aware:** on Cloud, descriptions and comments are sent as Atlassian Document
+  Format (`--markdown` supported); on Server/DC they are sent as wiki-markup strings.
 - **Agent-friendly:** `-o json|yaml`, `--read-only` safety mode, `--no-input`,
   env-var config, clean stdout/stderr separation, automatic rate-limit (429) backoff.
 - **Cross-platform:** macOS, Linux, Windows (amd64 and arm64). Multiple named profiles.

@@ -154,7 +154,7 @@ All optional. Useful for CI/agents (no `auth login` needed if `JIRA_SITE` + cred
 - `JIRA_NO_INPUT`, disable interactive prompts (bool; same as `--no-input`)
 - `JIRA_QUIET`, suppress informational output (bool; same as `--quiet`)
 
-Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); `JIRA_NO_INPUT`/`JIRA_QUIET` are enabled only by `1` or `true` (any case).
+Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); `JIRA_NO_INPUT`/`JIRA_QUIET` are enabled only by `1` or `true` (any case), and an explicit `--no-input=false` / `--quiet=false` overrides them.
 
 ### Precedence order
 
@@ -259,7 +259,7 @@ List issues using simple filters (builds a JQL query for you). Flags: `-p, --pro
 ```
 jira issue search [jql] [flags]
 ```
-Run a raw JQL query (Cloud uses the enhanced `/search/jql` cursor paging; Server/DC uses classic search). JQL via positional arg or `--jql`/`-j` (required). Flags: `-n, --limit` (default 50), `--all`, `--fields`, `--count` (return only the approximate match count).
+Run a raw JQL query (Cloud uses the enhanced `/search/jql` cursor paging; Server/DC uses classic search). JQL via positional arg or `--jql`/`-j` (required). Flags: `-n, --limit` (default 50), `--all`, `--fields`, `--count` (return only the approximate match count). With `-o json|yaml`, every field requested with `--fields` (custom fields included) appears under each issue's `fields`.
 
 Examples:
 ```bash
@@ -308,7 +308,7 @@ jira issue delete ABC-123 --yes
 ```
 jira issue assign <key> --to <user>
 ```
-**[mutates]** Assign an issue. `--to` (required) accepts an email, display name, `@me`, `id:<accountId>`, `default` (project default assignee), or `none`/`unassign`/`null` to clear.
+**[mutates]** Assign an issue. `--to` (required) accepts an email, display name, `@me`, `id:<accountId>` (`id:<username>` on Server/DC), `default` (project default assignee), or `none`/`unassign`/`null` to clear.
 
 ```
 jira issue transitions <key>
@@ -411,7 +411,7 @@ jira issue property-set ABC-123 my.meta '{"reviewed":true,"by":"qa"}'
 ```
 jira issue notify <key> --subject <s> --body <b> [flags]
 ```
-**[mutates]** Email a notification about an issue. `--subject` and `--body` required. Flags: `--to` (comma-separated audience: any of `reporter,assignee,watchers,voters`), `--users` (comma-separated accountIds), `--markdown` (send body as HTML instead of plain text). At least one recipient is required.
+**[mutates]** Email a notification about an issue. `--subject` and `--body` required. Flags: `--to` (comma-separated audience: any of `reporter,assignee,watchers,voters`), `--users` (comma-separated accountIds; usernames on Server/DC), `--markdown` (send body as HTML instead of plain text). At least one recipient is required.
 
 Example:
 ```bash
@@ -448,15 +448,15 @@ jira project delete ABC --enable-undo --yes
 
 ### user, find and inspect users
 
-Group alias: `users`. Jira identifies users by accountId (GDPR). Commands that take a user reference accept email / display name / `@me` (or `me`) / `id:<accountId>`.
+Group alias: `users`. Jira Cloud identifies users by accountId (GDPR); Server/DC by username. Commands that take a user reference accept email / display name / `@me` (or `me`) / `id:<accountId>` (`id:<username>` on Server/DC).
 
 ```
 jira user search <query> [-n <limit>]                   # search by name or email
-jira user get <accountId>                               # get a user by accountId
+jira user get <accountId>                               # get a user by accountId (username on Server/DC)
 jira user list [-n <limit>]                             # list all users on the site
-jira user bulk --account-id <id> [--account-id ...]     # get multiple users in one request (repeatable flag)
+jira user bulk --account-id <id> [--account-id ...]     # get multiple users (repeatable flag; Cloud only)
 jira user assignable [query] [flags]                    # users assignable to issues
-jira user groups <accountId>                            # groups a user belongs to
+jira user groups <accountId>                            # groups a user belongs to (username on Server/DC)
 ```
 `assignable` flags: `-p, --project`, `--issue` (issue wins when both set; one of the two is required), `-n, --limit`. Use `assignable` as the correct picker before `issue assign`/`issue create`.
 
@@ -697,9 +697,9 @@ Set with `-o, --output`:
 
 - `table` (default), human-readable columns. (A few commands whose shape varies, e.g. `epic get`, `board config`, fall back to JSON even in table mode.)
 - `json`, machine-readable; **best for scripting and agents**. Pipe to `jq`.
-- `yaml`, machine-readable YAML.
+- `yaml`, machine-readable YAML with the same keys and values as `json`.
 
-Informational messages (e.g. "Created ABC-1", the JQL used by `issue list`, connection notices) go to **stderr**; data goes to **stdout**. So `jira ... -o json | jq` is always safe. Use `--quiet` (or `JIRA_QUIET`) to suppress the stderr info lines entirely.
+Informational messages (e.g. "Created ABC-1", the JQL used by `issue list`, connection notices) go to **stderr**; data goes to **stdout**. So `jira ... -o json | jq` is always safe. Use `--quiet` (or `JIRA_QUIET`) to suppress the stderr info lines entirely. With `-o json`, a failure (including a usage error such as a missing argument or unknown flag) prints `{"error": "...", "status_code": N}` to stderr and exits 1.
 
 Example:
 ```bash
@@ -740,6 +740,7 @@ jira whoami -o yaml
   ```
 - **Profiles:** Multiple named profiles are supported. Select one with `--profile <name>` or `JIRA_PROFILE`; otherwise `current_profile` is used (falling back to `default`). Switch the default with `jira auth use <name>`. Manage with `jira auth list/current/rename/logout`.
 - **Auto-detection:** Cloud vs Server/DC is derived from the auth type and site host (`*.atlassian.net`/`api.atlassian.com` → Cloud; `pat`/`basic` → Server/DC; `scoped_token`/`oauth2` → Cloud). The platform API version defaults to `3` on Cloud and `2` on Server/DC unless `api_version`/`--api-version`/`JIRA_API_VERSION` overrides it.
+- **Server/DC (API v2) differences:** users are identified by username instead of accountId; descriptions, comments, and worklog comments are sent as plain strings that Jira renders as wiki markup, and `--markdown` is rejected; `project list` filters `--query` locally; `issue download` uses the attachment's content URL. These commands call Cloud-only endpoints and fail on Server/DC: `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
 - **OAuth refresh:** Access tokens are refreshed automatically and the rotated refresh token is persisted back to the profile (the load-modify-save cycle is serialized to avoid races).
 
 ## Examples / recipes

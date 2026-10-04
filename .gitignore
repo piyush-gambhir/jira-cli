@@ -4,7 +4,7 @@
 *.test
 .DS_Store
 
-# Local build secrets (embedded OAuth app). Never commit.
+# Local env files (may hold credentials). Never commit.
 .env
 .env.local
 
