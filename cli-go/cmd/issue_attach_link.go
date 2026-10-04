@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -66,10 +68,7 @@ func newIssueDownloadCmd() *cobra.Command {
 				return err
 			}
 			if out == "" {
-				out = filename
-			}
-			if out == "" {
-				out = "attachment-" + args[0]
+				out = attachmentFileName(filename, args[0])
 			}
 			if err := os.WriteFile(out, data, 0o644); err != nil {
 				return fmt.Errorf("writing %s: %w", out, err)
@@ -141,4 +140,14 @@ func newIssueLinkTypesCmd() *cobra.Command {
 			return render(types, def)
 		},
 	}
+}
+
+// attachmentFileName keeps only the last element of the server-supplied name,
+// so a name such as ../../.bashrc cannot write outside the current directory.
+func attachmentFileName(name, id string) string {
+	base := filepath.Base(filepath.Clean("/" + strings.ReplaceAll(name, "\\", "/")))
+	if base == "/" || base == "." || base == ".." {
+		return "attachment-" + id
+	}
+	return base
 }

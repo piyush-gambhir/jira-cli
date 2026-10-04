@@ -204,6 +204,9 @@ func newProjectDeleteCmd() *cobra.Command {
 		Annotations: mutates,
 		Args:        cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := checkEnableUndo(jiraClient.APIVer(), enableUndo); err != nil {
+				return err
+			}
 			if !yes {
 				if noInputFlag {
 					return fmt.Errorf("refusing to delete project %s without --yes", args[0])
@@ -224,4 +227,13 @@ func newProjectDeleteCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&enableUndo, "enable-undo", false, "Move to the recycle bin instead of permanent delete")
 	cmd.Flags().BoolVar(&yes, "yes", false, "Skip the confirmation prompt")
 	return cmd
+}
+
+// checkEnableUndo refuses --enable-undo on Server/Data Center (REST v2), which
+// ignores it and deletes the project permanently.
+func checkEnableUndo(apiVersion string, enableUndo bool) error {
+	if enableUndo && apiVersion == "2" {
+		return fmt.Errorf("--enable-undo is Cloud only: Jira Server/Data Center ignores it and deletes the project permanently")
+	}
+	return nil
 }
