@@ -23,9 +23,6 @@ import (
 )
 
 const (
-	// DefaultDownloadURL is where release assets are downloaded from.
-	DefaultDownloadURL = "https://github.com"
-
 	maxArchiveSize   = 64 << 20  // release archive download limit
 	maxChecksumsSize = 1 << 20   // checksums.txt download limit
 	maxBinarySize    = 128 << 20 // extracted binary limit
@@ -40,7 +37,7 @@ type Installer struct {
 	Binary      string // binary name without ".exe"
 	GOOS        string // defaults to runtime.GOOS
 	GOARCH      string // defaults to runtime.GOARCH
-	DownloadURL string // defaults to DefaultDownloadURL
+	DownloadURL string // defaults to DefaultBaseURL
 	Client      *http.Client
 }
 
@@ -97,7 +94,7 @@ func (in *Installer) Install(ctx context.Context, version, exePath string) error
 	}
 	base := in.DownloadURL
 	if base == "" {
-		base = DefaultDownloadURL
+		base = DefaultBaseURL
 	}
 	releaseURL := strings.TrimRight(base, "/") + "/" + in.Repo + "/releases/download/v" + Normalize(version) + "/"
 	asset := in.AssetName()

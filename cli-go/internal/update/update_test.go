@@ -7,27 +7,31 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
 )
 
-// releaseServer serves releases/latest with tag (or status when non-zero) and
-// counts the requests.
+// releaseServer answers /o/r/releases/latest like github.com: a 302 to
+// /o/r/releases/tag/<tag> (or status when non-zero). It counts the
+// releases/latest requests; any other request (such as following the
+// redirect) fails the test.
 func releaseServer(t *testing.T, tag string, status int) (*httptest.Server, *atomic.Int32) {
 	t.Helper()
 	var hits atomic.Int32
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		hits.Add(1)
-		if r.URL.Path != "/repos/o/r/releases/latest" {
+		if r.URL.Path != "/o/r/releases/latest" {
+			t.Errorf("unexpected request %s (the redirect must not be followed)", r.URL.Path)
 			http.NotFound(w, r)
 			return
 		}
+		hits.Add(1)
 		if status != 0 {
 			w.WriteHeader(status)
 			return
 		}
-		_, _ = w.Write([]byte(`{"tag_name":"` + tag + `"}`))
+		http.Redirect(w, r, "/o/r/releases/tag/"+tag, http.StatusFound)
 	}))
 	t.Cleanup(srv.Close)
 	return srv, &hits
@@ -38,7 +42,7 @@ type clock struct{ t time.Time }
 func (c *clock) now() time.Time { return c.t }
 
 func newChecker(t *testing.T, srv *httptest.Server, c *clock) *Checker {
-	return &Checker{Repo: "o/r", CacheDir: t.TempDir(), APIURL: srv.URL, Client: srv.Client(), Now: c.now}
+	return &Checker{Repo: "o/r", CacheDir: t.TempDir(), BaseURL: srv.URL, Client: srv.Client(), Now: c.now}
 }
 
 func TestLatestIsCachedForADayAndForceBypassesTheCache(t *testing.T) {
@@ -223,5 +227,61 @@ func TestClaimNoticeFailsWhenItCannotBeRecorded(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chmod(ch.CacheDir, 0o755) })
 	if ch.ClaimNotice("0.1.11") {
 		t.Fatal("ClaimNotice reported true without recording the claim, so the notice would repeat on every command")
+	}
+}
+
+func TestLatestFromTheReleasesRedirect(t *testing.T) {
+	for name, tc := range map[string]struct {
+		location string // "" sends no Location header
+		status   int
+		want     string // "" expects a failed check
+	}{
+		"good tag":           {location: "/o/r/releases/tag/v0.1.11", status: http.StatusFound, want: "0.1.11"},
+		"absolute same host": {location: "SELF/o/r/releases/tag/v1.2.3", status: http.StatusFound, want: "1.2.3"},
+		"missing Location":   {status: http.StatusFound},
+		"foreign host":       {location: "https://evil.example/o/r/releases/tag/v9.9.9", status: http.StatusFound},
+		"non-semver tag":     {location: "/o/r/releases/tag/nightly", status: http.StatusFound},
+		"tag without v":      {location: "/o/r/releases/tag/0.1.11", status: http.StatusFound},
+		"prerelease tag":     {location: "/o/r/releases/tag/v0.2.0-rc.1", status: http.StatusFound},
+		"no releases":        {location: "/o/r/releases", status: http.StatusFound},
+		"other repo":         {location: "/x/y/releases/tag/v0.1.11", status: http.StatusFound},
+		"not a redirect":     {status: http.StatusOK},
+		"not a 302":          {location: "/o/r/releases/tag/v0.1.11", status: http.StatusNotModified},
+		"encoded space":      {location: "/o/r/releases/tag/v1.2.3%20", status: http.StatusFound},
+		"encoded newline":    {location: "/o/r/releases/tag/v1.2.3%0A", status: http.StatusFound},
+		"trailing segment":   {location: "/o/r/releases/tag/v1.2.3/x", status: http.StatusFound},
+		"rate limited":       {status: http.StatusForbidden},
+	} {
+		t.Run(name, func(t *testing.T) {
+			var followed atomic.Int32
+			var srv *httptest.Server
+			srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/o/r/releases/latest" {
+					followed.Add(1)
+					return
+				}
+				if tc.location != "" {
+					w.Header().Set("Location", strings.Replace(tc.location, "SELF", srv.URL, 1))
+				}
+				w.WriteHeader(tc.status)
+			}))
+			t.Cleanup(srv.Close)
+			// srv.Client() follows redirects by default; the checker must not.
+			ch := &Checker{Repo: "o/r", CacheDir: t.TempDir(), BaseURL: srv.URL, Client: srv.Client()}
+			got, err := ch.Latest(context.Background(), true)
+			if tc.want == "" {
+				if err == nil {
+					t.Fatalf("Latest = %q; want a failed check", got)
+				}
+				if _, ok := ch.Cached(); !ok {
+					t.Fatal("failed check was not cached")
+				}
+			} else if err != nil || got != tc.want {
+				t.Fatalf("Latest = %q, %v; want %s", got, err, tc.want)
+			}
+			if followed.Load() != 0 {
+				t.Fatalf("the redirect was followed %d times", followed.Load())
+			}
+		})
 	}
 }

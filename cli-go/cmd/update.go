@@ -32,12 +32,11 @@ const (
 
 // Test seams: tests point these at httptest servers and temp files.
 var (
-	updateAPIURL      = update.DefaultAPIURL
-	updateDownloadURL = update.DefaultDownloadURL
-	updateGOOS        = runtime.GOOS
-	executablePath    = currentExecutable
-	stdinIsTerminal   = func() bool { return term.IsTerminal(int(os.Stdin.Fd())) }
-	stderrIsTerminal  = func() bool { return term.IsTerminal(int(os.Stderr.Fd())) }
+	updateBaseURL    = update.DefaultBaseURL
+	updateGOOS       = runtime.GOOS
+	executablePath   = currentExecutable
+	stdinIsTerminal  = func() bool { return term.IsTerminal(int(os.Stdin.Fd())) }
+	stderrIsTerminal = func() bool { return term.IsTerminal(int(os.Stderr.Fd())) }
 )
 
 func currentExecutable() (string, error) {
@@ -52,7 +51,7 @@ func newUpdateChecker(timeout time.Duration) *update.Checker {
 	return &update.Checker{
 		Repo:     repoSlug,
 		CacheDir: config.ConfigDir(),
-		APIURL:   updateAPIURL,
+		BaseURL:  updateBaseURL,
 		Client:   &http.Client{Timeout: timeout},
 	}
 }
@@ -215,7 +214,7 @@ func runUpdate(cmd *cobra.Command, yes bool) error {
 		Project:     releaseProject,
 		Binary:      "jira",
 		GOOS:        updateGOOS,
-		DownloadURL: updateDownloadURL,
+		DownloadURL: updateBaseURL,
 	}
 	if !quietFlag {
 		fmt.Fprintf(cmd.ErrOrStderr(), "Downloading %s ...\n", in.AssetName())
