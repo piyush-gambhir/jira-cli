@@ -118,7 +118,7 @@ func newJQLParseCmd() *cobra.Command {
 	var validation string
 	cmd := &cobra.Command{
 		Use:   "parse <jql>...",
-		Short: "Parse and validate one or more JQL queries",
+		Short: "Parse and validate one or more JQL queries (Cloud only)",
 		Long: `Parse (and optionally validate) JQL queries without running them. Pass one
 or more queries as arguments. --validation controls strictness: strict, warn,
 or none.

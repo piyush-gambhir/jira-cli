@@ -44,7 +44,8 @@ func newIssueTypeListCmd() *cobra.Command {
 		Use:   "list",
 		Short: "List issue types (optionally for a project)",
 		Long: `List issue types. With --project (a numeric project id) only the issue
-types associated with that project are returned.
+types associated with that project are returned (on Server/Data Center a
+project key also works).
 
 Examples:
   jira issuetype list
@@ -241,7 +242,7 @@ func newLabelListCmd() *cobra.Command {
 	var limit int
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List available issue labels",
+		Short: "List available issue labels (Cloud only)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			labels, err := jiraClient.ListLabels(limit)

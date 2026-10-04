@@ -52,13 +52,21 @@ func (c *Client) ProjectStatuses(idOrKey string) ([]ProjectStatusType, error) {
 	return out, nil
 }
 
-// ArchiveProject archives a project (POST /project/{key}/archive).
+// ArchiveProject archives a project: POST /project/{key}/archive on Cloud, PUT
+// on Data Center (which needs a Data Center license).
 func (c *Client) ArchiveProject(idOrKey string) error {
+	if c.IsServer() {
+		return c.PutJSON(c.api("project/%s/archive", idOrKey), nil, nil, nil)
+	}
 	return c.PostJSON(c.api("project/%s/archive", idOrKey), nil, nil, nil)
 }
 
-// RestoreProject restores an archived (or trashed) project (POST /project/{key}/restore).
+// RestoreProject restores an archived (or, on Cloud, trashed) project: POST
+// /project/{key}/restore on Cloud, PUT on Data Center.
 func (c *Client) RestoreProject(idOrKey string) error {
+	if c.IsServer() {
+		return c.PutJSON(c.api("project/%s/restore", idOrKey), nil, nil, nil)
+	}
 	return c.PostJSON(c.api("project/%s/restore", idOrKey), nil, nil, nil)
 }
 

@@ -85,7 +85,12 @@ func (c *Client) userSearchParam() string {
 }
 
 // errCloudOnly reports an endpoint that Jira Server/Data Center does not have.
-func errCloudOnly(what string) error {
+// It is returned before any request is sent. hint, if set, names what to use
+// on Server/Data Center instead.
+func errCloudOnly(what, hint string) error {
+	if hint != "" {
+		return fmt.Errorf("%s is only available on Jira Cloud (REST API v3); %s", what, hint)
+	}
 	return fmt.Errorf("%s is only available on Jira Cloud (REST API v3)", what)
 }
 

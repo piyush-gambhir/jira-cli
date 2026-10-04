@@ -28,7 +28,7 @@ Configuration precedence: **flags > environment variables > config profile**. En
 `JIRA_OAUTH_CLIENT_SECRET`, `JIRA_NO_INPUT`, `JIRA_QUIET`.
 
 Server/DC (API v2): users are identified by username (`id:<username>`), rich text is sent as Jira
-wiki markup, and `--markdown` is rejected. Cloud-only commands: `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
+wiki markup, and `--markdown` is rejected. These use Data Center endpoints instead: `filter favourite|unfavourite` and `filter update --favourite` (through `/rest/api/1.0/filters/{id}/favourite`), `group list` (the group picker, which Jira caps at `jira.ajax.autocomplete.limit`, 20 by default), `dashboard search` (pages through every dashboard and matches names locally), `issuetype list --project` (the project's issue types), `issue changelog` (the issue read with `expand=changelog`), `project archive|restore` (needs a Data Center license), and `user list` (`/rest/api/2/user/list`, in Data Center 11.0 and recent 10.3 LTS releases; on older versions use `user search`). Cloud only (they fail before sending any request): `filter list|search`, `group members --group-id`, `label list`, `jql parse`, `permission permitted-projects`, `webhook` (Server/DC webhooks are admin settings under Administration > System > WebHooks), `user bulk`, and `project delete --enable-undo`.
 
 ---
 
@@ -178,7 +178,9 @@ Upload one or more files.
 List attachment metadata.
 
 ### `jira issue download <attachmentId> [--out <path>]`
-Download an attachment (defaults to its filename).
+Download an attachment (defaults to its filename). Credentials are only sent to the configured
+site's exact origin: a redirect elsewhere is followed without them, and on Server/DC the
+attachment's content URL must be on that origin (set `--site` to Jira's base URL).
 
 ### `jira issue link <fromKey> <toKey> --type <Type>`  *(write)*
 Create `<fromKey> <type-outward> <toKey>`. `--comment`, `--markdown`.

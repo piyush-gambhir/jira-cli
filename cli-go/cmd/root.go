@@ -3,13 +3,11 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/auth"
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/client"
@@ -274,15 +272,60 @@ func ErrorFormat(args []string) output.Format {
 	return format
 }
 
-// outputFlagFromArgs returns the -o/--output value in args. Every other flag is
-// ignored, so an unknown flag before -o cannot hide it.
+// outputFlagFromArgs returns the -o/--output value in args (-o json, -ojson,
+// -o=json, --output json, --output=json). It walks args with the flag
+// definitions of the command they select, so a value glued to another short
+// flag (-shttps://x) is skipped whole instead of being read as a cluster of
+// one-letter flags. Parsing of an argument stops at an unknown flag.
 func outputFlagFromArgs(args []string) string {
-	fs := pflag.NewFlagSet("output", pflag.ContinueOnError)
-	fs.ParseErrorsAllowlist.UnknownFlags = true
-	fs.SetOutput(io.Discard)
-	format := fs.StringP("output", "o", "", "")
-	_ = fs.Parse(args)
-	return *format
+	cmd, _, err := rootCmd.Find(args)
+	if err != nil || cmd == nil {
+		cmd = rootCmd
+	}
+	cmd.InheritedFlags() // merges the persistent flags into cmd.Flags()
+	flags := cmd.Flags()
+
+	format := ""
+	for i := 0; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--":
+			return format
+		case strings.HasPrefix(a, "--"):
+			name, value, hasValue := strings.Cut(a[2:], "=")
+			f := flags.Lookup(name)
+			if f == nil {
+				continue
+			}
+			if !hasValue && f.NoOptDefVal == "" && i+1 < len(args) {
+				i++
+				value = args[i]
+			}
+			if f.Name == "output" {
+				format = value
+			}
+		case strings.HasPrefix(a, "-") && len(a) > 1:
+			for j := 1; j < len(a); j++ {
+				f := flags.ShorthandLookup(a[j : j+1])
+				if f == nil {
+					break
+				}
+				if f.NoOptDefVal != "" { // a boolean: the cluster continues
+					continue
+				}
+				value := strings.TrimPrefix(a[j+1:], "=")
+				if j+1 == len(a) && i+1 < len(args) {
+					i++
+					value = args[i]
+				}
+				if f.Name == "output" {
+					format = value
+				}
+				break
+			}
+		}
+	}
+	return format
 }
 
 func init() {

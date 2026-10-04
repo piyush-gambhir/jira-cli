@@ -15,13 +15,14 @@ func newWebhookCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "webhook",
 		Aliases: []string{"webhooks"},
-		Short:   "Manage dynamic (OAuth-app) webhooks",
-		Long: `List, register, delete, and refresh dynamic webhooks.
+		Short:   "Manage dynamic (OAuth-app) webhooks (Cloud only)",
+		Long: `List, register, delete, and refresh dynamic webhooks (Jira Cloud only).
 
 Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as, so
 these commands require an OAuth login with the manage:jira-webhook scope (choose
 the "all" scope preset, or add --scope manage:jira-webhook, at 'jira auth login').
-Webhook ids are integers.
+Webhook ids are integers. Server/Data Center has no dynamic webhooks; there a
+Jira administrator manages webhooks under Administration > System > WebHooks.
 
 Examples:
   jira webhook list

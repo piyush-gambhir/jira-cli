@@ -66,7 +66,7 @@ func filterBool(b bool) string {
 func newFilterListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
-		Short: "List filters owned by the current user",
+		Short: "List filters owned by the current user (Cloud only)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			filters, err := jiraClient.ListMyFilters()
@@ -99,7 +99,7 @@ func newFilterSearchCmd() *cobra.Command {
 	var limit int
 	cmd := &cobra.Command{
 		Use:   "search",
-		Short: "Search filters by name",
+		Short: "Search filters by name (Cloud only)",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			filters, err := jiraClient.SearchFilters(query, limit)

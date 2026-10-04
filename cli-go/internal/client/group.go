@@ -9,19 +9,33 @@ type Group struct {
 	HTML    string `json:"html,omitempty"` // present in groups picker results
 }
 
-// ListGroups returns groups via the bulk endpoint (PageBean of {name,groupId}).
-func (c *Client) ListGroups(limit int) ([]Group, error) {
+// ListGroups returns groups and the total number of groups. Cloud uses the
+// bulk endpoint (PageBean of {name,groupId}). Server/DC has no group/bulk, so
+// it uses the group picker with an empty query, which Jira caps at its
+// jira.ajax.autocomplete.limit setting (20 by default).
+func (c *Client) ListGroups(limit int) ([]Group, int, error) {
 	q := url.Values{}
 	if limit > 0 {
 		q.Set("maxResults", itoa(limit))
 	}
+	if c.IsServer() {
+		var out struct {
+			Total  int     `json:"total"`
+			Groups []Group `json:"groups"`
+		}
+		if err := c.GetJSON(c.api("groups/picker"), q, &out); err != nil {
+			return nil, 0, err
+		}
+		return out.Groups, out.Total, nil
+	}
 	var out struct {
+		Total  int     `json:"total"`
 		Values []Group `json:"values"`
 	}
 	if err := c.GetJSON(c.api("group/bulk"), q, &out); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return out.Values, nil
+	return out.Values, out.Total, nil
 }
 
 // FindGroups searches for groups whose name matches query (groups picker).
@@ -42,6 +56,9 @@ func (c *Client) FindGroups(query string) ([]Group, error) {
 // GroupMembers returns the members of a group. Identify the group by name or, if
 // groupID is set, by id. includeInactive also returns deactivated users.
 func (c *Client) GroupMembers(name, groupID string, limit int, includeInactive bool) ([]User, error) {
+	if groupID != "" && c.IsServer() {
+		return nil, errCloudOnly("--group-id", "Server/Data Center groups have no ids, so pass the group name")
+	}
 	q := url.Values{}
 	if groupID != "" {
 		q.Set("groupId", groupID)

@@ -79,6 +79,9 @@ func (c *Client) JQLSuggestions(fieldName, fieldValue, predicateName string) ([]
 // is one of "strict", "warn" or "none" (empty uses the server default). Each
 // returned entry carries the parsed structure and any per-query errors.
 func (c *Client) JQLParse(queries []string, validation string) ([]JQLParsedError, error) {
+	if c.IsServer() {
+		return nil, errCloudOnly("jql parse", "on Server/Data Center run the query with `jira issue search` to validate it")
+	}
 	q := url.Values{}
 	if validation != "" {
 		q.Set("validation", validation)

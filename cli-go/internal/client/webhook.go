@@ -28,8 +28,18 @@ type WebhookRegistrationResult struct {
 	Errors           []string `json:"errors,omitempty"`
 }
 
+// errWebhooksCloudOnly: dynamic webhooks exist only on Cloud. Server/DC
+// webhooks are instance-wide admin settings whose REST resource and payload
+// changed in Jira 10, so this CLI does not manage them.
+func errWebhooksCloudOnly() error {
+	return errCloudOnly("webhook management", "on Server/Data Center a Jira administrator manages webhooks under Administration > System > WebHooks")
+}
+
 // ListWebhooks returns the dynamic webhooks registered for the OAuth app.
 func (c *Client) ListWebhooks(limit int) ([]Webhook, error) {
+	if c.IsServer() {
+		return nil, errWebhooksCloudOnly()
+	}
 	q := url.Values{}
 	if limit > 0 {
 		q.Set("maxResults", itoa(limit))
@@ -46,6 +56,9 @@ func (c *Client) ListWebhooks(limit int) ([]Webhook, error) {
 // RegisterWebhooks registers one or more webhooks for the given callback URL and
 // returns the per-webhook results (created id or errors), in request order.
 func (c *Client) RegisterWebhooks(callbackURL string, webhooks []WebhookRegistration) ([]WebhookRegistrationResult, error) {
+	if c.IsServer() {
+		return nil, errWebhooksCloudOnly()
+	}
 	body := map[string]any{"url": callbackURL, "webhooks": webhooks}
 	var out struct {
 		WebhookRegistrationResult []WebhookRegistrationResult `json:"webhookRegistrationResult"`
@@ -59,6 +72,9 @@ func (c *Client) RegisterWebhooks(callbackURL string, webhooks []WebhookRegistra
 // DeleteWebhooks removes the webhooks with the given integer ids. The DELETE
 // carries a JSON body, so it goes through doJSON directly (c.Delete has no body).
 func (c *Client) DeleteWebhooks(ids []int) error {
+	if c.IsServer() {
+		return errWebhooksCloudOnly()
+	}
 	body := map[string]any{"webhookIds": ids}
 	return c.doJSON(http.MethodDelete, c.api("webhook"), nil, body, nil, true)
 }
@@ -66,6 +82,9 @@ func (c *Client) DeleteWebhooks(ids []int) error {
 // RefreshWebhooks extends the expiry of the given webhook ids and returns the
 // new expiration date.
 func (c *Client) RefreshWebhooks(ids []int) (string, error) {
+	if c.IsServer() {
+		return "", errWebhooksCloudOnly()
+	}
 	body := map[string]any{"webhookIds": ids}
 	var out struct {
 		ExpirationDate string `json:"expirationDate"`

@@ -10,9 +10,13 @@ import (
 
 func TestUsageErrorsHonorJSONOutput(t *testing.T) {
 	for _, args := range [][]string{
-		{"issue", "get", "-o", "json"},                     // missing argument
-		{"issue", "list", "--bogus", "x", "--output=json"}, // unknown flag before -o
-		{"-o", "json", "issue", "bogus"},                   // unknown sub-command
+		{"issue", "get", "-o", "json"},                               // missing argument
+		{"issue", "list", "--bogus", "x", "--output=json"},           // unknown flag before -o
+		{"-o", "json", "issue", "bogus"},                             // unknown sub-command
+		{"issue", "get", "-shttps://jira.example.com", "-o", "json"}, // value glued to -s
+		{"-shttps://jira.example.com", "issue", "get", "-ojson"},     // glued values everywhere
+		{"-kvojson", "issue", "get"},                                 // boolean cluster ending in -o
+		{"issue", "list", "-pPROJ", "-n5", "--output=json", "--bogus"},
 	} {
 		resetRootFlags(t)
 		rootCmd.SetArgs(args)
@@ -34,7 +38,11 @@ func TestUsageErrorsHonorJSONOutput(t *testing.T) {
 
 func TestErrorFormatDefaultsToTable(t *testing.T) {
 	resetRootFlags(t)
-	for _, args := range [][]string{nil, {"issue", "get"}, {"-o", "bogus"}} {
+	for _, args := range [][]string{
+		nil, {"issue", "get"}, {"-o", "bogus"},
+		{"issue", "list", "-pdocs"},          // the o in a glued value is not -o
+		{"issue", "get", "--", "-o", "json"}, // after --, -o is an argument
+	} {
 		if got := ErrorFormat(args); got != output.FormatTable {
 			t.Errorf("ErrorFormat(%v) = %q; want table", args, got)
 		}

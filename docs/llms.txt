@@ -360,7 +360,7 @@ jira issue worklog ABC-123 --time "2h 30m" --comment review --started "2026-06-1
 ```
 jira issue attach <key> <file>...                           # [mutates] upload one or more files
 jira issue attachments <key>                                # list attachments
-jira issue download <attachmentId> [--out <path>]           # download by id (default = original filename)
+jira issue download <attachmentId> [--out <path>]           # download by id (default = original filename); the content URL must be on the site origin
 jira issue attachment-meta <attachmentId>                   # metadata for one attachment
 jira issue attachment-delete <attachmentId> [--yes]         # [mutates]
 ```
@@ -429,7 +429,7 @@ jira project create [flags]                             # [mutates] --key and --
 jira project update <idOrKey> [flags]                   # [mutates]
 jira project delete <idOrKey> [--enable-undo] [--yes]   # [mutates]
 jira project statuses <idOrKey>                         # statuses per issue type
-jira project archive <idOrKey> [--yes]                  # [mutates]
+jira project archive <idOrKey> [--yes]                  # [mutates] (Data Center needs a DC license)
 jira project restore <idOrKey>                          # [mutates] restore archived/trashed project
 jira project roles <idOrKey>                            # list project roles
 jira project role <idOrKey> <roleId>                    # show a role and its members
@@ -453,7 +453,7 @@ Group alias: `users`. Jira Cloud identifies users by accountId (GDPR); Server/DC
 ```
 jira user search <query> [-n <limit>]                   # search by name or email
 jira user get <accountId>                               # get a user by accountId (username on Server/DC)
-jira user list [-n <limit>]                             # list all users on the site
+jira user list [-n <limit>]                             # list all users (Server/DC: Data Center 11.0 or a recent 10.3 LTS)
 jira user bulk --account-id <id> [--account-id ...]     # get multiple users (repeatable flag; Cloud only)
 jira user assignable [query] [flags]                    # users assignable to issues
 jira user groups <accountId>                            # groups a user belongs to (username on Server/DC)
@@ -478,13 +478,13 @@ List all fields with their JQL clause names. `--custom` shows only custom fields
 ### issuetype / priority / resolution / label, enumerations
 
 ```
-jira issuetype list [--project <id>]    # list issue types (alias: issuetypes); --project = numeric project id
+jira issuetype list [--project <id>]    # list issue types (alias: issuetypes); --project = numeric project id (a key also works on Server/DC)
 jira issuetype get <id>
 jira priority list                       # alias: priorities
 jira priority get <id>
 jira resolution list                     # alias: resolutions
 jira resolution get <id>
-jira label list [-n <limit>]             # available issue labels (alias: labels; default limit 100)
+jira label list [-n <limit>]             # available issue labels (alias: labels; default limit 100; Cloud only)
 ```
 
 ### status, issue statuses
@@ -536,9 +536,9 @@ jira release publish 10001
 Group alias: `filters`.
 
 ```
-jira filter list                          # filters owned by the current user
+jira filter list                          # filters owned by the current user (Cloud only)
 jira filter favourites                     # your favourite filters (alias: favorites)
-jira filter search [--query <q>] [-n <limit>]
+jira filter search [--query <q>] [-n <limit>]   # Cloud only
 jira filter get <id>
 jira filter create --name <n> --jql <jql> [-d <desc>] [--favourite]   # [mutates]
 jira filter update <id> [flags]            # [mutates] --name/--jql/--description/--favourite
@@ -569,9 +569,9 @@ jira dashboard get <id>
 Group alias: `groups`. Create/delete and add/remove-user require the `manage:jira-configuration` scope / site-admin permission.
 
 ```
-jira group list [-n <limit>]
+jira group list [-n <limit>]             # Server/DC: group picker, capped by jira.ajax.autocomplete.limit
 jira group find <name>                       # search groups by name
-jira group members <name> [--group-id <id>] [-n <limit>] [--inactive]
+jira group members <name> [--group-id <id>] [-n <limit>] [--inactive]   # --group-id is Cloud only
 jira group add-user <groupname> --user <u>   # [mutates] (--user required)
 jira group remove-user <groupname> --user <u># [mutates] (--user required)
 jira group create <name>                     # [mutates]
@@ -584,7 +584,7 @@ Group aliases: `permissions`, `perm`.
 
 ```
 jira permission mine [--project <key>] [--issue <key>] [--keys <csv>]
-jira permission permitted-projects --keys <csv>
+jira permission permitted-projects --keys <csv>   # Cloud only
 jira permission list
 ```
 `mine` shows which permissions you hold (optionally scoped); when `--keys` is omitted a common default set is checked (BROWSE_PROJECTS, CREATE_ISSUES, EDIT_ISSUES, ASSIGN_ISSUES, TRANSITION_ISSUES, ADD_COMMENTS, DELETE_ISSUES, ADMINISTER, ADMINISTER_PROJECTS). `permitted-projects` returns project ids where you hold ALL the given permissions (`--keys` required). `list` shows all permissions the instance defines.
@@ -600,7 +600,7 @@ jira permission permitted-projects --keys CREATE_ISSUES,ADMINISTER_PROJECTS -o j
 ```
 jira jql autocomplete                        # fields/functions/reserved words usable in JQL (alias: autocompletedata)
 jira jql suggest --field <f> [--value <prefix>] [--predicate <p>]   # value suggestions for a field (--field required)
-jira jql parse <jql>... [--validation <strict|warn|none>]           # parse/validate one or more queries without running
+jira jql parse <jql>... [--validation <strict|warn|none>]           # parse/validate one or more queries without running (Cloud only)
 ```
 `autocomplete` in table mode lists field clause names; use `-o json` for the full object (fields, functions, reserved words). `parse` prints per-query errors to stderr and exits nonzero if any query has errors.
 
@@ -673,9 +673,9 @@ jira backlog move <issueKey...> [-b, --board <id>]
 ```
 **[mutates]** Move issues to the backlog (max 50 per call). Without `--board` uses the board-agnostic endpoint (issues must already belong to a scrum board); with `--board` targets that board's backlog.
 
-### webhook, dynamic (OAuth-app) webhooks
+### webhook, dynamic (OAuth-app) webhooks (Cloud only)
 
-Group alias: `webhooks`. Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as, these require an OAuth login with the `manage:jira-webhook` scope (`all` preset, or `--scope manage:jira-webhook`). Webhook ids are integers.
+Group alias: `webhooks`. Dynamic webhooks are scoped to the OAuth 2.0 (3LO) app you authenticated as, these require an OAuth login with the `manage:jira-webhook` scope (`all` preset, or `--scope manage:jira-webhook`). Webhook ids are integers. Server/DC has no dynamic webhooks, so these commands fail there before sending a request; a Jira administrator manages Server/DC webhooks under Administration > System > WebHooks.
 
 ```
 jira webhook list [-n <limit>]
@@ -740,7 +740,7 @@ jira whoami -o yaml
   ```
 - **Profiles:** Multiple named profiles are supported. Select one with `--profile <name>` or `JIRA_PROFILE`; otherwise `current_profile` is used (falling back to `default`). Switch the default with `jira auth use <name>`. Manage with `jira auth list/current/rename/logout`.
 - **Auto-detection:** Cloud vs Server/DC is derived from the auth type and site host (`*.atlassian.net`/`api.atlassian.com` → Cloud; `pat`/`basic` → Server/DC; `scoped_token`/`oauth2` → Cloud). The platform API version defaults to `3` on Cloud and `2` on Server/DC unless `api_version`/`--api-version`/`JIRA_API_VERSION` overrides it.
-- **Server/DC (API v2) differences:** users are identified by username instead of accountId; descriptions, comments, and worklog comments are sent as plain strings that Jira renders as wiki markup, and `--markdown` is rejected; `project list` filters `--query` locally; `issue download` uses the attachment's content URL. These commands call Cloud-only endpoints and fail on Server/DC: `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
+- **Server/DC (API v2) differences:** users are identified by username instead of accountId; descriptions, comments, and worklog comments are sent as plain strings that Jira renders as wiki markup, and `--markdown` is rejected; `project list` filters `--query` locally; `issue download` uses the attachment's content URL, which must be on the configured site's origin (set `--site` to Jira's base URL). These commands use Data Center endpoints instead: `filter favourite|unfavourite` and `filter update --favourite` (through `/rest/api/1.0/filters/{id}/favourite`), `group list` (the group picker, which Jira caps at `jira.ajax.autocomplete.limit`, 20 by default), `dashboard search` (pages through every dashboard and matches names locally), `issuetype list --project` (the project's issue types), `issue changelog` (the issue read with `expand=changelog`), `project archive|restore` (needs a Data Center license), and `user list` (`/rest/api/2/user/list`, in Data Center 11.0 and recent 10.3 LTS releases; on older versions use `user search`). These are Cloud only and fail before sending any request: `filter list|search`, `group members --group-id`, `label list`, `jql parse`, `permission permitted-projects`, `webhook` (Server/DC webhooks are admin settings under Administration > System > WebHooks), `user bulk`, and `project delete --enable-undo`.
 - **OAuth refresh:** Access tokens are refreshed automatically and the rotated refresh token is persisted back to the profile (the load-modify-save cycle is serialized to avoid races).
 
 ## Examples / recipes

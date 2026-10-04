@@ -118,7 +118,7 @@ OAuth scopes are selectable: `--scope-preset read|write|admin|all` (or an intera
 granular `--scope`. See [docs/CREDENTIALS.md](docs/CREDENTIALS.md).
 
 On Server/DC, users are identified by username (`id:<username>`) instead of accountId, and
-`--markdown` is not available. These commands are Cloud-only: `filter list|search|favourite|unfavourite`, `group list`, `group members --group-id`, `dashboard search`, `issuetype list --project`, `label list`, `jql parse`, `permission permitted-projects`, `issue changelog`, `webhook`, `user list`, `user bulk`, `project archive|restore`, and `project delete --enable-undo`.
+`--markdown` is not available. These commands use Data Center endpoints instead: `filter favourite|unfavourite` and `filter update --favourite` (through `/rest/api/1.0/filters/{id}/favourite`), `group list` (the group picker, which Jira caps at `jira.ajax.autocomplete.limit`, 20 by default), `dashboard search` (pages through every dashboard and matches names locally), `issuetype list --project` (the project's issue types), `issue changelog` (the issue read with `expand=changelog`), `project archive|restore` (needs a Data Center license), and `user list` (`/rest/api/2/user/list`, in Data Center 11.0 and recent 10.3 LTS releases; on older versions use `user search`). These are Cloud only and fail before sending any request: `filter list|search`, `group members --group-id`, `label list`, `jql parse`, `permission permitted-projects`, `webhook` (Server/DC webhooks are admin settings under Administration > System > WebHooks), `user bulk`, and `project delete --enable-undo`.
 
 ### For end users
 
