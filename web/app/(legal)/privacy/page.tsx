@@ -54,9 +54,14 @@ export default function PrivacyPage() {
             configure, to perform the actions you explicitly request.
           </li>
           <li>
-            <strong>GitHub&apos;s public API</strong>, to check whether a newer
-            release of the CLI is available. This request contains no personal
-            data.
+            <strong>GitHub</strong>, to check whether a newer release of the
+            CLI is available, and, when you run <code>jira update</code>, to
+            download the release archive and its checksums. The automatic check
+            runs at most once a day and only in an interactive terminal (never
+            when output is redirected or <code>CI</code> is set); turn it off
+            with <code>JIRA_NO_UPDATE_NOTIFIER=1</code> or{' '}
+            <code>NO_UPDATE_NOTIFIER=1</code>. These requests contain no
+            personal data.
           </li>
           <li>
             <strong>Atlassian&apos;s identity service</strong>, for the OAuth

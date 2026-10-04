@@ -1,115 +1,262 @@
-// Package update implements a best-effort background check for newer releases
-// on GitHub, cached for 24h so it never slows normal command execution.
+// Package update checks GitHub for newer releases of the CLI and installs them.
+//
+// The release check is cached for 24h in update-check.json in the config dir
+// (failures too, so an offline machine does not retry on every command), and
+// the same file records which version the update notice was last shown for.
 package update
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
 
-// UpdateInfo describes the result of a release check.
-type UpdateInfo struct {
-	Available      bool
-	CurrentVersion string
-	LatestVersion  string
-	URL            string
-}
+const (
+	// CacheFileName is the cache file inside the config dir.
+	CacheFileName = "update-check.json"
+	// CheckInterval is how long a release check (or a shown notice) is remembered.
+	CheckInterval = 24 * time.Hour
+	// DefaultAPIURL is the GitHub REST API base URL.
+	DefaultAPIURL = "https://api.github.com"
+)
 
+// cacheFile is the JSON stored in CacheFileName.
 type cacheFile struct {
-	CheckedAt     time.Time `json:"checked_at"`
-	LatestVersion string    `json:"latest_version"`
-	URL           string    `json:"url"`
+	CheckedAt       time.Time `json:"checked_at"`
+	LatestVersion   string    `json:"latest_version,omitempty"`
+	Error           string    `json:"error,omitempty"`
+	NotifiedVersion string    `json:"notified_version,omitempty"`
+	NotifiedAt      time.Time `json:"notified_at"`
 }
 
-const cacheTTL = 24 * time.Hour
+// Checker looks up the latest release of Repo and caches the answer in CacheDir.
+type Checker struct {
+	Repo     string // "owner/name"
+	CacheDir string
+	APIURL   string           // defaults to DefaultAPIURL
+	Client   *http.Client     // defaults to a client with a 3-second timeout
+	Now      func() time.Time // defaults to time.Now
+}
 
-// CheckForUpdate compares the current version against the latest GitHub release
-// for repo (e.g. "piyush-gambhir/jira-cli"). Results are cached in cacheDir for
-// 24h. Errors are returned but are safe to ignore (the check is best-effort).
-func CheckForUpdate(current, repo, cacheDir string, force bool) (*UpdateInfo, error) {
-	cachePath := filepath.Join(cacheDir, "update-check.json")
+func (c *Checker) now() time.Time {
+	if c.Now != nil {
+		return c.Now()
+	}
+	return time.Now()
+}
 
-	if !force {
-		if c, ok := readCache(cachePath); ok && time.Since(c.CheckedAt) < cacheTTL {
-			return result(current, c.LatestVersion, c.URL), nil
+func (c *Checker) cachePath() string { return filepath.Join(c.CacheDir, CacheFileName) }
+
+// Latest returns the latest release version without a leading "v". Unless
+// force is set, a check younger than CheckInterval is answered from the cache,
+// including a cached failure. Every network check is written to the cache.
+func (c *Checker) Latest(ctx context.Context, force bool) (string, error) {
+	cache, _ := c.read()
+	if !force && c.fresh(cache.CheckedAt) {
+		if cache.Error != "" {
+			return "", errors.New(cache.Error)
 		}
+		return Normalize(cache.LatestVersion), nil
 	}
-
-	latest, url, err := fetchLatest(repo)
+	latest, err := c.fetch(ctx)
+	cache.CheckedAt = c.now()
+	cache.LatestVersion = latest
+	cache.Error = ""
 	if err != nil {
-		return nil, err
+		cache.Error = err.Error()
 	}
-	_ = writeCache(cachePath, cacheFile{CheckedAt: time.Now(), LatestVersion: latest, URL: url})
-	return result(current, latest, url), nil
+	_ = c.write(cache)
+	return latest, err
 }
 
-func result(current, latest, url string) *UpdateInfo {
-	return &UpdateInfo{
-		Available:      latest != "" && current != "dev" && normalize(latest) != normalize(current),
-		CurrentVersion: current,
-		LatestVersion:  latest,
-		URL:            url,
+// Cached reports the result of a check younger than CheckInterval without
+// using the network: the latest version ("" if that check failed), and whether
+// such a check exists. A caller can then skip starting a background check.
+func (c *Checker) Cached() (string, bool) {
+	cache, ok := c.read()
+	if !ok || !c.fresh(cache.CheckedAt) {
+		return "", false
 	}
+	if cache.Error != "" || !IsRelease(cache.LatestVersion) {
+		return "", true
+	}
+	return Normalize(cache.LatestVersion), true
 }
 
-func fetchLatest(repo string) (string, string, error) {
-	req, _ := http.NewRequest(http.MethodGet, "https://api.github.com/repos/"+repo+"/releases/latest", nil)
+// CachedLatest returns the latest version from a successful check younger than
+// CheckInterval. It never uses the network.
+func (c *Checker) CachedLatest() (string, bool) {
+	latest, ok := c.Cached()
+	return latest, ok && latest != ""
+}
+
+// ClaimNotice reports whether the update notice for latest should be shown now,
+// and if so records it, so the notice appears at most once per version per
+// CheckInterval.
+func (c *Checker) ClaimNotice(latest string) bool {
+	cache, _ := c.read()
+	latest = Normalize(latest)
+	if Normalize(cache.NotifiedVersion) == latest && c.fresh(cache.NotifiedAt) {
+		return false
+	}
+	cache.NotifiedVersion = latest
+	cache.NotifiedAt = c.now()
+	_ = c.write(cache)
+	return true
+}
+
+// ClearCache removes the cache file (after an update the cached answer is stale).
+func (c *Checker) ClearCache() error {
+	err := os.Remove(c.cachePath())
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	return err
+}
+
+func (c *Checker) fresh(t time.Time) bool {
+	age := c.now().Sub(t)
+	return !t.IsZero() && age >= 0 && age < CheckInterval
+}
+
+func (c *Checker) fetch(ctx context.Context) (string, error) {
+	base := c.APIURL
+	if base == "" {
+		base = DefaultAPIURL
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/repos/"+c.Repo+"/releases/latest", nil)
+	if err != nil {
+		return "", err
+	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	client := &http.Client{Timeout: 5 * time.Second}
+	client := c.Client
+	if client == nil {
+		client = &http.Client{Timeout: 3 * time.Second}
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", err
+		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("github releases returned %s", resp.Status)
+		return "", fmt.Errorf("GitHub releases API returned %s", resp.Status)
 	}
-	body, _ := io.ReadAll(resp.Body)
 	var rel struct {
 		TagName string `json:"tag_name"`
-		HTMLURL string `json:"html_url"`
 	}
-	if err := json.Unmarshal(body, &rel); err != nil {
-		return "", "", err
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&rel); err != nil {
+		return "", fmt.Errorf("decoding the GitHub release: %w", err)
 	}
-	return rel.TagName, rel.HTMLURL, nil
+	if !IsRelease(rel.TagName) {
+		return "", fmt.Errorf("latest release tag %q is not a version", rel.TagName)
+	}
+	return Normalize(rel.TagName), nil
 }
 
-func readCache(path string) (cacheFile, bool) {
-	data, err := os.ReadFile(path)
-	if err != nil {
+func (c *Checker) read() (cacheFile, bool) {
+	var cache cacheFile
+	data, err := os.ReadFile(c.cachePath())
+	if err != nil || json.Unmarshal(data, &cache) != nil {
 		return cacheFile{}, false
 	}
-	var c cacheFile
-	if json.Unmarshal(data, &c) != nil {
-		return cacheFile{}, false
-	}
-	return c, true
+	return cache, true
 }
 
-func writeCache(path string, c cacheFile) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+// write replaces the cache atomically so a process that exits mid-write (the
+// check runs in the background) never leaves a truncated file behind.
+func (c *Checker) write(cache cacheFile) error {
+	if err := os.MkdirAll(c.CacheDir, 0o700); err != nil {
 		return err
 	}
-	data, _ := json.Marshal(c)
-	return os.WriteFile(path, data, 0o600)
+	data, err := json.Marshal(cache)
+	if err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(c.CacheDir, ".update-check-*.tmp")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), c.cachePath())
 }
 
-func normalize(v string) string { return strings.TrimPrefix(strings.TrimSpace(v), "v") }
+// Normalize strips surrounding space and a leading "v".
+func Normalize(v string) string { return strings.TrimPrefix(strings.TrimSpace(v), "v") }
 
-// PrintUpdateNotice prints a short upgrade hint to w.
-func PrintUpdateNotice(w io.Writer, info *UpdateInfo) {
-	if info == nil || !info.Available {
-		return
+// parse splits a release version (MAJOR.MINOR.PATCH, optional leading "v").
+func parse(v string) ([3]int, bool) {
+	var out [3]int
+	parts := strings.Split(Normalize(v), ".")
+	if len(parts) != 3 {
+		return out, false
 	}
-	fmt.Fprintf(w, "\nA new version of jira is available: %s -> %s\n", normalize(info.CurrentVersion), normalize(info.LatestVersion))
-	if info.URL != "" {
-		fmt.Fprintf(w, "  %s\n", info.URL)
+	for i, p := range parts {
+		n, err := strconv.Atoi(p)
+		if err != nil || n < 0 || p == "" || (len(p) > 1 && p[0] == '0') || strings.ContainsAny(p, "+-") {
+			return out, false
+		}
+		out[i] = n
 	}
+	return out, true
+}
+
+// IsRelease reports whether v is a release version. "dev", an empty string,
+// and source builds such as "0.1.10-3-gabc1234-dirty" are not.
+func IsRelease(v string) bool {
+	_, ok := parse(v)
+	return ok
+}
+
+// Newer reports whether latest is a newer release than current.
+func Newer(latest, current string) bool {
+	l, okL := parse(latest)
+	c, okC := parse(current)
+	if !okL || !okC {
+		return false
+	}
+	for i := range l {
+		if l[i] != c[i] {
+			return l[i] > c[i]
+		}
+	}
+	return false
+}
+
+// ReleaseURL is the release notes page for version.
+func ReleaseURL(repo, version string) string {
+	return "https://github.com/" + repo + "/releases/tag/v" + Normalize(version)
+}
+
+// Notice is the update notice printed on stderr after a command's output.
+// updateCommand is how to update ("jira update", or the source-build command).
+func Notice(bin, repo, current, latest, updateCommand string) string {
+	return fmt.Sprintf("\nA new version of %s is available: v%s -> v%s\nUpdate with: %s\nRelease notes: %s\n",
+		bin, Normalize(current), Normalize(latest), updateCommand, ReleaseURL(repo, latest))
+}
+
+// NotifierDisabledByEnv reports whether the environment turns the update
+// notifier off: CI, <prefix>_NO_UPDATE_NOTIFIER, or NO_UPDATE_NOTIFIER set to
+// any non-empty value.
+func NotifierDisabledByEnv(prefix string, getenv func(string) string) bool {
+	for _, key := range []string{"CI", prefix + "_NO_UPDATE_NOTIFIER", "NO_UPDATE_NOTIFIER"} {
+		if getenv(key) != "" {
+			return true
+		}
+	}
+	return false
 }

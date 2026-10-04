@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -50,7 +52,13 @@ var (
 	// uses it to format top-level errors.
 	OutputFormat string
 
-	updateResult chan *update.UpdateInfo
+	// updateResult receives the background release check's latest version;
+	// nil when no check was started for this command.
+	updateResult  chan string
+	updateChecker *update.Checker
+	// updateNoticeWait is how long PersistentPostRunE waits for the background
+	// check. Zero (production) never delays a command; tests raise it.
+	updateNoticeWait time.Duration
 )
 
 var rootCmd = &cobra.Command{
@@ -91,8 +99,8 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 			}
 		}
 
-		cmdName := cmd.Name()
-		if cmdName != "update" && cmdName != "version" {
+		updateResult = nil
+		if updateNotifierEnabled(cmd) {
 			startBackgroundUpdateCheck()
 		}
 
@@ -104,11 +112,10 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		}
 		OutputFormat = outputFormat
 
-		// Commands that never need an authenticated client. version/update/completion
-		// are matched ONLY at the top level — otherwise a subcommand of the same name
-		// (e.g. `project update`) would wrongly be left without a client.
-		isTopLevel := cmd.Parent() == nil || cmd.Parent() == cmd.Root()
-		if cmdName == "help" || (isTopLevel && (cmdName == "version" || cmdName == "update" || cmdName == "completion")) {
+		// Commands that never need an authenticated client. They are matched by
+		// their top-level command (so `completion bash` and Cobra's hidden
+		// __complete are covered), never by leaf name: `project update` needs one.
+		if isClientlessCommand(cmd) {
 			return nil
 		}
 		if cmd.Parent() != nil && cmd.Parent().Name() == "auth" {
@@ -152,17 +159,24 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		return nil
 	},
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		cmdName := cmd.Name()
-		if cmdName == "update" || cmdName == "version" || updateResult == nil {
+		if updateResult == nil {
 			return nil
 		}
+		// Print the notice only if the check already finished: never delay output.
+		var latest string
 		select {
-		case info := <-updateResult:
-			if info != nil && info.Available {
-				update.PrintUpdateNotice(os.Stderr, info)
+		case latest = <-updateResult:
+		default:
+			if updateNoticeWait <= 0 {
+				return nil
 			}
-		case <-time.After(1500 * time.Millisecond):
+			select {
+			case latest = <-updateResult:
+			case <-time.After(updateNoticeWait):
+				return nil
+			}
 		}
+		printUpdateNotice(cmd.ErrOrStderr(), updateChecker, latest)
 		return nil
 	},
 }
@@ -226,11 +240,50 @@ func checkReadOnly(cmd *cobra.Command, profile config.Profile) error {
 	return nil
 }
 
+// isClientlessCommand reports whether cmd belongs to a top-level command that
+// needs no Jira client: update, version, completion, help, or __complete*.
+func isClientlessCommand(cmd *cobra.Command) bool {
+	top := cmd
+	for top.HasParent() && top.Parent().HasParent() {
+		top = top.Parent()
+	}
+	switch name := top.Name(); name {
+	case "update", "version", "completion", "help":
+		return true
+	default:
+		return strings.HasPrefix(name, "__complete")
+	}
+}
+
+// updateNotifierEnabled reports whether this run may check GitHub for a newer
+// release in the background. Scripts, CI, and agents are never disturbed: the
+// check is skipped (no network, no output) unless stderr is a terminal, and
+// also under CI, JIRA_NO_UPDATE_NOTIFIER, NO_UPDATE_NOTIFIER, --quiet or
+// JIRA_QUIET, for dev builds, and for update/version/completion/help.
+func updateNotifierEnabled(cmd *cobra.Command) bool {
+	if isClientlessCommand(cmd) {
+		return false
+	}
+	return !quietFlag &&
+		!update.NotifierDisabledByEnv("JIRA", os.Getenv) &&
+		update.IsRelease(version.Version) &&
+		stderrIsTerminal()
+}
+
+// startBackgroundUpdateCheck answers from a fresh cache right away (a small
+// local read, so even a fast command can show the notice) and otherwise asks
+// GitHub in a goroutine that PersistentPostRunE never waits for.
 func startBackgroundUpdateCheck() {
-	updateResult = make(chan *update.UpdateInfo, 1)
+	ch := make(chan string, 1)
+	checker := newUpdateChecker(3 * time.Second)
+	updateResult, updateChecker = ch, checker
+	if latest, ok := checker.Cached(); ok {
+		ch <- latest
+		return
+	}
 	go func() {
-		info, _ := update.CheckForUpdate(version.Version, repoSlug, config.ConfigDir(), false)
-		updateResult <- info
+		latest, _ := checker.Latest(context.Background(), false)
+		ch <- latest
 	}()
 }
 
@@ -245,6 +298,12 @@ func RootCmd() *cobra.Command { return rootCmd }
 // Execute runs the root command and reports a failure on stderr in the
 // selected output format (a structured object for -o json), exiting 1.
 func Execute() {
+	if runtime.GOOS == "windows" {
+		// A Windows update leaves the replaced binary at jira.exe.old.
+		if exe, err := executablePath(); err == nil {
+			update.RemoveStaleOld(exe)
+		}
+	}
 	if err := rootCmd.Execute(); err != nil {
 		statusCode := 0
 		var apiErr *client.APIError

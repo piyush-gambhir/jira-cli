@@ -25,7 +25,8 @@ Available on every command:
 Configuration precedence: **flags > environment variables > config profile**. Env vars: `JIRA_SITE`,
 `JIRA_EMAIL`, `JIRA_TOKEN`, `JIRA_USER`, `JIRA_PASSWORD`, `JIRA_AUTH_TYPE`, `JIRA_CLOUD_ID`,
 `JIRA_API_VERSION`, `JIRA_INSECURE`, `JIRA_READ_ONLY`, `JIRA_OAUTH_CLIENT_ID`,
-`JIRA_OAUTH_CLIENT_SECRET`, `JIRA_NO_INPUT`, `JIRA_QUIET`.
+`JIRA_OAUTH_CLIENT_SECRET`, `JIRA_NO_INPUT`, `JIRA_QUIET`, `JIRA_NO_UPDATE_NOTIFIER` (or
+`NO_UPDATE_NOTIFIER`; turns off the update notice).
 
 Server/DC (API v2): users are identified by username (`id:<username>`), rich text is sent as Jira
 wiki markup, and `--markdown` is rejected. These use Data Center endpoints instead: `filter favourite|unfavourite` and `filter update --favourite` (through `/rest/api/1.0/filters/{id}/favourite`), `group list` (the group picker, which Jira caps at `jira.ajax.autocomplete.limit`, 20 by default), `dashboard search` (pages through every dashboard and matches names locally), `issuetype list --project` (the project's issue types), `issue changelog` (the issue read with `expand=changelog`), `project archive|restore` (needs a Data Center license), and `user list` (`/rest/api/2/user/list`, in Data Center 11.0 and recent 10.3 LTS releases; on older versions use `user search`). Cloud only (they fail before sending any request): `filter list|search`, `group members --group-id`, `label list`, `jql parse`, `permission permitted-projects`, `webhook` (Server/DC webhooks are admin settings under Administration > System > WebHooks), `user bulk`, and `project delete --enable-undo`.
@@ -83,10 +84,29 @@ Show site connectivity + auth status (`serverInfo` + `myself`). Columns: SITE, V
 AUTHENTICATED, USER. Exits non-zero if not authenticated.
 
 ## version
-Print the CLI version.
+Print the CLI version (`jira version <v> (commit: <c>, built: <t>)`). Never uses the network; when a
+release check from the last 24h is cached it adds `latest: <v>` and `update_available: true|false`.
 
 ## update
-Check GitHub for a newer release and print upgrade instructions.
+Install the latest GitHub release in place (macOS, Linux, Windows): downloads the archive for this
+OS/arch, verifies its SHA-256 against `checksums.txt`, and atomically replaces the binary (on Windows the
+old `jira.exe` becomes `jira.exe.old`, deleted on a later run). Asks `Update now? [Y/n]` when stdin is a
+terminal.
+
+| Flag | Short | Description |
+|---|---|---|
+| `--check` | | Only report current/latest/update available/release URL (bypasses the cache); exit 0 either way. `-o json` gives `current_version`, `latest_version`, `update_available`, `release_url`, `install_method` (`self` or `go`) |
+| `--yes` | `-y` | Install without the prompt (required under `--no-input` or with a non-terminal stdin) |
+
+An unwritable binary directory fails and keeps the old binary (re-run with `sudo`, or reinstall with the
+install script into a writable dir). A binary in a Go bin dir (`make install`) is not replaced: it prints
+`git pull && make install (in your jira-cli/cli-go checkout)`. `--read-only` blocks installing, not `--check`.
+
+Update notice: in an interactive terminal, a once-a-day background check prints
+`A new version of jira is available: v<current> -> v<latest>`, `Update with: jira update`, and the release
+notes URL on stderr after a command's output, at most once a day per version. It is skipped (no network)
+when stderr is not a terminal, `CI` is set, with `--quiet`/`JIRA_QUIET`, or with
+`JIRA_NO_UPDATE_NOTIFIER=1` / `NO_UPDATE_NOTIFIER=1`.
 
 ---
 

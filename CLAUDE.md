@@ -9,7 +9,8 @@ Built for humans and coding agents. This file is the canonical reference.
 - **Config file:** `~/.config/jira-cli/config.yaml` (XDG-aware; mode 0600)
 - **Env vars:** `JIRA_SITE`, `JIRA_EMAIL`, `JIRA_TOKEN`, `JIRA_USER`, `JIRA_PASSWORD`,
   `JIRA_AUTH_TYPE`, `JIRA_CLOUD_ID`, `JIRA_API_VERSION`, `JIRA_INSECURE`, `JIRA_READ_ONLY`,
-  `JIRA_OAUTH_CLIENT_ID`, `JIRA_OAUTH_CLIENT_SECRET`, `JIRA_NO_INPUT`, `JIRA_QUIET`
+  `JIRA_OAUTH_CLIENT_ID`, `JIRA_OAUTH_CLIENT_SECRET`, `JIRA_NO_INPUT`, `JIRA_QUIET`,
+  `JIRA_NO_UPDATE_NOTIFIER` (or `NO_UPDATE_NOTIFIER`)
 - **Config priority:** CLI flags > environment variables > config profile
 - **Machine output:** add `-o json` (or `-o yaml`) to any list/get command
 - **Agent safety:** `--read-only` (or `read_only` in the profile) blocks all write commands;
@@ -162,6 +163,16 @@ jira epic get ABC-10 ; jira epic issues ABC-10
   uses the classic `/search`. The CLI handles both. JQL must be bounded.
 - **Rate limits (429)** are retried automatically (honor `Retry-After`, else exponential backoff).
 - **API version** defaults to v3 on Cloud, v2 on Server/DC; override with `--api-version`.
+- **Updating.** `jira update` installs the latest release in place (macOS, Linux, Windows) after verifying
+  its SHA-256 against the release's `checksums.txt`; it asks `Update now? [Y/n]` in a terminal, so pass
+  `--yes` from scripts or under `--no-input`. `jira update --check -o json` reports `current_version`,
+  `latest_version`, `update_available`, `release_url`, `install_method` (`self`/`go`). An unwritable
+  install dir fails and keeps the old binary; a Go bin dir (`make install`) is not replaced.
+  `--read-only` blocks installing, not `--check`.
+- **Update notice.** Only in an interactive terminal: a once-a-day background GitHub check prints a
+  3-line notice on stderr after the output (once per version per day). It never runs when stderr is not
+  a terminal, under `CI`, `--quiet`/`JIRA_QUIET`, or `JIRA_NO_UPDATE_NOTIFIER=1` / `NO_UPDATE_NOTIFIER=1`,
+  so agents capturing stderr never see it.
 - **Server/DC command support.** On API v2 these commands use Data Center endpoints instead: `filter favourite|unfavourite` and `filter update --favourite` (through `/rest/api/1.0/filters/{id}/favourite`), `group list` (the group picker, which Jira caps at `jira.ajax.autocomplete.limit`, 20 by default), `dashboard search` (pages through every dashboard and matches names locally), `issuetype list --project` (the project's issue types), `issue changelog` (the issue read with `expand=changelog`), `project archive|restore` (needs a Data Center license), and `user list` (`/rest/api/2/user/list`, in Data Center 11.0 and recent 10.3 LTS releases; on older versions use `user search`). These are Cloud only and fail before sending any request: `filter list|search`, `group members --group-id`, `label list`, `jql parse`, `permission permitted-projects`, `webhook` (Server/DC webhooks are admin settings under Administration > System > WebHooks), `user bulk`, and `project delete --enable-undo`.
 - **Agile commands over OAuth:** `board`/`sprint`/`epic` use the Jira Software (Agile) API, which over
   OAuth needs granular `jira-software` scopes — classic scopes give `401 "scope does not match"`. They

@@ -25,7 +25,7 @@ func TestAgentSafetyCommandManifest(t *testing.T) {
 		"stop": true, "transition": true, "trigger": true, "update": true,
 		"worklog": true,
 	}
-	safeDespiteVerb := map[string]bool{"jira filter run": true, "jira update": true}
+	safeDespiteVerb := map[string]bool{"jira filter run": true}
 
 	var entries []string
 	var walk func(*cobra.Command)
@@ -46,7 +46,7 @@ func TestAgentSafetyCommandManifest(t *testing.T) {
 	walk(rootCmd)
 	sort.Strings(entries)
 	digest := fmt.Sprintf("%x", sha256.Sum256([]byte(strings.Join(entries, "\n"))))
-	const expectedDigest = "d7848b718acc486e469747d119ab17e332e5e8657403e3bad7db5bbf9b1fa3f1"
+	const expectedDigest = "44afd745e271e8e1154f559009565174d547d984f5cdb0a717268d42a5e587f0"
 	if digest != expectedDigest {
 		t.Fatalf("agent-safety command manifest changed: got %s; review command mutation/interaction annotations, then update expectedDigest", digest)
 	}
