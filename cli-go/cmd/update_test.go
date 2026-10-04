@@ -26,18 +26,18 @@ import (
 )
 
 // updateEnv isolates a test from the real config dir, environment, terminal,
-// GitHub, and binary: the release API and downloads go to an httptest server
-// that reports latest as the newest release, and the "running binary" is a
-// temp file outside any Go bin directory.
+// GitHub, and binary: the releases/latest redirect and downloads go to an
+// httptest server that reports latest as the newest release, and the "running
+// binary" is a temp file outside any Go bin directory.
 type updateEnv struct {
-	t       *testing.T
-	mu      sync.Mutex
-	latest  string
-	apiHits atomic.Int32
-	dlHits  atomic.Int32
-	files   map[string][]byte
-	exe     string
-	cfgDir  string
+	t          *testing.T
+	mu         sync.Mutex
+	latest     string
+	latestHits atomic.Int32
+	dlHits     atomic.Int32
+	files      map[string][]byte
+	exe        string
+	cfgDir     string
 }
 
 func newUpdateEnv(t *testing.T, latest string) *updateEnv {
@@ -45,9 +45,9 @@ func newUpdateEnv(t *testing.T, latest string) *updateEnv {
 	e := &updateEnv{t: t, latest: latest, files: map[string][]byte{}}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		latest := e.getLatest()
-		if r.URL.Path == "/repos/"+repoSlug+"/releases/latest" {
-			e.apiHits.Add(1)
-			_, _ = w.Write([]byte(`{"tag_name":"v` + latest + `"}`))
+		if r.URL.Path == "/"+repoSlug+"/releases/latest" {
+			e.latestHits.Add(1)
+			http.Redirect(w, r, "/"+repoSlug+"/releases/tag/v"+latest, http.StatusFound)
 			return
 		}
 		e.dlHits.Add(1)
@@ -78,20 +78,20 @@ func newUpdateEnv(t *testing.T, latest string) *updateEnv {
 	}
 
 	saved := struct {
-		api, dl, ver string
-		exe          func() (string, error)
-		stdin, tty   func() bool
-		wait         time.Duration
-	}{updateAPIURL, updateDownloadURL, version.Version, executablePath, stdinIsTerminal, stderrIsTerminal, updateNoticeWait}
+		base, ver  string
+		exe        func() (string, error)
+		stdin, tty func() bool
+		wait       time.Duration
+	}{updateBaseURL, version.Version, executablePath, stdinIsTerminal, stderrIsTerminal, updateNoticeWait}
 	t.Cleanup(func() {
-		updateAPIURL, updateDownloadURL, version.Version = saved.api, saved.dl, saved.ver
+		updateBaseURL, version.Version = saved.base, saved.ver
 		executablePath, stdinIsTerminal, stderrIsTerminal = saved.exe, saved.stdin, saved.tty
 		updateNoticeWait = saved.wait
 		updateResult, updateChecker = nil, nil
 		rootCmd.SetOut(nil)
 		rootCmd.SetErr(nil)
 	})
-	updateAPIURL, updateDownloadURL = srv.URL, srv.URL
+	updateBaseURL = srv.URL
 	version.Version = "0.1.10"
 	executablePath = func() (string, error) { return e.exe, nil }
 	stdinIsTerminal = func() bool { return false }
@@ -177,8 +177,8 @@ func TestUpdateNoticeShownOncePerVersionPerDay(t *testing.T) {
 	if _, stderr, _ = e.run("auth", "list"); strings.Contains(stderr, "new version") {
 		t.Fatalf("notice shown twice for the same version: %q", stderr)
 	}
-	if e.apiHits.Load() != 1 {
-		t.Fatalf("release API hits = %d; want 1 (cached for 24h)", e.apiHits.Load())
+	if e.latestHits.Load() != 1 {
+		t.Fatalf("release API hits = %d; want 1 (cached for 24h)", e.latestHits.Load())
 	}
 
 	// A newer release is announced right away, even within the same day.
@@ -201,8 +201,8 @@ func TestUpdateNoticeFromAFreshCacheNeedsNoWait(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasSuffix(stderr, wantNotice) || e.apiHits.Load() != 1 {
-		t.Fatalf("stderr = %q, API hits = %d; want the cached notice with no new request", stderr, e.apiHits.Load())
+	if !strings.HasSuffix(stderr, wantNotice) || e.latestHits.Load() != 1 {
+		t.Fatalf("stderr = %q, API hits = %d; want the cached notice with no new request", stderr, e.latestHits.Load())
 	}
 }
 
@@ -240,8 +240,8 @@ func TestUpdateNotifierSuppressed(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if updateResult != nil || e.apiHits.Load() != 0 || strings.Contains(stderr, "new version") {
-				t.Fatalf("check started=%v hits=%d stderr=%q; want no check and no output", updateResult != nil, e.apiHits.Load(), stderr)
+			if updateResult != nil || e.latestHits.Load() != 0 || strings.Contains(stderr, "new version") {
+				t.Fatalf("check started=%v hits=%d stderr=%q; want no check and no output", updateResult != nil, e.latestHits.Load(), stderr)
 			}
 		})
 	}
@@ -255,7 +255,7 @@ func TestUpdateNotifierSuppressed(t *testing.T) {
 		if _, _, err := e.run(args...); err != nil {
 			t.Fatalf("%v: %v", args, err)
 		}
-		if updateResult != nil || e.apiHits.Load() != 0 {
+		if updateResult != nil || e.latestHits.Load() != 0 {
 			t.Fatalf("%v: background check started; want skipped", args)
 		}
 	}
@@ -276,7 +276,7 @@ func TestUpdateNoticeNeverDelaysOutput(t *testing.T) {
 	block := make(chan struct{})
 	slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { <-block }))
 	t.Cleanup(slow.Close)
-	updateAPIURL = slow.URL
+	updateBaseURL = slow.URL
 	start := time.Now()
 	_, stderr, err := e.run("auth", "list")
 	elapsed, pending := time.Since(start), updateResult
@@ -322,8 +322,8 @@ func TestUpdateCheckJSON(t *testing.T) {
 			t.Errorf("%s = %v; want %v", k, got[k], v)
 		}
 	}
-	if len(got) != len(want) || e.apiHits.Load() != 1 || e.dlHits.Load() != 0 {
-		t.Fatalf("got %v, api hits %d, downloads %d; want exactly the 5 fields, 1 API call, no download", got, e.apiHits.Load(), e.dlHits.Load())
+	if len(got) != len(want) || e.latestHits.Load() != 1 || e.dlHits.Load() != 0 {
+		t.Fatalf("got %v, api hits %d, downloads %d; want exactly the 5 fields, 1 API call, no download", got, e.latestHits.Load(), e.dlHits.Load())
 	}
 
 	t.Setenv("GOBIN", filepath.Dir(e.exe))
@@ -453,7 +453,7 @@ func TestVersionShowsCachedLatestWithoutNetwork(t *testing.T) {
 	if _, err := newUpdateChecker(time.Second).Latest(t.Context(), false); err != nil {
 		t.Fatal(err)
 	}
-	hits := e.apiHits.Load()
+	hits := e.latestHits.Load()
 	stdout, _, err = e.run("version")
 	if err != nil {
 		t.Fatal(err)
@@ -461,7 +461,7 @@ func TestVersionShowsCachedLatestWithoutNetwork(t *testing.T) {
 	if !strings.HasPrefix(stdout, "jira version 0.1.10 (") || !strings.Contains(stdout, "\nlatest: 0.1.11\nupdate_available: true\n") {
 		t.Fatalf("version = %q", stdout)
 	}
-	if e.apiHits.Load() != hits {
+	if e.latestHits.Load() != hits {
 		t.Fatal("jira version contacted the release API")
 	}
 }

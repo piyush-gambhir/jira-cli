@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,8 +25,10 @@ const (
 	CacheFileName = "update-check.json"
 	// CheckInterval is how long a release check (or a shown notice) is remembered.
 	CheckInterval = 24 * time.Hour
-	// DefaultAPIURL is the GitHub REST API base URL.
-	DefaultAPIURL = "https://api.github.com"
+	// DefaultBaseURL is the GitHub web origin. Releases are resolved and
+	// downloaded from it, never from api.github.com, whose unauthenticated
+	// limit (60 requests/hour per IP) breaks behind shared NAT, VPNs, and CI.
+	DefaultBaseURL = "https://github.com"
 )
 
 // cacheFile is the JSON stored in CacheFileName.
@@ -41,8 +44,8 @@ type cacheFile struct {
 type Checker struct {
 	Repo     string // "owner/name"
 	CacheDir string
-	APIURL   string           // defaults to DefaultAPIURL
-	Client   *http.Client     // defaults to a client with a 3-second timeout
+	BaseURL  string           // defaults to DefaultBaseURL
+	Client   *http.Client     // defaults to a client with a 3-second timeout (redirects are never followed)
 	Now      func() time.Time // defaults to time.Now
 }
 
@@ -129,38 +132,58 @@ func (c *Checker) fresh(t time.Time) bool {
 	return !t.IsZero() && age >= 0 && age < CheckInterval
 }
 
+// fetch resolves the latest release from the redirect that
+// <base>/<repo>/releases/latest answers with (302 to .../releases/tag/<tag>),
+// without following it and without the rate-limited GitHub API.
 func (c *Checker) fetch(ctx context.Context) (string, error) {
-	base := c.APIURL
+	base := c.BaseURL
 	if base == "" {
-		base = DefaultAPIURL
+		base = DefaultBaseURL
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/repos/"+c.Repo+"/releases/latest", nil)
+	baseURL, err := url.Parse(base)
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	client := c.Client
-	if client == nil {
-		client = &http.Client{Timeout: 3 * time.Second}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, strings.TrimRight(base, "/")+"/"+c.Repo+"/releases/latest", nil)
+	if err != nil {
+		return "", err
 	}
+	client := http.Client{Timeout: 3 * time.Second}
+	if c.Client != nil {
+		client = *c.Client
+	}
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub releases API returned %s", resp.Status)
+	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 64<<10))
+	return tagFromRedirect(resp, baseURL, c.Repo)
+}
+
+// tagFromRedirect extracts the version from a releases/latest redirect. Only a
+// redirect to <base host>/<repo>/releases/tag/v<semver> counts.
+func tagFromRedirect(resp *http.Response, base *url.URL, repo string) (string, error) {
+	if resp.StatusCode < 300 || resp.StatusCode > 399 {
+		return "", fmt.Errorf("GitHub answered %s for the latest release, not a redirect", resp.Status)
 	}
-	var rel struct {
-		TagName string `json:"tag_name"`
+	loc, err := resp.Location()
+	if err != nil {
+		return "", fmt.Errorf("the latest-release redirect has no usable Location: %w", err)
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&rel); err != nil {
-		return "", fmt.Errorf("decoding the GitHub release: %w", err)
+	if !strings.EqualFold(loc.Host, base.Host) || loc.Scheme != base.Scheme {
+		return "", fmt.Errorf("the latest-release redirect points to %s, not %s", loc.Redacted(), base.Host)
 	}
-	if !IsRelease(rel.TagName) {
-		return "", fmt.Errorf("latest release tag %q is not a version", rel.TagName)
+	prefix := "/" + repo + "/releases/tag/"
+	tag := ""
+	if len(loc.Path) > len(prefix) && strings.EqualFold(loc.Path[:len(prefix)], prefix) {
+		tag = loc.Path[len(prefix):]
 	}
-	return Normalize(rel.TagName), nil
+	if !strings.HasPrefix(tag, "v") || !IsRelease(tag) {
+		return "", fmt.Errorf("the latest-release redirect (%s) does not name a v<major>.<minor>.<patch> tag", loc.Redacted())
+	}
+	return Normalize(tag), nil
 }
 
 func (c *Checker) read() (cacheFile, bool) {
