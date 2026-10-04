@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"regexp"
 
 	"go.yaml.in/yaml/v3"
 )
@@ -35,10 +36,17 @@ func (f *YAMLFormatter) Format(data interface{}) error {
 	return err
 }
 
+// yaml11Ambiguous matches strings that YAML 1.1 readers such as PyYAML resolve
+// to booleans or base-60 numbers when unquoted; yaml.v3 (YAML 1.2) leaves them plain.
+var yaml11Ambiguous = regexp.MustCompile(`^(?:y|Y|yes|Yes|YES|n|N|no|No|NO|on|On|ON|off|Off|OFF|true|True|TRUE|false|False|FALSE|[-+]?[0-9][0-9_]*(?::[0-5]?[0-9])+(?:\.[0-9_]*)?)$`)
+
 // blockStyle clears the flow and quoting styles the JSON source implies, so the
 // encoder emits block YAML and quotes only where YAML needs it.
 func blockStyle(n *yaml.Node) {
 	n.Style = 0
+	if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && yaml11Ambiguous.MatchString(n.Value) {
+		n.Style = yaml.DoubleQuotedStyle
+	}
 	for _, child := range n.Content {
 		blockStyle(child)
 	}
