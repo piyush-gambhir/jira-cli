@@ -124,12 +124,6 @@ func TestClaimNoticeOncePerVersionPerDay(t *testing.T) {
 	if !ch.ClaimNotice("0.1.12") {
 		t.Fatal("notice for 0.1.12 suppressed after a day")
 	}
-	if err := ch.ClearCache(); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := os.Stat(filepath.Join(ch.CacheDir, CacheFileName)); !os.IsNotExist(err) {
-		t.Fatalf("cache still present after ClearCache: %v", err)
-	}
 }
 
 func TestVersions(t *testing.T) {

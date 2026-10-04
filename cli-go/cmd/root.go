@@ -56,10 +56,16 @@ var (
 	// nil when no check was started for this command.
 	updateResult  chan string
 	updateChecker *update.Checker
-	// updateNoticeWait is how long PersistentPostRunE waits for the background
-	// check. Zero (production) never delays a command; tests raise it.
-	updateNoticeWait time.Duration
+	// updateNoticeWait is how long PersistentPostRunE waits for a background
+	// check that this run started and that has not answered yet.
+	updateNoticeWait = updateNoticeGrace
 )
+
+// updateNoticeGrace bounds the wait for this run's own release check. The check
+// is recorded before GitHub is asked, so an answer lost to a fast command would
+// hide the notice for a day; waiting up to a second (at most once a day, only
+// in an interactive terminal) keeps it. A cached answer never waits.
+const updateNoticeGrace = time.Second
 
 var rootCmd = &cobra.Command{
 	Use:   "jira",
@@ -162,14 +168,12 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		if updateResult == nil {
 			return nil
 		}
-		// Print the notice only if the check already finished: never delay output.
+		// A cached answer is already waiting; a check this run started gets
+		// updateNoticeWait to answer before the command exits without a notice.
 		var latest string
 		select {
 		case latest = <-updateResult:
 		default:
-			if updateNoticeWait <= 0 {
-				return nil
-			}
 			select {
 			case latest = <-updateResult:
 			case <-time.After(updateNoticeWait):
@@ -272,7 +276,8 @@ func updateNotifierEnabled(cmd *cobra.Command) bool {
 
 // startBackgroundUpdateCheck answers from a fresh cache right away (a small
 // local read, so even a fast command can show the notice) and otherwise asks
-// GitHub in a goroutine that PersistentPostRunE never waits for.
+// GitHub in a goroutine that PersistentPostRunE waits for at most
+// updateNoticeWait.
 func startBackgroundUpdateCheck() {
 	ch := make(chan string, 1)
 	checker := newUpdateChecker(3 * time.Second)

@@ -118,15 +118,6 @@ func (c *Checker) ClaimNotice(latest string) bool {
 	return c.write(cache) == nil
 }
 
-// ClearCache removes the cache file (after an update the cached answer is stale).
-func (c *Checker) ClearCache() error {
-	err := os.Remove(c.cachePath())
-	if errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	return err
-}
-
 func (c *Checker) fresh(t time.Time) bool {
 	age := c.now().Sub(t)
 	return !t.IsZero() && age >= 0 && age < CheckInterval

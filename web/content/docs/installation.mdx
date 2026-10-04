@@ -78,7 +78,8 @@ If the binary's directory is not writable, nothing changes: re-run with
 
 In an interactive terminal, jira checks GitHub for a new release at most once a
 day in the background and, when there is one, prints a notice on stderr after the
-command's output (at most once a day per version). It never delays a command:
+command's output (at most once a day per version). Only the command that starts
+the day's check can wait for it, for at most one second:
 
 ```
 A new version of jira is available: v0.1.10 -> v0.1.11
