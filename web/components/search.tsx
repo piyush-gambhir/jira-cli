@@ -18,6 +18,8 @@ export default function DefaultSearchDialog(props: SharedProps) {
   const { locale } = useI18n(); // (optional) for i18n
   const { search, setSearch, query } = useDocsSearch({
     client: staticClient({
+      // Fumadocs defaults to /api/search, which misses Next's basePath.
+      from: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/api/search`,
       locale,
     }),
   });
