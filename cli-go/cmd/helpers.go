@@ -31,14 +31,27 @@ func info(format string, args ...any) {
 	}
 }
 
+// stdinReader is shared by every prompt: a fresh bufio.Reader per prompt would
+// buffer the rest of piped input and drop it before the next prompt.
+var (
+	stdinReader     *bufio.Reader
+	stdinReaderFile *os.File
+)
+
+func stdinLines() *bufio.Reader {
+	if stdinReader == nil || stdinReaderFile != os.Stdin {
+		stdinReader, stdinReaderFile = bufio.NewReader(os.Stdin), os.Stdin
+	}
+	return stdinReader
+}
+
 // prompt reads a line from stdin after writing a label to stderr.
 func prompt(label string) (string, error) {
 	if noInputFlag {
 		return "", fmt.Errorf("interactive input required but --no-input is set")
 	}
 	fmt.Fprint(os.Stderr, label)
-	reader := bufio.NewReader(os.Stdin)
-	line, err := reader.ReadString('\n')
+	line, err := stdinLines().ReadString('\n')
 	if err != nil && line == "" {
 		return "", err
 	}
@@ -57,8 +70,7 @@ func promptSecret(label string) (string, error) {
 		fmt.Fprintln(os.Stderr)
 		return strings.TrimSpace(string(secret)), err
 	}
-	reader := bufio.NewReader(os.Stdin)
-	line, err := reader.ReadString('\n')
+	line, err := stdinLines().ReadString('\n')
 	if err != nil && line == "" {
 		return "", err
 	}

@@ -74,13 +74,23 @@ func codeBlock(code, lang string) Node {
 }
 
 // FromPlainText converts a plain-text string to ADF: blank lines separate
-// paragraphs; single newlines become hardBreaks within a paragraph.
+// paragraphs; single newlines become hardBreaks within a paragraph. The text is
+// kept literal (markdown marks are parsed only by FromMarkdown).
 func FromPlainText(s string) Doc {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	blocks := splitBlankLines(s)
 	var content []Node
 	for _, b := range blocks {
-		content = append(content, paragraphFromLines(strings.Split(b, "\n")))
+		var children []Node
+		for idx, ln := range strings.Split(b, "\n") {
+			if idx > 0 {
+				children = append(children, Node{Type: "hardBreak"})
+			}
+			if ln != "" {
+				children = append(children, text(ln))
+			}
+		}
+		content = append(content, paragraph(children))
 	}
 	return newDoc(content)
 }

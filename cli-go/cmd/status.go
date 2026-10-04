@@ -29,7 +29,8 @@ func newStatusCmd() *cobra.Command {
 			if siErr == nil {
 				res.ServerInfo = si
 			}
-			if me, err := jiraClient.Myself(); err == nil {
+			me, meErr := jiraClient.Myself()
+			if meErr == nil {
 				res.Authenticated = true
 				res.User = me.DisplayName
 			}
@@ -49,7 +50,7 @@ func newStatusCmd() *cobra.Command {
 				return err
 			}
 			if !res.Authenticated {
-				return fmt.Errorf("not authenticated for %s (run 'jira auth login')", res.Site)
+				return fmt.Errorf("not authenticated for %s (run 'jira auth login'): %w", res.Site, meErr)
 			}
 			return nil
 		},
