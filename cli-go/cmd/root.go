@@ -92,12 +92,10 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Env fallbacks for the agent-friendly flags. An explicit flag, including
-		// --quiet=false or --no-input=false, wins over the environment.
-		if !cmd.Flags().Changed("no-input") {
-			if v, ok := os.LookupEnv("JIRA_NO_INPUT"); ok && truthy(v) {
-				noInputFlag = true
-			}
+		// JIRA_NO_INPUT is a safety setting for agent runners, so it is sticky: an
+		// explicit --no-input=false cannot undo it. --quiet=false still wins over JIRA_QUIET.
+		if v, ok := os.LookupEnv("JIRA_NO_INPUT"); ok && truthy(v) {
+			noInputFlag = true
 		}
 		if !cmd.Flags().Changed("quiet") {
 			if v, ok := os.LookupEnv("JIRA_QUIET"); ok && truthy(v) {
