@@ -241,6 +241,10 @@ func checkReadOnly(cmd *cobra.Command, profile config.Profile) error {
 	if effective && cmd.Annotations != nil && cmd.Annotations["mutates"] == "true" {
 		return fmt.Errorf("command '%s' is blocked in read-only mode; remove read_only from the profile or disable the read-only environment setting to permit writes", cmd.CommandPath())
 	}
+	// Commands that only read Jira but write local files are blocked too.
+	if effective && cmd.Annotations != nil && cmd.Annotations["writes-local"] == "true" {
+		return fmt.Errorf("command '%s' writes local files and is blocked in read-only mode", cmd.CommandPath())
+	}
 	return nil
 }
 
