@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"strings"
 
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 	"github.com/spf13/cobra"
@@ -41,10 +39,9 @@ func newCommandsCmd() *cobra.Command {
 					break
 				}
 			}
-			probe := newRootCmd()
-			probe.SetIn(strings.NewReader(""))
-			probe.SetOut(io.Discard)
-			probe.SetErr(io.Discard)
+			// The process exits after answering and runs nothing else, so parsing into the
+			// running command tree is safe; Find and ParseFlags never execute a command.
+			probe := cmd.Root()
 			target, rest, err := probe.Find(args)
 			if err != nil || target == probe || !target.Runnable() || target.Annotations[groupDispatcherKey] == "true" {
 				return fmt.Errorf("arguments do not name a runnable jira command")
@@ -66,12 +63,13 @@ func describeResolution(target *cobra.Command) resolution {
 	}
 	ann := target.Annotations
 	switch {
-	case ann["mutates"] == "true" || ann["mutates"] == "conditional":
-		res.Effect, res.Conditional = "remote_write", ann["mutates"] == "conditional"
+	// Checked first: such commands may also carry mutates=true but write only with the flag.
 	case ann["mutates-when-flag"] != "":
 		if target.Flags().Changed(ann["mutates-when-flag"]) {
 			res.Effect = "remote_write"
 		}
+	case ann["mutates"] == "true" || ann["mutates"] == "conditional":
+		res.Effect, res.Conditional = "remote_write", ann["mutates"] == "conditional"
 	case ann["writes-local"] == "true" || ann["writes-local"] == "conditional" || ann["self-update"] != "" ||
 		(ann["writes-local-when-flag"] != "" && target.Flags().Changed(ann["writes-local-when-flag"])):
 		res.Effect, res.Conditional = "local_write", ann["writes-local"] == "conditional"

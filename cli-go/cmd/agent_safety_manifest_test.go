@@ -46,7 +46,7 @@ func TestAgentSafetyCommandManifest(t *testing.T) {
 	walk(rootCmd)
 	sort.Strings(entries)
 	digest := fmt.Sprintf("%x", sha256.Sum256([]byte(strings.Join(entries, "\n"))))
-	const expectedDigest = "92683a8b955ae9bcdb1dd95182013605e1947b6501a432293ed9e9b008697fa8"
+	const expectedDigest = "a2161ffbf29c4c3a3fd69e9092219d9862455125305b2783f2c26e8d855e8d30"
 	if digest != expectedDigest {
 		t.Fatalf("agent-safety command manifest changed: got %s; review command mutation/interaction annotations, then update expectedDigest", digest)
 	}
