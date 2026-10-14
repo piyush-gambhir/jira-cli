@@ -410,6 +410,7 @@ func init() {
 	pf.BoolVar(&noInputFlag, "no-input", false, "Disable all interactive prompts (for CI/agents)")
 	pf.BoolVarP(&quietFlag, "quiet", "q", false, "Suppress informational output")
 
+	rootCmd.AddCommand(newCommandsCmd())
 	rootCmd.AddCommand(newVersionCmd())
 	rootCmd.AddCommand(newUpdateCmd())
 	rootCmd.AddCommand(newAuthCmd())

@@ -202,6 +202,12 @@ Note `jira version` (the CLI's own version) is distinct from the `jira release` 
 
 ### Top-level commands
 
+```bash
+jira commands resolve -- issue get PROJ-123
+jira commands resolve -- -o json issue delete PROJ-123 --yes
+```
+Resolve arguments offline with the real Cobra parser, without running the target, reading configuration, or checking for updates. Output is always JSON with `command`, `effect` (`read`, `remote_write`, or `local_write`), `conditional`, `interactive`, `secret_output`, explicitly set `flags`, and positional `args`. Effects follow command annotations; unknown commands, dispatcher groups, and invalid flags fail with exit status 1.
+
 ```
 jira version
 ```
