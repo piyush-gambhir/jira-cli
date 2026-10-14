@@ -59,9 +59,10 @@ func newIssueAttachmentsCmd() *cobra.Command {
 func newIssueDownloadCmd() *cobra.Command {
 	var out string
 	cmd := &cobra.Command{
-		Use:   "download <attachment-id>",
-		Short: "Download an attachment by id",
-		Args:  cobra.ExactArgs(1),
+		Use:         "download <attachment-id>",
+		Short:       "Download an attachment by id",
+		Annotations: map[string]string{"writes-local": "true"},
+		Args:        cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			data, filename, err := jiraClient.DownloadAttachment(args[0])
 			if err != nil {
