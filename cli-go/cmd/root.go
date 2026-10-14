@@ -23,7 +23,7 @@ const repoSlug = "piyush-gambhir/jira-cli"
 
 // groupDispatcherKey marks command groups whose only job is to dispatch to a
 // sub-command (or print help). PersistentPreRunE uses it to skip client setup
-// for them — set by enforceGroupNoArgs, never on a command with its own RunE.
+// for them: set by enforceGroupNoArgs, never on a command with its own RunE.
 const groupDispatcherKey = "jira.groupDispatcher"
 
 var (
@@ -67,10 +67,17 @@ var (
 // in an interactive terminal) keeps it. A cached answer never waits.
 const updateNoticeGrace = time.Second
 
-var rootCmd = &cobra.Command{
-	Use:   "jira",
-	Short: "Jira CLI — manage Jira from the command line",
-	Long: `A command-line interface for Jira (Cloud and Server/Data Center).
+var rootCmd = newRootCmd()
+
+func newRootCmd() *cobra.Command {
+	var (
+		rootOutputFormat, rootProfileFlag, rootSiteFlag, rootEmailFlag, rootTokenFlag, rootUserFlag, rootAPIVersionFlag string
+		rootInsecureFlag, rootNoColorFlag, rootVerboseFlag, rootReadOnlyFlag, rootNoInputFlag, rootQuietFlag            bool
+	)
+	root := &cobra.Command{
+		Use:   "jira",
+		Short: "Jira CLI: manage Jira from the command line",
+		Long: `A command-line interface for Jira (Cloud and Server/Data Center).
 
 Manage issues, comments, worklogs, attachments, links, transitions, JQL search,
 projects, users, boards and sprints from the terminal. Designed for both humans
@@ -83,106 +90,161 @@ Quick start:
   jira issue create -p PROJ --type Task --summary "Title" -d "Description"
 
 Supports every Jira auth method (API token, scoped token, OAuth 2.0 3LO, PAT,
-username/password) — see "jira auth login --help" and docs/CREDENTIALS.md.
+username/password): see "jira auth login --help" and docs/CREDENTIALS.md.
 
 All list/get commands support -o json and -o yaml for machine-readable output.
 
 Full command reference (for agents/LLMs): https://github.com/piyush-gambhir/jira-cli/blob/main/docs/llms.txt
 Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKILL.md`,
-	SilenceUsage:  true,
-	SilenceErrors: true,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Env fallbacks for the agent-friendly flags. An explicit flag, including
-		// --quiet=false or --no-input=false, wins over the environment.
-		if !cmd.Flags().Changed("no-input") {
-			if v, ok := os.LookupEnv("JIRA_NO_INPUT"); ok && truthy(v) {
-				noInputFlag = true
+		SilenceUsage:  true,
+		SilenceErrors: true,
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// Copy execution flags into legacy shared state only when a command runs.
+			outputFormat, profileFlag, siteFlag, emailFlag, tokenFlag, userFlag, apiVersionFlag = rootOutputFormat, rootProfileFlag, rootSiteFlag, rootEmailFlag, rootTokenFlag, rootUserFlag, rootAPIVersionFlag
+			insecureFlag, noColorFlag, verboseFlag, readOnlyFlag, noInputFlag, quietFlag = rootInsecureFlag, rootNoColorFlag, rootVerboseFlag, rootReadOnlyFlag, rootNoInputFlag, rootQuietFlag
+			// Env fallbacks for the agent-friendly flags. An explicit flag, including
+			// --quiet=false or --no-input=false, wins over the environment.
+			if !cmd.Flags().Changed("no-input") {
+				if v, ok := os.LookupEnv("JIRA_NO_INPUT"); ok && truthy(v) {
+					noInputFlag = true
+				}
 			}
-		}
-		if !cmd.Flags().Changed("quiet") {
-			if v, ok := os.LookupEnv("JIRA_QUIET"); ok && truthy(v) {
-				quietFlag = true
+			if !cmd.Flags().Changed("quiet") {
+				if v, ok := os.LookupEnv("JIRA_QUIET"); ok && truthy(v) {
+					quietFlag = true
+				}
 			}
-		}
 
-		updateResult = nil
-		if updateNotifierEnabled(cmd) {
-			startBackgroundUpdateCheck()
-		}
+			updateResult = nil
+			if updateNotifierEnabled(cmd) {
+				startBackgroundUpdateCheck()
+			}
 
-		// Parse output format early (also used by main.go error handling).
-		var err error
-		outFormat, err = output.ParseFormat(outputFormat)
-		if err != nil {
-			return err
-		}
-		OutputFormat = outputFormat
+			// Parse output format early (also used by main.go error handling).
+			var err error
+			outFormat, err = output.ParseFormat(outputFormat)
+			if err != nil {
+				return err
+			}
+			OutputFormat = outputFormat
 
-		// Commands that never need an authenticated client. They are matched by
-		// their top-level command (so `completion bash` and Cobra's hidden
-		// __complete are covered), never by leaf name: `project update` needs one.
-		if isClientlessCommand(cmd) {
-			return nil
-		}
-		if cmd.Parent() != nil && cmd.Parent().Name() == "auth" {
-			return loadConfigOnly()
-		}
-		// Pure dispatcher groups (issue, project, ...) only show help or reject an
-		// unknown sub-command, so they need no client. Commands that have their own
-		// run function still get one even if they also have sub-commands — e.g.
-		// `jira status`, which reports the live connection.
-		if cmd.Annotations[groupDispatcherKey] == "true" {
-			return nil
-		}
-		if !cmd.Runnable() {
-			return nil
-		}
-
-		if err := loadConfigOnly(); err != nil {
-			return err
-		}
-		if outputFormat == "" && cfg.Defaults.Output != "" {
-			outFormat, _ = output.ParseFormat(cfg.Defaults.Output)
-			OutputFormat = cfg.Defaults.Output
-		}
-
-		profile, err := resolveProfile(cmd)
-		if err != nil {
-			return err
-		}
-		if err := checkReadOnly(cmd, profile); err != nil {
-			return err
-		}
-
-		persist := func(updated config.Profile) error {
-			return config.PersistProfile(activeProfileName, updated)
-		}
-		authr, err := auth.New(profile, activeProfileName, persist)
-		if err != nil {
-			return err
-		}
-		jiraClient = client.NewClient(authr, profile.EffectiveAPIVersion(), profile.Insecure, verboseFlag).WithContext(cmd.Context())
-		return nil
-	},
-	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		if updateResult == nil {
-			return nil
-		}
-		// A cached answer is already waiting; a check this run started gets
-		// updateNoticeWait to answer before the command exits without a notice.
-		var latest string
-		select {
-		case latest = <-updateResult:
-		default:
-			select {
-			case latest = <-updateResult:
-			case <-time.After(updateNoticeWait):
+			// Commands that never need an authenticated client. They are matched by
+			// their top-level command (so `completion bash` and Cobra's hidden
+			// __complete are covered), never by leaf name: `project update` needs one.
+			if isClientlessCommand(cmd) {
 				return nil
 			}
-		}
-		printUpdateNotice(cmd.ErrOrStderr(), updateChecker, latest)
-		return nil
-	},
+			if cmd.Parent() != nil && cmd.Parent().Name() == "auth" {
+				return loadConfigOnly()
+			}
+			// Pure dispatcher groups (issue, project, ...) only show help or reject an
+			// unknown sub-command, so they need no client. Commands that have their own
+			// run function still get one even if they also have sub-commands: e.g.
+			// `jira status`, which reports the live connection.
+			if cmd.Annotations[groupDispatcherKey] == "true" {
+				return nil
+			}
+			if !cmd.Runnable() {
+				return nil
+			}
+
+			if err := loadConfigOnly(); err != nil {
+				return err
+			}
+			if outputFormat == "" && cfg.Defaults.Output != "" {
+				outFormat, _ = output.ParseFormat(cfg.Defaults.Output)
+				OutputFormat = cfg.Defaults.Output
+			}
+
+			profile, err := resolveProfile(cmd)
+			if err != nil {
+				return err
+			}
+			if err := checkReadOnly(cmd, profile); err != nil {
+				return err
+			}
+
+			persist := func(updated config.Profile) error {
+				return config.PersistProfile(activeProfileName, updated)
+			}
+			authr, err := auth.New(profile, activeProfileName, persist)
+			if err != nil {
+				return err
+			}
+			jiraClient = client.NewClient(authr, profile.EffectiveAPIVersion(), profile.Insecure, verboseFlag).WithContext(cmd.Context())
+			return nil
+		},
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+			if updateResult == nil {
+				return nil
+			}
+			// A cached answer is already waiting; a check this run started gets
+			// updateNoticeWait to answer before the command exits without a notice.
+			var latest string
+			select {
+			case latest = <-updateResult:
+			default:
+				select {
+				case latest = <-updateResult:
+				case <-time.After(updateNoticeWait):
+					return nil
+				}
+			}
+			printUpdateNotice(cmd.ErrOrStderr(), updateChecker, latest)
+			return nil
+		},
+	}
+
+	pf := root.PersistentFlags()
+	pf.StringVarP(&rootOutputFormat, "output", "o", "", "Output format: table, json, yaml")
+	pf.StringVar(&rootProfileFlag, "profile", "", "Configuration profile to use")
+	pf.StringVarP(&rootSiteFlag, "site", "s", "", "Jira site URL override (https://your.atlassian.net or https://jira.host)")
+	pf.StringVarP(&rootEmailFlag, "email", "e", "", "Atlassian account email override (Cloud)")
+	pf.StringVarP(&rootTokenFlag, "token", "t", "", "API token / PAT override")
+	pf.StringVarP(&rootUserFlag, "user", "u", "", "Username override (Server/DC basic auth)")
+	pf.StringVar(&rootAPIVersionFlag, "api-version", "", "Platform REST API version override: 3 (Cloud) or 2 (Server/DC)")
+	pf.BoolVarP(&rootInsecureFlag, "insecure", "k", false, "Skip TLS certificate verification")
+	pf.BoolVar(&rootNoColorFlag, "no-color", false, "Disable color output")
+	pf.BoolVarP(&rootVerboseFlag, "verbose", "v", false, "Verbose HTTP logging to stderr")
+	pf.BoolVar(&rootReadOnlyFlag, "read-only", false, "Block write operations (safety mode for agents)")
+	pf.BoolVar(&rootNoInputFlag, "no-input", false, "Disable all interactive prompts (for CI/agents)")
+	pf.BoolVarP(&rootQuietFlag, "quiet", "q", false, "Suppress informational output")
+
+	root.AddCommand(newVersionCmd())
+	root.AddCommand(newUpdateCmd())
+	root.AddCommand(newAuthCmd())
+	root.AddCommand(newWhoamiCmd())
+	root.AddCommand(newStatusCmd())
+	root.AddCommand(newIssueCmd())
+	root.AddCommand(newProjectCmd())
+	root.AddCommand(newUserCmd())
+	root.AddCommand(newFieldCmd())
+	root.AddCommand(newBoardCmd())
+	root.AddCommand(newSprintCmd())
+	root.AddCommand(newEpicCmd())
+
+	// Expanded API coverage (added groups)
+	root.AddCommand(newComponentCmd())
+	root.AddCommand(newReleaseCmd())
+	root.AddCommand(newFilterCmd())
+	root.AddCommand(newDashboardCmd())
+	root.AddCommand(newIssueTypeCmd())
+	root.AddCommand(newPriorityCmd())
+	root.AddCommand(newResolutionCmd())
+	root.AddCommand(newLabelCmd())
+	root.AddCommand(newGroupCmd())
+	root.AddCommand(newPermissionCmd())
+	root.AddCommand(newJQLCmd())
+	root.AddCommand(newWebhookCmd())
+	root.AddCommand(newBacklogCmd())
+	root.AddCommand(newServerInfoCmd())
+
+	// Make command groups reject unknown sub-commands (e.g. `jira issue bogus`)
+	// with a non-zero exit instead of silently printing help and exiting 0.
+	enforceGroupNoArgs(root)
+	// Keep offline discovery as a non-runnable parent.
+	root.AddCommand(newCommandsCmd())
+	return root
 }
 
 func loadConfigOnly() error {
@@ -245,14 +307,14 @@ func checkReadOnly(cmd *cobra.Command, profile config.Profile) error {
 }
 
 // isClientlessCommand reports whether cmd belongs to a top-level command that
-// needs no Jira client: update, version, completion, help, or __complete*.
+// needs no Jira client: commands, update, version, completion, help, or __complete*.
 func isClientlessCommand(cmd *cobra.Command) bool {
 	top := cmd
 	for top.HasParent() && top.Parent().HasParent() {
 		top = top.Parent()
 	}
 	switch name := top.Name(); name {
-	case "update", "version", "completion", "help":
+	case "update", "version", "completion", "help", "commands":
 		return true
 	default:
 		return strings.HasPrefix(name, "__complete")
@@ -263,7 +325,7 @@ func isClientlessCommand(cmd *cobra.Command) bool {
 // release in the background. Scripts, CI, and agents are never disturbed: the
 // check is skipped (no network, no output) unless stderr is a terminal, and
 // also under CI, JIRA_NO_UPDATE_NOTIFIER, NO_UPDATE_NOTIFIER, --quiet or
-// JIRA_QUIET, for dev builds, and for update/version/completion/help.
+// JIRA_QUIET, for dev builds, and for commands/update/version/completion/help.
 func updateNotifierEnabled(cmd *cobra.Command) bool {
 	if isClientlessCommand(cmd) {
 		return false
@@ -392,62 +454,12 @@ func outputFlagFromArgs(args []string) string {
 	return format
 }
 
-func init() {
-	pf := rootCmd.PersistentFlags()
-	pf.StringVarP(&outputFormat, "output", "o", "", "Output format: table, json, yaml")
-	pf.StringVar(&profileFlag, "profile", "", "Configuration profile to use")
-	pf.StringVarP(&siteFlag, "site", "s", "", "Jira site URL override (https://your.atlassian.net or https://jira.host)")
-	pf.StringVarP(&emailFlag, "email", "e", "", "Atlassian account email override (Cloud)")
-	pf.StringVarP(&tokenFlag, "token", "t", "", "API token / PAT override")
-	pf.StringVarP(&userFlag, "user", "u", "", "Username override (Server/DC basic auth)")
-	pf.StringVar(&apiVersionFlag, "api-version", "", "Platform REST API version override: 3 (Cloud) or 2 (Server/DC)")
-	pf.BoolVarP(&insecureFlag, "insecure", "k", false, "Skip TLS certificate verification")
-	pf.BoolVar(&noColorFlag, "no-color", false, "Disable color output")
-	pf.BoolVarP(&verboseFlag, "verbose", "v", false, "Verbose HTTP logging to stderr")
-	pf.BoolVar(&readOnlyFlag, "read-only", false, "Block write operations (safety mode for agents)")
-	pf.BoolVar(&noInputFlag, "no-input", false, "Disable all interactive prompts (for CI/agents)")
-	pf.BoolVarP(&quietFlag, "quiet", "q", false, "Suppress informational output")
-
-	rootCmd.AddCommand(newVersionCmd())
-	rootCmd.AddCommand(newUpdateCmd())
-	rootCmd.AddCommand(newAuthCmd())
-	rootCmd.AddCommand(newWhoamiCmd())
-	rootCmd.AddCommand(newStatusCmd())
-	rootCmd.AddCommand(newIssueCmd())
-	rootCmd.AddCommand(newProjectCmd())
-	rootCmd.AddCommand(newUserCmd())
-	rootCmd.AddCommand(newFieldCmd())
-	rootCmd.AddCommand(newBoardCmd())
-	rootCmd.AddCommand(newSprintCmd())
-	rootCmd.AddCommand(newEpicCmd())
-
-	// Expanded API coverage (added groups)
-	rootCmd.AddCommand(newComponentCmd())
-	rootCmd.AddCommand(newReleaseCmd())
-	rootCmd.AddCommand(newFilterCmd())
-	rootCmd.AddCommand(newDashboardCmd())
-	rootCmd.AddCommand(newIssueTypeCmd())
-	rootCmd.AddCommand(newPriorityCmd())
-	rootCmd.AddCommand(newResolutionCmd())
-	rootCmd.AddCommand(newLabelCmd())
-	rootCmd.AddCommand(newGroupCmd())
-	rootCmd.AddCommand(newPermissionCmd())
-	rootCmd.AddCommand(newJQLCmd())
-	rootCmd.AddCommand(newWebhookCmd())
-	rootCmd.AddCommand(newBacklogCmd())
-	rootCmd.AddCommand(newServerInfoCmd())
-
-	// Make command groups reject unknown sub-commands (e.g. `jira issue bogus`)
-	// with a non-zero exit instead of silently printing help and exiting 0.
-	enforceGroupNoArgs(rootCmd)
-}
-
 // enforceGroupNoArgs walks the command tree and, for every command that groups
 // sub-commands but has no run function of its own, installs a RunE that returns
 // an "unknown command" error (exit 1) when given an unrecognized sub-command,
 // and otherwise prints help. Cobra short-circuits a non-runnable parent to help
 // (exit 0) before arg validation runs, so a typo like `jira issue bogus` would
-// otherwise look like success — bad for scripts and agents.
+// otherwise look like success: bad for scripts and agents.
 func enforceGroupNoArgs(c *cobra.Command) {
 	if c.HasSubCommands() && c.Run == nil && c.RunE == nil {
 		if c.Annotations == nil {

@@ -162,6 +162,7 @@ simplest setup, run `jira auth login --type api_token` and paste a token from id
 `-o table` (default), `-o json`, `-o yaml` (same keys and values as JSON). Informational messages go
 to stderr; data goes to stdout, so `jira ... -o json | jq` is always safe. With `-o json`, errors are a
 JSON object on stderr (`{"error": ..., "status_code": ...}`), including usage errors.
+`jira commands resolve -- <arguments>` uses the real parser offline and always returns JSON describing the command, effect, flags, and positional arguments without running it.
 
 ## Documentation
 
