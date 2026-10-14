@@ -169,7 +169,7 @@ All optional. Useful for CI/agents (no `auth login` needed if `JIRA_SITE` + cred
 - `JIRA_QUIET`, suppress informational output (bool; same as `--quiet`)
 - `JIRA_NO_UPDATE_NOTIFIER` (or `NO_UPDATE_NOTIFIER`), any non-empty value turns off the background update check and notice; `CI` set to any non-empty value does the same
 
-Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); `JIRA_NO_INPUT`/`JIRA_QUIET` are enabled only by `1` or `true` (any case), and an explicit `--no-input=false` / `--quiet=false` overrides them.
+Booleans accept any value Go's `strconv.ParseBool` understands (`1`/`0`, `true`/`false`, `t`/`f`, etc.); `JIRA_NO_INPUT`/`JIRA_QUIET` are enabled only by `1` or `true` (any case), an explicit `--quiet=false` overrides `JIRA_QUIET`, and `JIRA_NO_INPUT` cannot be overridden by a flag.
 
 ### Precedence order
 

@@ -33,7 +33,7 @@ func resetRootFlags(t *testing.T) {
 	t.Cleanup(reset)
 }
 
-func TestExplicitFalseFlagsOverrideEnv(t *testing.T) {
+func TestExplicitFalseQuietOverridesEnvButNoInputIsSticky(t *testing.T) {
 	t.Setenv("JIRA_QUIET", "1")
 	t.Setenv("JIRA_NO_INPUT", "true")
 
@@ -51,7 +51,7 @@ func TestExplicitFalseFlagsOverrideEnv(t *testing.T) {
 	if err := rootCmd.Execute(); err != nil {
 		t.Fatal(err)
 	}
-	if quietFlag || noInputFlag {
-		t.Fatalf("explicit false flags: quiet=%v no-input=%v; want both false", quietFlag, noInputFlag)
+	if quietFlag || !noInputFlag {
+		t.Fatalf("explicit false flags: quiet=%v no-input=%v; want quiet false, no-input still true", quietFlag, noInputFlag)
 	}
 }
