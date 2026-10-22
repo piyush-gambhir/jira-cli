@@ -116,6 +116,9 @@ func tokenRequest(client *http.Client, body map[string]string) (*tokenResponse, 
 		return nil, err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("token endpoint returned HTTP %d", resp.StatusCode)
+	}
 	var tr tokenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&tr); err != nil {
 		return nil, fmt.Errorf("decoding token response: %w", err)
