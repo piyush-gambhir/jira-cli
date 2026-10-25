@@ -2,11 +2,15 @@
 
 Checked 2026-09-06. These are documentation and local-test baselines, not certification against every server deployment.
 
+## Node docs verification
+
+Verified 2026-10-26 with Node.js 26.12.1 and pnpm 12.15.0: TypeScript 7 checks, the 45-page static Cloudflare build, installation search, and Worker deployment dry run pass. The Node requirement applies to building this site, not running the Go CLI.
+
 ## Build requirements
 
 - Go 1.27.3 or later; `cli-go/go.mod` requires Go 1.27.3 to include the latest security fixes.
 - Go 1.27 builds for macOS require macOS 13 or later. See the [Go 1.27 release notes](https://go.dev/doc/go1.27).
-- Docs: Node.js 24 or later and pnpm 12.11.2. Install with `pnpm install --frozen-lockfile` in `web/`.
+- Docs: Node.js 26.12.1 and pnpm 12.15.0. Install with `pnpm install --frozen-lockfile` in `web/`.
 - YAML uses the maintained [YAML organization v3 implementation](https://github.com/yaml/go-yaml), preserving the v3 configuration API.
 
 ## Upstream API baseline
