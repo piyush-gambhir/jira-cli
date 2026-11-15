@@ -107,7 +107,6 @@ Examples:
 					return err
 				}
 			}
-			// from = outwardIssue, to = inwardIssue.
 			if err := jiraClient.LinkIssues(linkType, args[1], args[0], c); err != nil {
 				return err
 			}
@@ -143,8 +142,6 @@ func newIssueLinkTypesCmd() *cobra.Command {
 	}
 }
 
-// attachmentFileName keeps only the last element of the server-supplied name,
-// so a name such as ../../.bashrc cannot write outside the current directory.
 func attachmentFileName(name, id string) string {
 	base := filepath.Base(filepath.Clean("/" + strings.ReplaceAll(name, "\\", "/")))
 	if base == "/" || base == "." || base == ".." {

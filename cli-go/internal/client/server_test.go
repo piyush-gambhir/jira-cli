@@ -12,7 +12,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/config"
 )
 
-// serverClient is a Server/DC (PAT, REST API v2) client for site.
 func serverClient(t *testing.T, site string) *Client {
 	t.Helper()
 	a, err := auth.New(config.Profile{Site: site, Token: "pat", AuthType: config.AuthPAT}, "", nil)
@@ -26,7 +25,6 @@ type recorded struct {
 	method, path, query, body string
 }
 
-// recorder serves canned JSON by "METHOD path" and records every request.
 func recorder(t *testing.T, responses map[string]string) (*httptest.Server, *[]recorded) {
 	t.Helper()
 	var reqs []recorded
@@ -214,14 +212,14 @@ func TestSitePathAcceptsOnlyTheSiteOrigin(t *testing.T) {
 		}
 	}
 	for _, raw := range []string{
-		"https://jira.example.com:8443/jira/secure/attachment/1/a.txt", // another port
-		"http://jira.example.com/jira/secure/attachment/1/a.txt",       // another scheme
-		"https://cdn.jira.example.com/jira/secure/attachment/1/a.txt",  // a subdomain
-		"//evil.example/jira/secure/attachment/1/a.txt",                // scheme-relative
-		"https://jira.example.com/jira/secure/../../admin",             // .. segments
+		"https://jira.example.com:8443/jira/secure/attachment/1/a.txt",
+		"http://jira.example.com/jira/secure/attachment/1/a.txt",
+		"https://cdn.jira.example.com/jira/secure/attachment/1/a.txt",
+		"//evil.example/jira/secure/attachment/1/a.txt",
+		"https://jira.example.com/jira/secure/../../admin",
 		"https://jira.example.com/jira/secure/%2e%2e/rest/api/2/myself",
 		"https://jira.example.com/jira/secure/..%2frest/api/2/myself",
-		"https://jira.example.com/other/a.txt", // outside the base path
+		"https://jira.example.com/other/a.txt",
 	} {
 		if got, err := c.sitePath(raw); err == nil {
 			t.Errorf("sitePath(%q) = %q; want an error", raw, got)
@@ -238,7 +236,7 @@ func TestBulkUsersFollowsPages(t *testing.T) {
 			start = atoiOrZero(s)
 		}
 		starts = append(starts, r.URL.Query().Get("startAt"))
-		end := min(start+10, len(ids)) // Jira pages at 10 users by default
+		end := min(start+10, len(ids))
 		var page struct {
 			Values []User `json:"values"`
 			IsLast bool   `json:"isLast"`

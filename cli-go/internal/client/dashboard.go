@@ -5,7 +5,6 @@ import (
 	"strings"
 )
 
-// Dashboard is a Jira dashboard (subset of fields).
 type Dashboard struct {
 	ID          string `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
@@ -17,8 +16,6 @@ type Dashboard struct {
 	Self        string `json:"self,omitempty"`
 }
 
-// ListDashboards returns dashboards visible to the user, optionally filtered by
-// "my", "favourite", or "public" (GET /dashboard returns {dashboards:[...]}).
 func (c *Client) ListDashboards(filter string, limit int) ([]Dashboard, error) {
 	q := url.Values{}
 	if filter != "" {
@@ -36,8 +33,6 @@ func (c *Client) ListDashboards(filter string, limit int) ([]Dashboard, error) {
 	return out.Dashboards, nil
 }
 
-// SearchDashboards searches dashboards by name (GET /dashboard/search, a
-// PageBean returning {values:[...]}).
 func (c *Client) SearchDashboards(query string, limit int) ([]Dashboard, error) {
 	if c.IsServer() {
 		return c.searchDashboardsServer(query, limit)
@@ -58,9 +53,6 @@ func (c *Client) SearchDashboards(query string, limit int) ([]Dashboard, error) 
 	return out.Values, nil
 }
 
-// searchDashboardsServer searches dashboards on Server/DC, which has no
-// dashboard/search: it pages through GET dashboard and keeps the names that
-// contain query (case-insensitive, like Cloud's dashboardName).
 func (c *Client) searchDashboardsServer(query string, limit int) ([]Dashboard, error) {
 	needle := strings.ToLower(strings.TrimSpace(query))
 	out := []Dashboard{}
@@ -85,8 +77,6 @@ func (c *Client) searchDashboardsServer(query string, limit int) ([]Dashboard, e
 				return out, nil
 			}
 		}
-		// startAt must be a multiple of maxResults, so step by the page size the
-		// server actually used.
 		if len(page.Dashboards) == 0 || page.MaxResults <= 0 || page.StartAt+page.MaxResults >= page.Total {
 			return out, nil
 		}
@@ -95,7 +85,6 @@ func (c *Client) searchDashboardsServer(query string, limit int) ([]Dashboard, e
 	}
 }
 
-// GetDashboard returns a single dashboard by id.
 func (c *Client) GetDashboard(id string) (*Dashboard, error) {
 	var out Dashboard
 	if err := c.GetJSON(c.api("dashboard/%s", id), nil, &out); err != nil {

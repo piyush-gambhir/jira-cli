@@ -5,21 +5,17 @@ import (
 	"strings"
 )
 
-// Classic Jira OAuth 2.0 (3LO) scopes. See
-// https://developer.atlassian.com/cloud/jira/platform/scopes-for-oauth-2-3LO-and-forge-apps/
 const (
-	ScopeReadUser           = "read:jira-user"            // read user info
-	ScopeReadWork           = "read:jira-work"            // read issues, projects, worklogs
-	ScopeWriteWork          = "write:jira-work"           // create/edit/transition issues, comments
-	ScopeManageProject      = "manage:jira-project"       // project administration
-	ScopeManageConfig       = "manage:jira-configuration" // global configuration
-	ScopeManageWebhook      = "manage:jira-webhook"       // manage webhooks
-	ScopeManageDataProvider = "manage:jira-data-provider" // dev-info / data provider
-	ScopeOffline            = "offline_access"            // required for a refresh token
+	ScopeReadUser           = "read:jira-user"
+	ScopeReadWork           = "read:jira-work"
+	ScopeWriteWork          = "write:jira-work"
+	ScopeManageProject      = "manage:jira-project"
+	ScopeManageConfig       = "manage:jira-configuration"
+	ScopeManageWebhook      = "manage:jira-webhook"
+	ScopeManageDataProvider = "manage:jira-data-provider"
+	ScopeOffline            = "offline_access"
 )
 
-// ScopePresets maps friendly preset names to the scopes they request.
-// offline_access is always added by ResolveScopes (so refresh works).
 var ScopePresets = map[string][]string{
 	"read":  {ScopeReadUser, ScopeReadWork},
 	"write": {ScopeReadUser, ScopeReadWork, ScopeWriteWork},
@@ -27,10 +23,8 @@ var ScopePresets = map[string][]string{
 	"all":   {ScopeReadUser, ScopeReadWork, ScopeWriteWork, ScopeManageProject, ScopeManageConfig, ScopeManageWebhook, ScopeManageDataProvider},
 }
 
-// ScopePresetOrder is the display order for the presets.
 var ScopePresetOrder = []string{"read", "write", "admin", "all"}
 
-// ScopePresetDescriptions describes each preset for the interactive picker.
 var ScopePresetDescriptions = map[string]string{
 	"read":  "Read only (issues, projects, users)",
 	"write": "Read + write (create/edit/transition issues, comments) — default",
@@ -38,8 +32,6 @@ var ScopePresetDescriptions = map[string]string{
 	"all":   "Everything (all classic Jira scopes incl. webhooks & data provider)",
 }
 
-// ResolveScopes builds the space-separated scope string for a preset plus any
-// extra granular scopes, always including offline_access.
 func ResolveScopes(preset string, extra []string) (string, error) {
 	base, ok := ScopePresets[preset]
 	if !ok {

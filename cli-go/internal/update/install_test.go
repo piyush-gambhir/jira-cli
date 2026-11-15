@@ -23,7 +23,7 @@ import (
 type entry struct {
 	name     string
 	body     string
-	typeflag byte // tar.TypeReg when zero
+	typeflag byte
 	mode     fs.FileMode
 }
 
@@ -88,7 +88,6 @@ func checksumLine(name string, data []byte) string {
 	return hex.EncodeToString(sum[:]) + "  " + name + "\n"
 }
 
-// assetServer serves files under /o/r/releases/download/v0.1.11/.
 func assetServer(t *testing.T, files map[string][]byte) (*httptest.Server, *atomic.Int32) {
 	t.Helper()
 	var hits atomic.Int32

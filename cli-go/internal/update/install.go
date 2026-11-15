@@ -23,26 +23,21 @@ import (
 )
 
 const (
-	maxArchiveSize   = 64 << 20  // release archive download limit
-	maxChecksumsSize = 1 << 20   // checksums.txt download limit
-	maxBinarySize    = 128 << 20 // extracted binary limit
+	maxArchiveSize   = 64 << 20
+	maxChecksumsSize = 1 << 20
+	maxBinarySize    = 128 << 20
 )
 
-// Installer downloads a GoReleaser release archive, verifies it against the
-// release's checksums.txt, and replaces the running executable with the binary
-// inside it.
 type Installer struct {
-	Repo        string // "owner/name"
-	Project     string // GoReleaser project_name, the archive name prefix
-	Binary      string // binary name without ".exe"
-	GOOS        string // defaults to runtime.GOOS
-	GOARCH      string // defaults to runtime.GOARCH
-	DownloadURL string // defaults to DefaultBaseURL
+	Repo        string
+	Project     string
+	Binary      string
+	GOOS        string
+	GOARCH      string
+	DownloadURL string
 	Client      *http.Client
 }
 
-// NotWritableError means the executable's directory cannot be written, so the
-// binary cannot be replaced. The old binary is left untouched.
 type NotWritableError struct {
 	Dir string
 	Err error
@@ -68,9 +63,6 @@ func (in *Installer) goarch() string {
 	return runtime.GOARCH
 }
 
-// AssetName is the release archive for the target platform, following the
-// GoReleaser name_template "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}" (zip on
-// Windows, tar.gz elsewhere).
 func (in *Installer) AssetName() string {
 	ext := ".tar.gz"
 	if in.goos() == "windows" {
@@ -86,8 +78,6 @@ func (in *Installer) binaryName() string {
 	return in.Binary
 }
 
-// Install replaces exePath with the binary from release version. Any failure
-// leaves the old binary in place and working.
 func (in *Installer) Install(ctx context.Context, version, exePath string) error {
 	if err := CheckWritable(filepath.Dir(exePath)); err != nil {
 		return err
@@ -144,7 +134,6 @@ func (in *Installer) download(ctx context.Context, url string, limit int64) ([]b
 	return data, nil
 }
 
-// refuseHTTPSDowngrade keeps release downloads on HTTPS across redirects.
 func refuseHTTPSDowngrade(req *http.Request, via []*http.Request) error {
 	if len(via) >= 10 {
 		return errors.New("stopped after 10 redirects")
@@ -155,8 +144,6 @@ func refuseHTTPSDowngrade(req *http.Request, via []*http.Request) error {
 	return nil
 }
 
-// VerifyChecksum checks data against the SHA-256 that checksums.txt lists for
-// asset. A missing entry is an error, not a pass.
 func VerifyChecksum(checksums []byte, asset string, data []byte) error {
 	want := ""
 	sc := bufio.NewScanner(bytes.NewReader(checksums))
@@ -180,11 +167,6 @@ func VerifyChecksum(checksums []byte, asset string, data []byte) error {
 	return nil
 }
 
-// ExtractBinary returns the contents of the regular file named binary at the
-// root of the archive (a .zip or .tar.gz, chosen by asset's extension). It
-// refuses archives with absolute or parent-relative entry names, a binary entry
-// that is not a regular file, and a binary larger than maxSize. Nothing is
-// written to disk, so no entry name ever reaches the file system.
 func ExtractBinary(archive []byte, asset, binary string, maxSize int64) ([]byte, error) {
 	if strings.HasSuffix(asset, ".zip") {
 		return extractZip(archive, binary, maxSize)
@@ -192,7 +174,6 @@ func ExtractBinary(archive []byte, asset, binary string, maxSize int64) ([]byte,
 	return extractTarGz(archive, binary, maxSize)
 }
 
-// entryName validates an archive entry name and returns it cleaned.
 func entryName(name string) (string, error) {
 	if strings.Contains(name, `\`) || path.IsAbs(name) || filepath.IsAbs(name) || filepath.VolumeName(name) != "" {
 		return "", fmt.Errorf("archive entry %q has an unsafe path; refusing to install", name)
@@ -291,7 +272,6 @@ func checkFound(found []byte, binary string) ([]byte, error) {
 	return found, nil
 }
 
-// CheckWritable reports a *NotWritableError when files cannot be created in dir.
 func CheckWritable(dir string) error {
 	f, err := os.CreateTemp(dir, ".update-probe-*")
 	if err != nil {
@@ -302,15 +282,8 @@ func CheckWritable(dir string) error {
 	return nil
 }
 
-// rename is a test seam for the Windows rollback path.
 var rename = os.Rename
 
-// ReplaceExecutable atomically replaces exePath with data. The new binary is
-// written to a temp file in the same directory (so the final rename stays on
-// one file system), made executable, and renamed over exePath. On Windows a
-// running .exe cannot be overwritten but can be renamed, so exePath is first
-// moved aside to exePath+".old" (removed on a later start by RemoveStaleOld)
-// and restored if the new binary cannot be moved into place.
 func ReplaceExecutable(goos, exePath string, data []byte) error {
 	dir := filepath.Dir(exePath)
 	tmp, err := os.CreateTemp(dir, "."+filepath.Base(exePath)+".new-*")
@@ -318,7 +291,7 @@ func ReplaceExecutable(goos, exePath string, data []byte) error {
 		return &NotWritableError{Dir: dir, Err: err}
 	}
 	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath) // no-op once renamed into place
+	defer os.Remove(tmpPath)
 	if _, err := tmp.Write(data); err != nil {
 		tmp.Close()
 		return fmt.Errorf("writing the new binary: %w", err)
@@ -342,7 +315,7 @@ func ReplaceExecutable(goos, exePath string, data []byte) error {
 	}
 
 	old := exePath + ".old"
-	_ = os.Remove(old) // a leftover from an earlier update
+	_ = os.Remove(old)
 	if err := rename(exePath, old); err != nil {
 		return replaceError(dir, err)
 	}
@@ -362,14 +335,10 @@ func replaceError(dir string, err error) error {
 	return fmt.Errorf("replacing the binary: %w", err)
 }
 
-// RemoveStaleOld deletes exePath+".old" left by a Windows update, best-effort.
 func RemoveStaleOld(exePath string) {
 	_ = os.Remove(exePath + ".old")
 }
 
-// InGoBin reports whether exePath is in a Go bin directory ($GOBIN,
-// $GOPATH/bin for each GOPATH entry, or ~/go/bin), i.e. it was built from
-// source and should be updated the same way rather than replaced in place.
 func InGoBin(exePath string, getenv func(string) string, home string) bool {
 	var dirs []string
 	if gobin := getenv("GOBIN"); gobin != "" {

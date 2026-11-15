@@ -25,10 +25,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/version"
 )
 
-// updateEnv isolates a test from the real config dir, environment, terminal,
-// GitHub, and binary: the releases/latest redirect and downloads go to an
-// httptest server that reports latest as the newest release, and the "running
-// binary" is a temp file outside any Go bin directory.
 type updateEnv struct {
 	t          *testing.T
 	mu         sync.Mutex
@@ -112,8 +108,6 @@ func (e *updateEnv) setLatest(v string) {
 	e.latest = v
 }
 
-// serveRelease publishes the release archive for this platform (a zip with
-// jira.exe on Windows, else a tar.gz with jira) and its checksum.
 func (e *updateEnv) serveRelease(binary string) {
 	e.t.Helper()
 	var buf bytes.Buffer
@@ -143,7 +137,6 @@ func (e *updateEnv) serveRelease(binary string) {
 	e.files["checksums.txt"] = []byte(hex.EncodeToString(sum[:]) + "  " + asset + "\n")
 }
 
-// run executes jira with args and returns stdout and stderr.
 func (e *updateEnv) run(args ...string) (string, string, error) {
 	e.t.Helper()
 	resetRootFlags(e.t)
@@ -181,7 +174,6 @@ func TestUpdateNoticeShownOncePerVersionPerDay(t *testing.T) {
 		t.Fatalf("release API hits = %d; want 1 (cached for 24h)", e.latestHits.Load())
 	}
 
-	// A newer release is announced right away, even within the same day.
 	e.setLatest("0.1.12")
 	if _, err := newUpdateChecker(time.Second).Latest(t.Context(), true); err != nil {
 		t.Fatal(err)
@@ -246,8 +238,6 @@ func TestUpdateNotifierSuppressed(t *testing.T) {
 		})
 	}
 
-	// Skipped commands never start the check. (update --check queries GitHub
-	// itself, so the update command is checked without running it.)
 	e := newUpdateEnv(t, "0.1.11")
 	for _, args := range [][]string{
 		{"version"}, {"completion", "bash"}, {"help"}, {"__complete", "issue", ""}, {"__completeNoDesc", "issue", ""},
@@ -270,9 +260,6 @@ func TestUpdateNotifierSuppressed(t *testing.T) {
 	}
 }
 
-// releaseAfter serves the releases/latest redirect to v<latest> after delay
-// (or when release is closed, whichever comes first) and becomes the release
-// source for the test.
 func releaseAfter(t *testing.T, latest string, delay time.Duration, release chan struct{}) {
 	t.Helper()
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -309,7 +296,7 @@ func TestUpdateNoticeWaitsAtMostTheGrace(t *testing.T) {
 	elapsed, pending := time.Since(start), updateResult
 	close(release)
 	if pending != nil {
-		<-pending // let the background check finish before the temp dirs go away
+		<-pending
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -321,7 +308,6 @@ func TestUpdateNoticeWaitsAtMostTheGrace(t *testing.T) {
 
 func TestUpdateCheckJSON(t *testing.T) {
 	e := newUpdateEnv(t, "0.1.11")
-	// A fresh cache saying 0.1.10 is latest must not hide the new release.
 	if err := os.MkdirAll(e.cfgDir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +339,6 @@ func TestUpdateCheckJSON(t *testing.T) {
 		t.Fatalf("got %v, api hits %d, downloads %d; want exactly the 5 fields, 1 API call, no download", got, e.latestHits.Load(), e.dlHits.Load())
 	}
 
-	// The notifier shares the answer instead of trusting its stale cache.
 	if v, ok := newUpdateChecker(0).CachedLatest(); !ok || v != "0.1.11" {
 		t.Fatalf("cached latest after --check = %q, %v; want 0.1.11", v, ok)
 	}
@@ -405,7 +390,7 @@ func TestUpdateInstallsTheRelease(t *testing.T) {
 func TestUpdateNeedsYesWithoutAPrompt(t *testing.T) {
 	e := newUpdateEnv(t, "0.1.11")
 	e.serveRelease("new binary")
-	for _, args := range [][]string{{"update", "--no-input"}, {"update"}} { // stdin is not a terminal
+	for _, args := range [][]string{{"update", "--no-input"}, {"update"}} {
 		_, _, err := e.run(args...)
 		if err == nil || !strings.Contains(err.Error(), "pass --yes") {
 			t.Fatalf("%v: err = %v; want a request to pass --yes", args, err)

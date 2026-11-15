@@ -63,7 +63,6 @@ func TestFromMarkdown_Blocks(t *testing.T) {
 }
 
 func TestExtractText(t *testing.T) {
-	// Build a doc, marshal to generic JSON, extract back to text.
 	d := FromMarkdown("# Heading\n\nHello **world**\n\n- a\n- b")
 	b, _ := json.Marshal(d)
 	var generic any
@@ -89,7 +88,6 @@ func TestFromPlainText_KeepsMarkdownLiteral(t *testing.T) {
 }
 
 func TestExtractText_PlainString(t *testing.T) {
-	// Server/DC (API v2) returns rich-text fields as plain strings.
 	if got := ExtractText("line one\nline two"); got != "line one\nline two" {
 		t.Fatalf("ExtractText(string) = %q", got)
 	}

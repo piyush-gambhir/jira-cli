@@ -11,7 +11,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// boardEpicTable renders epics listed under a board.
 func boardEpicTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"ID", "KEY", "NAME", "DONE"},
@@ -21,8 +20,6 @@ func boardEpicTable() *output.TableDef {
 		},
 	}
 }
-
-// --- board subcommands (attach to parent "board") ---
 
 func newBoardCreateCmd() *cobra.Command {
 	var name, boardType, project string
@@ -112,7 +109,6 @@ func newBoardConfigCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			// Configuration shape varies; render as raw JSON/YAML (table falls back to JSON).
 			return render(cfg, nil)
 		},
 	}
@@ -141,8 +137,6 @@ func newBoardEpicsCmd() *cobra.Command {
 	cmd.Flags().IntVarP(&limit, "limit", "n", 50, "Maximum epics to return")
 	return cmd
 }
-
-// --- epic subcommands (attach to parent "epic") ---
 
 func newEpicUpdateCmd() *cobra.Command {
 	var name, summary, color string
@@ -224,8 +218,6 @@ func newEpicRemoveIssuesCmd() *cobra.Command {
 	}
 	return cmd
 }
-
-// --- backlog top-level group (attach to root) ---
 
 func newBacklogCmd() *cobra.Command {
 	cmd := &cobra.Command{

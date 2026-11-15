@@ -114,7 +114,6 @@ Examples:
 			if err != nil {
 				return err
 			}
-			// Surface per-webhook validation errors (the call can 200 with errors).
 			for _, r := range results {
 				if len(r.Errors) > 0 {
 					return fmt.Errorf("webhook registration failed: %s", strings.Join(r.Errors, "; "))
@@ -201,7 +200,6 @@ func newWebhookRefreshCmd() *cobra.Command {
 	}
 }
 
-// webhookParseIDs converts positional args into integer webhook ids.
 func webhookParseIDs(args []string) ([]int, error) {
 	ids := make([]int, 0, len(args))
 	for _, a := range args {

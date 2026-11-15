@@ -9,7 +9,6 @@ LDFLAGS := -s -w \
 	-X $(MODULE)/internal/version.Commit=$(COMMIT) \
 	-X $(MODULE)/internal/version.BuildTime=$(BUILD_TIME)
 
-# The main package is named cli-go; explicitly name the installed executable.
 INSTALL_DIR ?= $(shell go env GOBIN)
 ifeq ($(strip $(INSTALL_DIR)),)
 INSTALL_DIR := $(shell go env GOPATH)/bin

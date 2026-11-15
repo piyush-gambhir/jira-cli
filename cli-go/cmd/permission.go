@@ -10,8 +10,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// permissionDefaultKeys is the sensible common set queried by `permission mine`
-// when --keys is omitted (the permissions query param is now required by Jira).
 var permissionDefaultKeys = []string{
 	"BROWSE_PROJECTS",
 	"CREATE_ISSUES",
@@ -41,7 +39,6 @@ hold a given set of permissions.`,
 	return cmd
 }
 
-// permissionHaveTable renders KEY / NAME / HAVE for the caller's permissions.
 func permissionHaveTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"KEY", "NAME", "HAVE"},
@@ -52,7 +49,6 @@ func permissionHaveTable() *output.TableDef {
 	}
 }
 
-// permissionListTable renders KEY / TYPE / NAME for the instance permission set.
 func permissionListTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"KEY", "TYPE", "NAME"},
@@ -70,7 +66,6 @@ func permissionYesNo(b bool) string {
 	return "no"
 }
 
-// permissionSortByKey gives stable output (the API returns an unordered map).
 func permissionSortByKey(perms []client.Permission) {
 	sort.Slice(perms, func(i, j int) bool { return perms[i].Key < perms[j].Key })
 }

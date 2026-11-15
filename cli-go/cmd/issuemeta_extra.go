@@ -12,8 +12,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// issueMetaFieldRow flattens a FieldMeta map entry (keyed by field id) for table
-// rendering. Used by both createmeta (with --type) and editmeta.
 type issueMetaFieldRow struct {
 	FieldID    string   `json:"fieldId"`
 	Name       string   `json:"name"`
@@ -23,7 +21,6 @@ type issueMetaFieldRow struct {
 	Allowed    []string `json:"allowedValues,omitempty"`
 }
 
-// issueMetaFieldRows turns a {fieldId: FieldMeta} map into id-sorted rows.
 func issueMetaFieldRows(fields map[string]client.FieldMeta) []issueMetaFieldRow {
 	rows := make([]issueMetaFieldRow, 0, len(fields))
 	for id, fm := range fields {
@@ -40,8 +37,6 @@ func issueMetaFieldRows(fields map[string]client.FieldMeta) []issueMetaFieldRow 
 	return rows
 }
 
-// issueMetaAllowedNames extracts human-readable labels from a field's allowed
-// values (each is an arbitrary object; prefer name/value/key/id).
 func issueMetaAllowedNames(vals []any) []string {
 	out := make([]string, 0, len(vals))
 	for _, v := range vals {
@@ -101,7 +96,6 @@ func issueMetaEditTable() *output.TableDef {
 	}
 }
 
-// newIssueCreateMetaCmd: issue createmeta <projectKey> [--type <id|name>]
 func newIssueCreateMetaCmd() *cobra.Command {
 	var issueType string
 	cmd := &cobra.Command{
@@ -140,8 +134,6 @@ Examples:
 	return cmd
 }
 
-// issueMetaResolveType resolves an issue-type reference (exact id, or
-// case-insensitive name) to its id within the project's creatable types.
 func issueMetaResolveType(types []client.IssueType, ref string) (string, error) {
 	for _, t := range types {
 		if t.ID == ref {
@@ -156,7 +148,6 @@ func issueMetaResolveType(types []client.IssueType, ref string) (string, error) 
 	return "", fmt.Errorf("no creatable issue type matching %q for this project", ref)
 }
 
-// newIssueEditMetaCmd: issue editmeta <key>
 func newIssueEditMetaCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "editmeta <key>",
@@ -172,7 +163,6 @@ func newIssueEditMetaCmd() *cobra.Command {
 	}
 }
 
-// issueMetaChangeRow is a flattened single field change for table rendering.
 type issueMetaChangeRow struct {
 	Created string `json:"created"`
 	Author  string `json:"author"`
@@ -181,7 +171,6 @@ type issueMetaChangeRow struct {
 	To      string `json:"to"`
 }
 
-// newIssueChangelogCmd: issue changelog <key> [--limit -n]
 func newIssueChangelogCmd() *cobra.Command {
 	var limit int
 	cmd := &cobra.Command{

@@ -1,7 +1,4 @@
 #!/bin/sh
-# Install latest:   curl -sSfL https://raw.githubusercontent.com/piyush-gambhir/jira-cli/main/install.sh | sh
-# Specific version: curl -sSfL .../install.sh | VERSION=0.1.1 sh
-# Custom dir:       curl -sSfL .../install.sh | INSTALL_DIR=~/.local/bin sh
 set -e
 REPO="piyush-gambhir/jira-cli"
 BINARY="jira"

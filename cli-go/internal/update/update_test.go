@@ -13,10 +13,6 @@ import (
 	"time"
 )
 
-// releaseServer answers /o/r/releases/latest like github.com: a 302 to
-// /o/r/releases/tag/<tag> (or status when non-zero). It counts the
-// releases/latest requests; any other request (such as following the
-// redirect) fails the test.
 func releaseServer(t *testing.T, tag string, status int) (*httptest.Server, *atomic.Int32) {
 	t.Helper()
 	var hits atomic.Int32
@@ -145,7 +141,7 @@ func TestVersions(t *testing.T) {
 		{"v0.2.0", "0.1.99", true},
 		{"1.0.0", "0.9.9", true},
 		{"0.1.10", "0.1.10", false},
-		{"0.1.9", "0.1.10", false}, // never "update" to an older release
+		{"0.1.9", "0.1.10", false},
 		{"0.1.11", "dev", false},
 		{"", "0.1.10", false},
 	} {
@@ -226,9 +222,9 @@ func TestClaimNoticeFailsWhenItCannotBeRecorded(t *testing.T) {
 
 func TestLatestFromTheReleasesRedirect(t *testing.T) {
 	for name, tc := range map[string]struct {
-		location string // "" sends no Location header
+		location string
 		status   int
-		want     string // "" expects a failed check
+		want     string
 	}{
 		"good tag":           {location: "/o/r/releases/tag/v0.1.11", status: http.StatusFound, want: "0.1.11"},
 		"absolute same host": {location: "SELF/o/r/releases/tag/v1.2.3", status: http.StatusFound, want: "1.2.3"},
@@ -260,7 +256,6 @@ func TestLatestFromTheReleasesRedirect(t *testing.T) {
 				w.WriteHeader(tc.status)
 			}))
 			t.Cleanup(srv.Close)
-			// srv.Client() follows redirects by default; the checker must not.
 			ch := &Checker{Repo: "o/r", CacheDir: t.TempDir(), BaseURL: srv.URL, Client: srv.Client()}
 			got, err := ch.Latest(context.Background(), true)
 			if tc.want == "" {

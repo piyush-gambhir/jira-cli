@@ -7,10 +7,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// ---------------------------------------------------------------------------
-// issuetype
-// ---------------------------------------------------------------------------
-
 func newIssueTypeCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "issuetype",
@@ -86,10 +82,6 @@ func newIssueTypeGetCmd() *cobra.Command {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// priority
-// ---------------------------------------------------------------------------
-
 func newPriorityCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "priority",
@@ -148,10 +140,6 @@ func newPriorityGetCmd() *cobra.Command {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// resolution
-// ---------------------------------------------------------------------------
-
 func newResolutionCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "resolution",
@@ -206,10 +194,6 @@ func newResolutionGetCmd() *cobra.Command {
 	}
 }
 
-// ---------------------------------------------------------------------------
-// label
-// ---------------------------------------------------------------------------
-
 func newLabelCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "label",
@@ -222,8 +206,6 @@ func newLabelCmd() *cobra.Command {
 	return cmd
 }
 
-// labelRow wraps a single label string so it can carry through the TableDef
-// RowFunc (which receives one slice element at a time).
 type labelRow struct {
 	Label string `json:"label"`
 }

@@ -51,7 +51,6 @@ func releaseTable() *output.TableDef {
 	}
 }
 
-// releaseStatus renders the released/archived booleans as a single column.
 func releaseStatus(v client.Version) string {
 	switch {
 	case v.Archived:
@@ -308,7 +307,6 @@ func newReleaseCountCmd() *cobra.Command {
 	}
 }
 
-// releaseCounts is the flattened shape rendered by `release count`.
 type releaseCounts struct {
 	FixIssues    int `json:"fixIssues"`
 	AffectsIssue int `json:"affectsIssues"`

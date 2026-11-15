@@ -13,27 +13,20 @@ import (
 	"golang.org/x/term"
 )
 
-// stderr returns the stderr writer (indirection keeps prompts testable).
 func stderr() io.Writer { return os.Stderr }
 
-// nowUnix returns the current unix time in seconds.
 func nowUnix() int64 { return time.Now().Unix() }
 
-// render prints data in the active output format (table needs a TableDef).
 func render(data any, def *output.TableDef) error {
 	return output.Print(os.Stdout, outFormat, data, def)
 }
 
-// info prints an informational message to stderr unless --quiet (keeps stdout
-// clean for JSON/YAML consumers).
 func info(format string, args ...any) {
 	if !quietFlag {
 		fmt.Fprintf(os.Stderr, format+"\n", args...)
 	}
 }
 
-// stdinReader is shared by every prompt: a fresh bufio.Reader per prompt would
-// buffer the rest of piped input and drop it before the next prompt.
 var (
 	stdinReader     *bufio.Reader
 	stdinReaderFile *os.File
@@ -46,7 +39,6 @@ func stdinLines() *bufio.Reader {
 	return stdinReader
 }
 
-// prompt reads a line from stdin after writing a label to stderr.
 func prompt(label string) (string, error) {
 	if noInputFlag {
 		return "", fmt.Errorf("interactive input required but --no-input is set")
@@ -59,8 +51,6 @@ func prompt(label string) (string, error) {
 	return strings.TrimSpace(line), nil
 }
 
-// promptSecret reads a sensitive value without terminal echo. Piped input stays
-// supported for scripts and tests, while --no-input continues to reject prompts.
 func promptSecret(label string) (string, error) {
 	if noInputFlag {
 		return "", fmt.Errorf("interactive input required but --no-input is set")
@@ -78,7 +68,6 @@ func promptSecret(label string) (string, error) {
 	return strings.TrimSpace(line), nil
 }
 
-// dash returns "-" for empty strings, for tidy table cells.
 func dash(s string) string {
 	if s == "" {
 		return "-"
@@ -86,7 +75,6 @@ func dash(s string) string {
 	return s
 }
 
-// truncate shortens s to n runes with an ellipsis.
 func truncate(s string, n int) string {
 	s = strings.ReplaceAll(s, "\n", " ")
 	r := []rune(s)
@@ -96,10 +84,6 @@ func truncate(s string, n int) string {
 	return string(r[:n-1]) + "…"
 }
 
-// richText builds the value for a rich-text field (description, comment,
-// worklog comment). REST API v3 (Cloud) takes ADF; API v2 (Server/Data Center)
-// takes a string that Jira renders as wiki markup, so the text is sent as-is.
-// --markdown converts to ADF, so it is rejected on API v2.
 func richText(text string, markdown bool) (any, error) {
 	if jiraClient.APIVer() == "2" {
 		if markdown {
