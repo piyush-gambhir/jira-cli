@@ -21,16 +21,11 @@ import (
 )
 
 const (
-	// releaseProject is the GoReleaser project_name (the archive name prefix).
-	releaseProject = "jira-cli"
-	// sourceUpdateCommand updates a binary built from source with `make install`
-	// into a Go bin dir. `go install .../cli-go@latest` would install a binary
-	// named cli-go, not jira, so it is not suggested.
+	releaseProject       = "jira-cli"
 	sourceUpdateCommand  = "git pull && make install (in your jira-cli/cli-go checkout)"
 	installScriptCommand = "curl -sSfL https://raw.githubusercontent.com/" + repoSlug + "/main/install.sh | INSTALL_DIR=~/.local/bin sh"
 )
 
-// Test seams: tests point these at httptest servers and temp files.
 var (
 	updateBaseURL    = update.DefaultBaseURL
 	updateGOOS       = runtime.GOOS
@@ -56,8 +51,6 @@ func newUpdateChecker(timeout time.Duration) *update.Checker {
 	}
 }
 
-// installMethod is "go" when the running binary sits in a Go bin directory
-// (built from source), else "self".
 func installMethod() string {
 	exe, err := executablePath()
 	if err != nil {
@@ -70,7 +63,6 @@ func installMethod() string {
 	return "self"
 }
 
-// updateHint is the command that updates this installation.
 func updateHint(method string) string {
 	if method == "go" {
 		return sourceUpdateCommand
@@ -203,7 +195,6 @@ func runUpdate(cmd *cobra.Command, yes bool) error {
 		fmt.Fprint(cmd.ErrOrStderr(), "Update now? [Y/n] ")
 		answer, err := stdinLines().ReadString('\n')
 		answer = strings.ToLower(strings.TrimSpace(answer))
-		// Enter means yes; end of input (Ctrl-D) without an answer means no.
 		if (err != nil && answer == "") || (answer != "" && answer != "y" && answer != "yes") {
 			fmt.Fprintln(out, "Update cancelled.")
 			return nil
@@ -239,11 +230,7 @@ func notWritableHint() string {
 	return "Re-run with sudo (sudo jira update), or reinstall with the install script into a directory you can write to: " + installScriptCommand
 }
 
-// checkUpdateReadOnly blocks installing under --read-only, JIRA_READ_ONLY, or a
-// profile with read_only. update skips the client setup in PersistentPreRunE
-// (where read-only is normally enforced), so it resolves the profile here.
 func checkUpdateReadOnly(cmd *cobra.Command) error {
-	// Fail closed: a config that cannot be read could hide a read_only profile.
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("loading config to check read-only mode: %w", err)
@@ -269,8 +256,6 @@ func displayVersion(v string) string {
 	return v
 }
 
-// printUpdateNotice writes the update notice to w unless it was already shown
-// for latest within the last day.
 func printUpdateNotice(w io.Writer, checker *update.Checker, latest string) {
 	if latest == "" || !update.Newer(latest, version.Version) || !checker.ClaimNotice(latest) {
 		return

@@ -12,8 +12,6 @@ import (
 	"strings"
 )
 
-// AddAttachment uploads one or more files to an issue. It sends the mandatory
-// X-Atlassian-Token: no-check header and uses the required form field name "file".
 func (c *Client) AddAttachment(key string, files []string) ([]Attachment, error) {
 	type fileData struct {
 		name string
@@ -69,7 +67,6 @@ func (c *Client) AddAttachment(key string, files []string) ([]Attachment, error)
 	return out, nil
 }
 
-// ListAttachments returns the attachment metadata on an issue.
 func (c *Client) ListAttachments(key string) ([]Attachment, error) {
 	var out struct {
 		Fields struct {
@@ -82,7 +79,6 @@ func (c *Client) ListAttachments(key string) ([]Attachment, error) {
 	return out.Fields.Attachment, nil
 }
 
-// GetAttachmentMeta returns metadata for a single attachment.
 func (c *Client) GetAttachmentMeta(id string) (*Attachment, error) {
 	var out Attachment
 	if err := c.GetJSON(c.api("attachment/%s", id), nil, &out); err != nil {
@@ -91,10 +87,6 @@ func (c *Client) GetAttachmentMeta(id string) (*Attachment, error) {
 	return &out, nil
 }
 
-// DownloadAttachment fetches an attachment's bytes along with its filename. On
-// Cloud it uses attachment/content/{id} (following the redirect to the media
-// store); Server/DC has no such endpoint, so it downloads the metadata's
-// content URL instead.
 func (c *Client) DownloadAttachment(id string) ([]byte, string, error) {
 	meta, err := c.GetAttachmentMeta(id)
 	if err != nil {
@@ -113,11 +105,6 @@ func (c *Client) DownloadAttachment(id string) ([]byte, string, error) {
 	return data, meta.Filename, nil
 }
 
-// sitePath turns an absolute URL Jira returned (such as an attachment's content
-// URL) into a path under the configured site. The URL must be on the site's
-// exact origin (scheme, host, and port) and under its base path, with no ".."
-// segments, so the request and its credentials can only reach the configured
-// site's own resources.
 func (c *Client) sitePath(raw string) (string, error) {
 	u, err := url.Parse(raw)
 	if err != nil || u.Path == "" {
@@ -142,7 +129,6 @@ func (c *Client) sitePath(raw string) (string, error) {
 	return strings.TrimPrefix(p, base.EscapedPath()), nil
 }
 
-// DeleteAttachment removes an attachment.
 func (c *Client) DeleteAttachment(id string) error {
 	return c.Delete(c.api("attachment/%s", id), nil)
 }

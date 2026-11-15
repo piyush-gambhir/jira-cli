@@ -1,8 +1,3 @@
-// Package adf builds Atlassian Document Format (ADF) documents. In the Jira
-// Cloud v3 REST API, rich-text fields (issue description, comment body, worklog
-// comment, textarea custom fields) must be ADF JSON documents, not plain strings.
-//
-// See jira/references/agile-adf-conventions.md §3 for the spec this implements.
 package adf
 
 import (
@@ -10,13 +5,11 @@ import (
 	"strings"
 )
 
-// Mark is inline styling applied to a text node (strong, em, code, link, …).
 type Mark struct {
 	Type  string         `json:"type"`
 	Attrs map[string]any `json:"attrs,omitempty"`
 }
 
-// Node is any ADF node: a block (paragraph, heading, list, …) or inline (text, hardBreak).
 type Node struct {
 	Type    string         `json:"type"`
 	Attrs   map[string]any `json:"attrs,omitempty"`
@@ -25,14 +18,12 @@ type Node struct {
 	Text    string         `json:"text,omitempty"`
 }
 
-// Doc is the root ADF document. Marshals directly to the JSON the API expects.
 type Doc struct {
 	Version int    `json:"version"`
 	Type    string `json:"type"`
 	Content []Node `json:"content"`
 }
 
-// newDoc wraps top-level block nodes in a doc root, guaranteeing at least one block.
 func newDoc(content []Node) Doc {
 	if len(content) == 0 {
 		content = []Node{paragraph(nil)}
@@ -40,7 +31,6 @@ func newDoc(content []Node) Doc {
 	return Doc{Version: 1, Type: "doc", Content: content}
 }
 
-// Text returns a plain text inline node (empty string yields no node — callers filter).
 func text(s string, marks ...Mark) Node {
 	n := Node{Type: "text", Text: s}
 	if len(marks) > 0 {
@@ -73,9 +63,6 @@ func codeBlock(code, lang string) Node {
 	return n
 }
 
-// FromPlainText converts a plain-text string to ADF: blank lines separate
-// paragraphs; single newlines become hardBreaks within a paragraph. The text is
-// kept literal (markdown marks are parsed only by FromMarkdown).
 func FromPlainText(s string) Doc {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	blocks := splitBlankLines(s)
@@ -95,9 +82,6 @@ func FromPlainText(s string) Doc {
 	return newDoc(content)
 }
 
-// FromMarkdown converts a lightweight-markdown string to ADF. Supports headings
-// (#..######), bullet/ordered lists, fenced code blocks, blockquotes, and the
-// inline marks bold/italic/code/link. Anything unrecognized is treated as text.
 func FromMarkdown(s string) Doc {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	lines := strings.Split(s, "\n")
@@ -117,7 +101,7 @@ func FromMarkdown(s string) Doc {
 				i++
 			}
 			if i < len(lines) {
-				i++ // consume closing fence
+				i++
 			}
 			content = append(content, codeBlock(strings.Join(code, "\n"), lang))
 		case headingLevel(trimmed) > 0:
@@ -163,8 +147,6 @@ func FromMarkdown(s string) Doc {
 	return newDoc(content)
 }
 
-// paragraphFromLines builds one paragraph from lines, joining them with hardBreaks
-// and parsing inline marks in each line.
 func paragraphFromLines(lines []string) Node {
 	var children []Node
 	for idx, ln := range lines {
@@ -213,8 +195,6 @@ func orderedText(line string) string {
 
 var linkRe = regexp.MustCompile(`^\[([^\]]*)\]\(([^)]+)\)`)
 
-// parseInline parses a single line into inline text nodes with marks. Non-nested,
-// deterministic: handles `code`, [text](url), **bold**/__bold__, *italic*/_italic_.
 func parseInline(s string) []Node {
 	var nodes []Node
 	var buf strings.Builder

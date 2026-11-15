@@ -11,9 +11,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// linksMiscConfirm prompts for a destructive action unless --yes/--no-input is
-// set, mirroring the issue-delete flow. It returns true when the action should
-// proceed.
 func linksMiscConfirm(yes bool, label string) bool {
 	if yes {
 		return true
@@ -25,7 +22,6 @@ func linksMiscConfirm(yes bool, label string) bool {
 	return strings.EqualFold(strings.TrimSpace(ans), "y")
 }
 
-// remoteLinkTable renders the id/title/url of a remote (web) link.
 func remoteLinkTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"ID", "TITLE", "URL"},
@@ -182,7 +178,6 @@ func newIssueRemoteLinkDeleteCmd() *cobra.Command {
 	return cmd
 }
 
-// issuePropertyRow is the {key,value} pair shown for a single property.
 type issuePropertyRow struct {
 	Key   string          `json:"key"`
 	Value json.RawMessage `json:"value"`
@@ -329,7 +324,6 @@ Examples:
 				case "voters":
 					recipients["voters"] = true
 				case "":
-					// ignore empty CSV entries
 				default:
 					return fmt.Errorf("invalid --to value %q (want reporter, assignee, watchers, or voters)", t)
 				}

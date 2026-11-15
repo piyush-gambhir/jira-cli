@@ -12,7 +12,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// projectStatusRow is a flattened ISSUETYPE/STATUS pair for tabular rendering.
 type projectStatusRow struct {
 	IssueType      string `json:"issueType"`
 	Status         string `json:"status"`
@@ -104,7 +103,6 @@ func newProjectRestoreCmd() *cobra.Command {
 	return cmd
 }
 
-// projectRoleRef is a ROLE/URL pair for tabular rendering of the roles map.
 type projectRoleRef struct {
 	Role string `json:"role"`
 	URL  string `json:"url"`

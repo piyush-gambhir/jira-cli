@@ -4,10 +4,6 @@ import (
 	"strings"
 )
 
-// ExtractText walks an ADF document (as decoded generic JSON — map[string]any /
-// []any) and returns a readable plain-text rendering. A plain string (Server/DC
-// API v2 rich-text fields) is returned as is. Used to display issue
-// descriptions and comments in table/text output. It is lossy by design.
 func ExtractText(v any) string {
 	var sb strings.Builder
 	walk(v, &sb)
@@ -39,7 +35,6 @@ func walk(v any, sb *strings.Builder) {
 		case "rule":
 			sb.WriteString("\n---\n")
 		default:
-			// doc, bulletList, orderedList, and anything else: recurse into content
 			walkContent(n["content"], sb)
 		}
 	case []any:

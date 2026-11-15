@@ -4,15 +4,12 @@
 *.test
 .DS_Store
 
-# Local env files (may hold credentials). Never commit.
 .env
 .env.local
 
-# Cloudflare deploy creds / wrangler state. Never commit.
 /.wrangler/
 .env.deploy
 .env.deploy.*
 !.env.deploy.example
 
-# Local bundle graph exports
 /.bundle-analysis/

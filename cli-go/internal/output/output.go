@@ -6,7 +6,6 @@ import (
 	"os"
 )
 
-// Format represents the output format type.
 type Format string
 
 const (
@@ -15,7 +14,6 @@ const (
 	FormatYAML  Format = "yaml"
 )
 
-// ParseFormat parses a string into a Format.
 func ParseFormat(s string) (Format, error) {
 	switch s {
 	case "table", "":
@@ -29,18 +27,15 @@ func ParseFormat(s string) (Format, error) {
 	}
 }
 
-// Formatter is the interface for output formatting.
 type Formatter interface {
 	Format(data interface{}) error
 }
 
-// TableDef defines a table layout.
 type TableDef struct {
 	Headers []string
 	RowFunc func(item interface{}) []string
 }
 
-// NewFormatter creates a formatter for the given format.
 func NewFormatter(format Format, w io.Writer) Formatter {
 	if w == nil {
 		w = os.Stdout
@@ -55,7 +50,6 @@ func NewFormatter(format Format, w io.Writer) Formatter {
 	}
 }
 
-// Print formats and prints data according to the format and optional table definition.
 func Print(w io.Writer, format Format, data interface{}, tableDef *TableDef) error {
 	switch format {
 	case FormatJSON:

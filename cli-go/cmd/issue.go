@@ -7,7 +7,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// mutates marks a command as a write operation (blocked in read-only mode).
 var mutates = map[string]string{"mutates": "true"}
 
 func newIssueCmd() *cobra.Command {
@@ -50,18 +49,15 @@ Examples:
 		newIssueVoteCmd(),
 		newIssueUnvoteCmd(),
 		newIssueVotesCmd(),
-		// metadata & history
 		newIssueCreateMetaCmd(),
 		newIssueEditMetaCmd(),
 		newIssueChangelogCmd(),
-		// comment / worklog edit-delete-get
 		newIssueCommentGetCmd(),
 		newIssueCommentEditCmd(),
 		newIssueCommentDeleteCmd(),
 		newIssueWorklogGetCmd(),
 		newIssueWorklogEditCmd(),
 		newIssueWorklogDeleteCmd(),
-		// links / attachments / remote links / properties / notify
 		newIssueLinkDeleteCmd(),
 		newIssueAttachmentDeleteCmd(),
 		newIssueAttachmentMetaCmd(),
@@ -76,8 +72,6 @@ Examples:
 	)
 	return cmd
 }
-
-// --- shared rendering helpers ---
 
 func issueListTable() *output.TableDef {
 	return &output.TableDef{
@@ -121,8 +115,6 @@ func userName(u *client.User) string {
 	return userID(*u)
 }
 
-// userID is the identifier shown for a user: the accountId on Cloud, the
-// username on Server/DC.
 func userID(u client.User) string {
 	if u.AccountID != "" {
 		return u.AccountID

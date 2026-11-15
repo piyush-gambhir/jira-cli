@@ -17,8 +17,6 @@ func TestTruthy(t *testing.T) {
 	}
 }
 
-// resetRootFlags restores the global flags (values and Changed state) so tests
-// that execute rootCmd do not leak into each other.
 func resetRootFlags(t *testing.T) {
 	t.Helper()
 	reset := func() {

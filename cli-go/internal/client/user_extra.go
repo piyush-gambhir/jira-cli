@@ -7,9 +7,6 @@ import (
 	"net/url"
 )
 
-// ListAllUsers returns all users on the site (GET /users/search with an empty
-// query returns every user). Use limit to cap the page size. Data Center has
-// GET /user/list instead, from 11.0 and recent 10.3 LTS releases.
 func (c *Client) ListAllUsers(limit int) ([]User, error) {
 	q := url.Values{}
 	if limit > 0 {
@@ -36,9 +33,6 @@ func (c *Client) ListAllUsers(limit int) ([]User, error) {
 	return out, nil
 }
 
-// BulkUsers returns the users for the given accountIds
-// (GET /user/bulk?accountId=..&accountId=..). The endpoint is paginated (10 per
-// page by default), so it follows startAt until the last page.
 func (c *Client) BulkUsers(ids []string) ([]User, error) {
 	if c.IsServer() {
 		return nil, errCloudOnly("bulk user lookup", "")
@@ -64,9 +58,6 @@ func (c *Client) BulkUsers(ids []string) ([]User, error) {
 	return all, nil
 }
 
-// AssignableUsers returns users assignable to issues, optionally filtered by a
-// query (name/email). Scope it with a project key or an issue key (issueKey
-// wins when both are set). This is the correct picker for issue assign/create.
 func (c *Client) AssignableUsers(query, project, issueKey string, limit int) ([]User, error) {
 	q := url.Values{}
 	if query != "" {
@@ -87,9 +78,6 @@ func (c *Client) AssignableUsers(query, project, issueKey string, limit int) ([]
 	return out, nil
 }
 
-// UserGroups returns the groups a user belongs to: GET /user/groups?accountId=
-// on Cloud; Server/DC has no such endpoint, so it reads GET /user?username=
-// with expand=groups.
 func (c *Client) UserGroups(accountID string) ([]Group, error) {
 	if c.IsServer() {
 		q := c.userQuery(accountID)

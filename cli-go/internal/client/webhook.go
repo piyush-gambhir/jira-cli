@@ -5,7 +5,6 @@ import (
 	"net/url"
 )
 
-// Webhook is a dynamic (OAuth-app) webhook registration.
 type Webhook struct {
 	ID             int      `json:"id"`
 	JqlFilter      string   `json:"jqlFilter,omitempty"`
@@ -14,28 +13,21 @@ type Webhook struct {
 	FieldIDsFilter []string `json:"fieldIdsFilter,omitempty"`
 }
 
-// WebhookRegistration is one webhook entry in a register request.
 type WebhookRegistration struct {
 	JqlFilter      string   `json:"jqlFilter"`
 	Events         []string `json:"events"`
 	FieldIDsFilter []string `json:"fieldIdsFilter,omitempty"`
 }
 
-// WebhookRegistrationResult is one entry in the register response: either a
-// created id or per-webhook validation errors.
 type WebhookRegistrationResult struct {
 	CreatedWebhookID int      `json:"createdWebhookId,omitempty"`
 	Errors           []string `json:"errors,omitempty"`
 }
 
-// errWebhooksCloudOnly: dynamic webhooks exist only on Cloud. Server/DC
-// webhooks are instance-wide admin settings whose REST resource and payload
-// changed in Jira 10, so this CLI does not manage them.
 func errWebhooksCloudOnly() error {
 	return errCloudOnly("webhook management", "on Server/Data Center a Jira administrator manages webhooks under Administration > System > WebHooks")
 }
 
-// ListWebhooks returns the dynamic webhooks registered for the OAuth app.
 func (c *Client) ListWebhooks(limit int) ([]Webhook, error) {
 	if c.IsServer() {
 		return nil, errWebhooksCloudOnly()
@@ -53,8 +45,6 @@ func (c *Client) ListWebhooks(limit int) ([]Webhook, error) {
 	return out.Values, nil
 }
 
-// RegisterWebhooks registers one or more webhooks for the given callback URL and
-// returns the per-webhook results (created id or errors), in request order.
 func (c *Client) RegisterWebhooks(callbackURL string, webhooks []WebhookRegistration) ([]WebhookRegistrationResult, error) {
 	if c.IsServer() {
 		return nil, errWebhooksCloudOnly()
@@ -69,8 +59,6 @@ func (c *Client) RegisterWebhooks(callbackURL string, webhooks []WebhookRegistra
 	return out.WebhookRegistrationResult, nil
 }
 
-// DeleteWebhooks removes the webhooks with the given integer ids. The DELETE
-// carries a JSON body, so it goes through doJSON directly (c.Delete has no body).
 func (c *Client) DeleteWebhooks(ids []int) error {
 	if c.IsServer() {
 		return errWebhooksCloudOnly()
@@ -79,8 +67,6 @@ func (c *Client) DeleteWebhooks(ids []int) error {
 	return c.doJSON(http.MethodDelete, c.api("webhook"), nil, body, nil, true)
 }
 
-// RefreshWebhooks extends the expiry of the given webhook ids and returns the
-// new expiration date.
 func (c *Client) RefreshWebhooks(ids []int) (string, error) {
 	if c.IsServer() {
 		return "", errWebhooksCloudOnly()

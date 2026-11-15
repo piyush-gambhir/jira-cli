@@ -1,12 +1,7 @@
 package client
 
-// DefaultSearchFields is the field set requested when the caller doesn't specify
-// one (the new /search/jql defaults to id only, so we must be explicit).
 var DefaultSearchFields = []string{"summary", "status", "assignee", "priority", "issuetype", "updated"}
 
-// SearchIssues runs a JQL query. On Cloud (v3) it uses the enhanced
-// /search/jql cursor endpoint; on Server/DC (v2) it uses the classic /search.
-// If fetchAll is false, at most `limit` issues are returned.
 func (c *Client) SearchIssues(jql string, fields []string, limit int, fetchAll bool) ([]Issue, error) {
 	if len(fields) == 0 {
 		fields = DefaultSearchFields
@@ -17,7 +12,6 @@ func (c *Client) SearchIssues(jql string, fields []string, limit int, fetchAll b
 	return c.searchJQL(jql, fields, limit, fetchAll)
 }
 
-// searchJQL paginates the Cloud enhanced search via nextPageToken.
 func (c *Client) searchJQL(jql string, fields []string, limit int, fetchAll bool) ([]Issue, error) {
 	pageSize := pageSizeFor(limit)
 	all := []Issue{}
@@ -47,7 +41,6 @@ func (c *Client) searchJQL(jql string, fields []string, limit int, fetchAll bool
 	return all, nil
 }
 
-// searchClassic paginates the deprecated/Server search via startAt/total.
 func (c *Client) searchClassic(jql string, fields []string, limit int, fetchAll bool) ([]Issue, error) {
 	all := []Issue{}
 	startAt := 0
@@ -75,10 +68,8 @@ func (c *Client) searchClassic(jql string, fields []string, limit int, fetchAll 
 	return all, nil
 }
 
-// ApproximateCount returns the (approximate) number of issues matching a JQL query.
 func (c *Client) ApproximateCount(jql string) (int, error) {
 	if c.apiVersion == "2" {
-		// DC has no approximate-count; ask classic search for the total only.
 		var resp struct {
 			Total int `json:"total"`
 		}

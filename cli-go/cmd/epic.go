@@ -25,7 +25,6 @@ func newEpicGetCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			// Epic shape varies; render as raw JSON/YAML (table falls back to JSON).
 			return render(e, nil)
 		},
 	}

@@ -5,7 +5,6 @@ import (
 	"strconv"
 )
 
-// IssueUpdate is the create/edit/transition request body (fields + update verbs).
 type IssueUpdate struct {
 	Fields     map[string]any   `json:"fields,omitempty"`
 	Update     map[string]any   `json:"update,omitempty"`
@@ -13,8 +12,6 @@ type IssueUpdate struct {
 	Properties []map[string]any `json:"properties,omitempty"`
 }
 
-// CreateIssue creates an issue. fields is the raw fields map (project, issuetype,
-// summary, description-as-ADF, etc.). Returns {id,key,self}.
 func (c *Client) CreateIssue(update IssueUpdate) (*Issue, error) {
 	var out Issue
 	if err := c.PostJSON(c.api("issue"), nil, update, &out); err != nil {
@@ -23,7 +20,6 @@ func (c *Client) CreateIssue(update IssueUpdate) (*Issue, error) {
 	return &out, nil
 }
 
-// GetIssue fetches an issue into the typed struct. fields/expand are optional CSV.
 func (c *Client) GetIssue(key, fields, expand string) (*Issue, error) {
 	var out Issue
 	if err := c.GetJSON(c.api("issue/%s", key), issueQuery(fields, expand), &out); err != nil {
@@ -32,7 +28,6 @@ func (c *Client) GetIssue(key, fields, expand string) (*Issue, error) {
 	return &out, nil
 }
 
-// GetIssueRaw fetches an issue as generic JSON for full-fidelity output.
 func (c *Client) GetIssueRaw(key, fields, expand string) (map[string]any, error) {
 	var out map[string]any
 	if err := c.GetJSON(c.api("issue/%s", key), issueQuery(fields, expand), &out); err != nil {
@@ -52,7 +47,6 @@ func issueQuery(fields, expand string) url.Values {
 	return q
 }
 
-// EditIssue applies field/update changes. notifyUsers controls watcher emails.
 func (c *Client) EditIssue(key string, update IssueUpdate, notifyUsers bool) error {
 	q := url.Values{}
 	if !notifyUsers {
@@ -61,7 +55,6 @@ func (c *Client) EditIssue(key string, update IssueUpdate, notifyUsers bool) err
 	return c.PutJSON(c.api("issue/%s", key), q, update, nil)
 }
 
-// DeleteIssue deletes an issue (optionally its subtasks).
 func (c *Client) DeleteIssue(key string, deleteSubtasks bool) error {
 	q := url.Values{}
 	if deleteSubtasks {
@@ -70,13 +63,10 @@ func (c *Client) DeleteIssue(key string, deleteSubtasks bool) error {
 	return c.Delete(c.api("issue/%s", key), q)
 }
 
-// AssignIssue assigns an issue. id may be a user id (see ResolveUser), "-1"
-// (default assignee), or nil (unassign).
 func (c *Client) AssignIssue(key string, id any) error {
 	return c.PutJSON(c.api("issue/%s/assignee", key), nil, c.UserRef(id), nil)
 }
 
-// GetTransitions lists the transitions available on an issue (with screen fields).
 func (c *Client) GetTransitions(key string) ([]Transition, error) {
 	var out struct {
 		Transitions []Transition `json:"transitions"`
@@ -88,8 +78,6 @@ func (c *Client) GetTransitions(key string) ([]Transition, error) {
 	return out.Transitions, nil
 }
 
-// DoTransition performs a transition, optionally setting fields/update (e.g. a
-// resolution or a comment) on the transition screen.
 func (c *Client) DoTransition(key, transitionID string, fields, update map[string]any) error {
 	body := IssueUpdate{Transition: map[string]any{"id": transitionID}}
 	if len(fields) > 0 {
@@ -101,7 +89,6 @@ func (c *Client) DoTransition(key, transitionID string, fields, update map[strin
 	return c.PostJSON(c.api("issue/%s/transitions", key), nil, body, nil)
 }
 
-// FieldMeta describes a field on the create/edit screen.
 type FieldMeta struct {
 	Required      bool     `json:"required"`
 	Name          string   `json:"name"`
@@ -117,8 +104,6 @@ type FieldMeta struct {
 	} `json:"schema"`
 }
 
-// CreateMetaIssueTypes lists creatable issue types for a project. Cloud returns
-// them under "issueTypes", Server/DC under "values".
 func (c *Client) CreateMetaIssueTypes(projectKey string) ([]IssueType, error) {
 	var out struct {
 		IssueTypes []IssueType `json:"issueTypes"`
@@ -134,8 +119,6 @@ func (c *Client) CreateMetaIssueTypes(projectKey string) ([]IssueType, error) {
 	return out.IssueTypes, nil
 }
 
-// CreateMetaFields lists the create-screen fields for a project + issue type.
-// Cloud returns them under "fields", Server/DC under "values".
 func (c *Client) CreateMetaFields(projectKey, issueTypeID string) (map[string]FieldMeta, error) {
 	type fieldMeta struct {
 		FieldMeta
@@ -163,5 +146,4 @@ func (c *Client) CreateMetaFields(projectKey, issueTypeID string) (map[string]Fi
 	return m, nil
 }
 
-// itoa is a tiny helper for building query values.
 func itoa(n int) string { return strconv.Itoa(n) }

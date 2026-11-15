@@ -54,7 +54,6 @@ Examples:
 				clauses = append(clauses, "assignee = "+jqlQuote(acct))
 			}
 			if len(clauses) == 0 {
-				// Bounded JQL is required; default to the caller's open work.
 				clauses = append(clauses, "assignee = currentUser()")
 			}
 			jql := strings.Join(clauses, " AND ") + " ORDER BY updated DESC"
@@ -129,7 +128,6 @@ Examples:
 	return cmd
 }
 
-// jqlQuote wraps a value in double quotes, escaping embedded quotes.
 func jqlQuote(v string) string {
 	return `"` + strings.ReplaceAll(v, `"`, `\"`) + `"`
 }

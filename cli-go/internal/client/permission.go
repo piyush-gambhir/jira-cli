@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-// Permission is a single permission entry as returned by GET /mypermissions
-// (key is the map key, not a body field, so callers fill Key in themselves).
 type Permission struct {
 	Key            string `json:"key,omitempty"`
 	ID             string `json:"id,omitempty"`
@@ -16,10 +14,6 @@ type Permission struct {
 	HavePermission bool   `json:"havePermission"`
 }
 
-// MyPermissions returns the caller's permissions, optionally scoped to a project
-// and/or issue. The permissions query param is required by Jira Cloud, so keys
-// must be non-empty. The response shape is {permissions:{KEY:{...}}}; the map key
-// is copied into each Permission's Key field for stable rendering.
 func (c *Client) MyPermissions(keys []string, projectKey, issueKey string) ([]Permission, error) {
 	q := url.Values{"permissions": {strings.Join(keys, ",")}}
 	if projectKey != "" {
@@ -44,9 +38,6 @@ func (c *Client) MyPermissions(keys []string, projectKey, issueKey string) ([]Pe
 	return out, nil
 }
 
-// ListPermissions returns all permissions the instance knows about
-// (GET /permissions -> {permissions:{KEY:{key,name,type,description}}}). The map
-// key is copied into Key when the body omits it.
 func (c *Client) ListPermissions() ([]Permission, error) {
 	var resp struct {
 		Permissions map[string]Permission `json:"permissions"`
@@ -64,9 +55,6 @@ func (c *Client) ListPermissions() ([]Permission, error) {
 	return out, nil
 }
 
-// PermittedProjects returns the ids of projects in which the caller holds all of
-// the given permissions (POST /permissions/project, body {permissions:[...]} ->
-// {projects:[{id}]}).
 func (c *Client) PermittedProjects(keys []string) ([]string, error) {
 	if c.IsServer() {
 		return nil, errCloudOnly("permission permitted-projects", "on Server/Data Center check one project with `jira permission mine --project <key>`")

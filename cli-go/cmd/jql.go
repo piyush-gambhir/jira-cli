@@ -75,7 +75,6 @@ In table mode this lists the field clause names and their display names. Use
 			if err != nil {
 				return err
 			}
-			// Table mode shows the fields; json/yaml emit the whole object.
 			if outFormat == output.FormatTable {
 				return render(data.VisibleFieldNames, jqlFieldTable())
 			}
@@ -154,7 +153,6 @@ Examples:
 			if err := render(parsed, def); err != nil {
 				return err
 			}
-			// Report problems and exit nonzero if any query failed to parse.
 			var bad int
 			for _, p := range parsed {
 				for _, e := range p.Errors {

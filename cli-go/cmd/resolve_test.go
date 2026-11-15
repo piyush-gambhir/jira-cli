@@ -13,7 +13,6 @@ import (
 
 func TestCommandsResolve(t *testing.T) {
 	resetRootFlags(t)
-	// Invalid configuration must never be read by resolution.
 	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 	configDir := filepath.Join(os.Getenv("XDG_CONFIG_HOME"), "jira-cli")
 	if err := os.MkdirAll(configDir, 0o700); err != nil {
@@ -49,8 +48,6 @@ func TestCommandsResolve(t *testing.T) {
 			if err := json.Unmarshal(out.Bytes(), &got); err != nil {
 				t.Fatalf("invalid JSON %q: %v", out.String(), err)
 			}
-			// One process resolves once in practice; within this test run flag state from
-			// earlier cases can linger, so compare what identifies the command.
 			if got.Command != tc.command || got.Effect != tc.effect || !reflect.DeepEqual(got.Args, tc.wantArg) {
 				t.Fatalf("got %+v; want command %s effect %s args %v", got, tc.command, tc.effect, tc.wantArg)
 			}

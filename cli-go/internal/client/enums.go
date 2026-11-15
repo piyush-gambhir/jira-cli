@@ -2,7 +2,6 @@ package client
 
 import "net/url"
 
-// Priority is an issue priority definition.
 type Priority struct {
 	ID          string `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
@@ -12,14 +11,12 @@ type Priority struct {
 	IsDefault   bool   `json:"isDefault,omitempty"`
 }
 
-// Resolution is an issue resolution definition.
 type Resolution struct {
 	ID          string `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
 	Description string `json:"description,omitempty"`
 }
 
-// ListIssueTypes returns all issue types visible to the user.
 func (c *Client) ListIssueTypes() ([]IssueType, error) {
 	var out []IssueType
 	if err := c.GetJSON(c.api("issuetype"), nil, &out); err != nil {
@@ -28,8 +25,6 @@ func (c *Client) ListIssueTypes() ([]IssueType, error) {
 	return out, nil
 }
 
-// ListIssueTypesForProject returns the issue types associated with a project
-// id. Server/DC has no issuetype/project; its project resource lists them.
 func (c *Client) ListIssueTypesForProject(projectID string) ([]IssueType, error) {
 	if c.IsServer() {
 		var p struct {
@@ -48,7 +43,6 @@ func (c *Client) ListIssueTypesForProject(projectID string) ([]IssueType, error)
 	return out, nil
 }
 
-// GetIssueType returns a single issue type by id.
 func (c *Client) GetIssueType(id string) (*IssueType, error) {
 	var out IssueType
 	if err := c.GetJSON(c.api("issuetype/%s", id), nil, &out); err != nil {
@@ -57,7 +51,6 @@ func (c *Client) GetIssueType(id string) (*IssueType, error) {
 	return &out, nil
 }
 
-// ListPriorities returns all issue priorities.
 func (c *Client) ListPriorities() ([]Priority, error) {
 	var out []Priority
 	if err := c.GetJSON(c.api("priority"), nil, &out); err != nil {
@@ -66,7 +59,6 @@ func (c *Client) ListPriorities() ([]Priority, error) {
 	return out, nil
 }
 
-// GetPriority returns a single priority by id.
 func (c *Client) GetPriority(id string) (*Priority, error) {
 	var out Priority
 	if err := c.GetJSON(c.api("priority/%s", id), nil, &out); err != nil {
@@ -75,7 +67,6 @@ func (c *Client) GetPriority(id string) (*Priority, error) {
 	return &out, nil
 }
 
-// ListResolutions returns all issue resolutions.
 func (c *Client) ListResolutions() ([]Resolution, error) {
 	var out []Resolution
 	if err := c.GetJSON(c.api("resolution"), nil, &out); err != nil {
@@ -84,7 +75,6 @@ func (c *Client) ListResolutions() ([]Resolution, error) {
 	return out, nil
 }
 
-// GetResolution returns a single resolution by id.
 func (c *Client) GetResolution(id string) (*Resolution, error) {
 	var out Resolution
 	if err := c.GetJSON(c.api("resolution/%s", id), nil, &out); err != nil {
@@ -93,9 +83,6 @@ func (c *Client) GetResolution(id string) (*Resolution, error) {
 	return &out, nil
 }
 
-// ListLabels returns available issue labels (the PageBean values array). If
-// limit is positive at most that many labels are returned. Server/DC has no
-// label endpoint.
 func (c *Client) ListLabels(limit int) ([]string, error) {
 	if c.IsServer() {
 		return nil, errCloudOnly("label list", "")

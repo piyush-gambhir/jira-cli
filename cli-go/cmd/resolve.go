@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// resolution describes what arguments would run without executing the command.
 type resolution struct {
 	Command     string            `json:"command"`
 	Effect      string            `json:"effect"`
@@ -26,7 +25,6 @@ func newCommandsCmd() *cobra.Command {
 		Short:              "Show the command, effect and flags that arguments would run, without running them",
 		DisableFlagParsing: true,
 		Example:            "  jira commands resolve -- issue get PROJ-123\n  jira commands resolve -- -o json issue delete PROJ-123 --yes",
-		// Override the root hooks so resolution never loads config or checks for updates.
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			outputFormat, OutputFormat, outFormat = "json", "json", output.FormatJSON
 			return nil
@@ -39,8 +37,6 @@ func newCommandsCmd() *cobra.Command {
 					break
 				}
 			}
-			// The process exits after answering and runs nothing else, so parsing into the
-			// running command tree is safe; Find and ParseFlags never execute a command.
 			probe := cmd.Root()
 			target, rest, err := probe.Find(args)
 			if err != nil || target == probe || !target.Runnable() || target.Annotations[groupDispatcherKey] == "true" {
@@ -63,7 +59,6 @@ func describeResolution(target *cobra.Command) resolution {
 	}
 	ann := target.Annotations
 	switch {
-	// Checked first: such commands may also carry mutates=true but write only with the flag.
 	case ann["mutates-when-flag"] != "":
 		if target.Flags().Changed(ann["mutates-when-flag"]) {
 			res.Effect = "remote_write"

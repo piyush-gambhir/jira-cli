@@ -10,22 +10,18 @@ import (
 	"github.com/olekukonko/tablewriter/tw"
 )
 
-// TableFormatter outputs data as an ASCII table.
 type TableFormatter struct {
 	Writer io.Writer
 }
 
-// Format outputs data as a table (falls back to JSON without a TableDef).
 func (f *TableFormatter) Format(data interface{}) error {
 	return (&JSONFormatter{Writer: f.Writer}).Format(data)
 }
 
-// FormatTable outputs data as a table using the provided TableDef.
 func (f *TableFormatter) FormatTable(data interface{}, def *TableDef) error {
 	if def == nil {
 		return f.Format(data)
 	}
-	// Render before writing: tablewriter does not propagate underlying writer errors.
 	var rendered bytes.Buffer
 	table := tablewriter.NewTable(&rendered,
 		tablewriter.WithConfig(tablewriter.Config{
@@ -48,7 +44,6 @@ func (f *TableFormatter) FormatTable(data interface{}, def *TableDef) error {
 	)
 	table.Header(def.Headers)
 
-	// Handle slice types
 	v := reflect.ValueOf(data)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -62,7 +57,6 @@ func (f *TableFormatter) FormatTable(data interface{}, def *TableDef) error {
 			}
 		}
 	} else {
-		// Single item
 		row := def.RowFunc(data)
 		if err := table.Append(row); err != nil {
 			return err
@@ -76,7 +70,6 @@ func (f *TableFormatter) FormatTable(data interface{}, def *TableDef) error {
 	return err
 }
 
-// PrintMessage prints a simple message to the writer.
 func PrintMessage(w io.Writer, msg string) {
 	fmt.Fprintln(w, msg)
 }

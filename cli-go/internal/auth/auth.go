@@ -1,8 +1,3 @@
-// Package auth implements every authentication method supported by the Jira
-// REST API. See docs/CREDENTIALS.md for the full reference.
-//
-// Each method is an Authenticator: it knows how to stamp an outgoing request
-// with the right credential header and what base URL API calls should target.
 package auth
 
 import (
@@ -17,22 +12,14 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/config"
 )
 
-// Authenticator stamps requests with credentials and reports the API base URL.
 type Authenticator interface {
-	// Apply sets the authorization header on req (refreshing tokens if needed).
 	Apply(req *http.Request) error
-	// BaseURL is the scheme://host[/ex/jira/{cloudId}] that API paths hang off of.
 	BaseURL() string
-	// Describe returns a short human-readable summary for whoami/status.
 	Describe() string
 }
 
-// TokenPersister saves an updated profile (used by OAuth to store rotated tokens).
 type TokenPersister func(updated config.Profile) error
 
-// New builds the Authenticator for a profile's auth type. profileName and
-// persist are only used by the OAuth2 authenticator to persist refreshed tokens;
-// pass an empty name and nil persister for the other methods.
 func New(p config.Profile, profileName string, persist TokenPersister) (Authenticator, error) {
 	switch p.EffectiveAuthType() {
 	case config.AuthAPIToken:
@@ -70,12 +57,9 @@ func New(p config.Profile, profileName string, persist TokenPersister) (Authenti
 	}
 }
 
-// gatewayBaseURL is the api.atlassian.com gateway base for scoped tokens / OAuth.
 func gatewayBaseURL(cloudID string) string {
 	return "https://api.atlassian.com/ex/jira/" + cloudID
 }
-
-// --- Basic auth (Cloud api_token, Cloud scoped_token, DC username/password) ---
 
 type basicAuth struct {
 	baseURL string
@@ -91,8 +75,6 @@ func (b *basicAuth) Apply(req *http.Request) error {
 func (b *basicAuth) BaseURL() string  { return b.baseURL }
 func (b *basicAuth) Describe() string { return fmt.Sprintf("%s as %s", b.kind, b.user) }
 
-// --- Bearer auth (DC personal access token) ---
-
 type bearerAuth struct {
 	baseURL string
 	token   string
@@ -106,13 +88,10 @@ func (b *bearerAuth) Apply(req *http.Request) error {
 func (b *bearerAuth) BaseURL() string  { return b.baseURL }
 func (b *bearerAuth) Describe() string { return b.kind }
 
-// basicCredential returns base64(user:secret) with no trailing newline.
 func basicCredential(user, secret string) string {
 	return base64.StdEncoding.EncodeToString([]byte(user + ":" + secret))
 }
 
-// httpClientFor builds a short-lived HTTP client honoring the insecure flag,
-// used by helpers that talk to Atlassian directly (cloudId / token endpoints).
 func httpClientFor(insecure bool) *http.Client {
 	return &http.Client{
 		Timeout: 30 * time.Second,
@@ -122,8 +101,6 @@ func httpClientFor(insecure bool) *http.Client {
 	}
 }
 
-// ResolveCloudID resolves a Cloud site's cloudId via the unauthenticated
-// /_edge/tenant_info endpoint. Used at login time for scoped tokens.
 func ResolveCloudID(site string, insecure bool) (string, error) {
 	site = strings.TrimRight(site, "/")
 	resp, err := httpClientFor(insecure).Get(site + "/_edge/tenant_info")
@@ -146,7 +123,6 @@ func ResolveCloudID(site string, insecure bool) (string, error) {
 	return out.CloudID, nil
 }
 
-// AccessibleResource is one site an OAuth token can reach.
 type AccessibleResource struct {
 	ID     string   `json:"id"`
 	Name   string   `json:"name"`
@@ -154,7 +130,6 @@ type AccessibleResource struct {
 	Scopes []string `json:"scopes"`
 }
 
-// AccessibleResources lists the sites an OAuth access token can access.
 func AccessibleResources(accessToken string, insecure bool) ([]AccessibleResource, error) {
 	req, _ := http.NewRequest(http.MethodGet, "https://api.atlassian.com/oauth/token/accessible-resources", nil)
 	req.Header.Set("Authorization", "Bearer "+accessToken)
