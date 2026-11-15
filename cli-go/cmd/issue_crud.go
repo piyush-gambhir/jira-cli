@@ -294,7 +294,6 @@ func newIssueDeleteCmd() *cobra.Command {
 	return cmd
 }
 
-// issueKeyTable renders the {id,key,self} returned by create.
 func issueKeyTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"KEY", "ID", "URL"},

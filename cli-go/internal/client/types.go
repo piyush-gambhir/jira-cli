@@ -8,9 +8,6 @@ import (
 	"strings"
 )
 
-// flexString unmarshals from a JSON string OR number. Some Jira endpoints return
-// ids both ways (e.g. attachment id is a string in an issue's attachment list but
-// a number from GET /attachment/{id}).
 type flexString string
 
 func (f *flexString) UnmarshalJSON(b []byte) error {
@@ -23,8 +20,6 @@ func (f *flexString) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// User is a Jira user, identified by accountId on Cloud and by name (the
-// username) on Server/DC, which also has a stable key.
 type User struct {
 	AccountID    string `json:"accountId,omitempty"`
 	Name         string `json:"name,omitempty"`
@@ -37,27 +32,23 @@ type User struct {
 	Self         string `json:"self,omitempty"`
 }
 
-// Named is the common {id,name} shape (priority, issuetype, resolution, …).
 type Named struct {
 	ID   string `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 }
 
-// StatusCategory is the workflow-independent bucket of a status.
 type StatusCategory struct {
 	Key       string `json:"key,omitempty"`
 	Name      string `json:"name,omitempty"`
 	ColorName string `json:"colorName,omitempty"`
 }
 
-// Status is an issue status.
 type Status struct {
 	ID             string          `json:"id,omitempty"`
 	Name           string          `json:"name,omitempty"`
 	StatusCategory *StatusCategory `json:"statusCategory,omitempty"`
 }
 
-// Project is a Jira project (subset of fields).
 type Project struct {
 	ID             string `json:"id,omitempty"`
 	Key            string `json:"key,omitempty"`
@@ -69,9 +60,6 @@ type Project struct {
 	Self           string `json:"self,omitempty"`
 }
 
-// IssueFields holds the common navigable fields of an issue. Every other field
-// Jira returns (custom fields, components, ...) is kept in Extra, so JSON and
-// YAML output include whatever --fields requested.
 type IssueFields struct {
 	Summary     string   `json:"summary,omitempty"`
 	Status      *Status  `json:"status,omitempty"`
@@ -86,12 +74,11 @@ type IssueFields struct {
 	DueDate     string   `json:"duedate,omitempty"`
 	Resolution  *Named   `json:"resolution,omitempty"`
 	Parent      *Issue   `json:"parent,omitempty"`
-	Description any      `json:"description,omitempty"` // ADF (Cloud v3) or string (v2)
+	Description any      `json:"description,omitempty"`
 
 	Extra map[string]json.RawMessage `json:"-"`
 }
 
-// issueFieldKeys is the set of JSON keys IssueFields decodes into typed fields.
 var issueFieldKeys = func() map[string]bool {
 	keys := map[string]bool{}
 	t := reflect.TypeFor[IssueFields]()
@@ -103,7 +90,6 @@ var issueFieldKeys = func() map[string]bool {
 	return keys
 }()
 
-// UnmarshalJSON decodes the typed fields and keeps the rest in Extra.
 func (f *IssueFields) UnmarshalJSON(b []byte) error {
 	type typed IssueFields
 	if err := json.Unmarshal(b, (*typed)(f)); err != nil {
@@ -125,7 +111,6 @@ func (f *IssueFields) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// MarshalJSON writes the typed fields followed by Extra (sorted by key).
 func (f IssueFields) MarshalJSON() ([]byte, error) {
 	type typed IssueFields
 	b, err := json.Marshal(typed(f))
@@ -139,7 +124,7 @@ func (f IssueFields) MarshalJSON() ([]byte, error) {
 		}
 	}
 	sort.Strings(keys)
-	out := bytes.NewBuffer(append([]byte(nil), b[:len(b)-1]...)) // drop the closing brace
+	out := bytes.NewBuffer(append([]byte(nil), b[:len(b)-1]...))
 	for _, k := range keys {
 		if out.Len() > 1 {
 			out.WriteByte(',')
@@ -156,7 +141,6 @@ func (f IssueFields) MarshalJSON() ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// Issue is a Jira issue (typed subset; use GetIssueRaw for full fidelity).
 type Issue struct {
 	ID     string      `json:"id,omitempty"`
 	Key    string      `json:"key,omitempty"`
@@ -164,7 +148,6 @@ type Issue struct {
 	Fields IssueFields `json:"fields,omitempty"`
 }
 
-// Transition is an available workflow transition for an issue.
 type Transition struct {
 	ID        string  `json:"id"`
 	Name      string  `json:"name"`
@@ -172,7 +155,6 @@ type Transition struct {
 	HasScreen bool    `json:"hasScreen,omitempty"`
 }
 
-// Comment is an issue comment (body is ADF on Cloud v3).
 type Comment struct {
 	ID      string `json:"id,omitempty"`
 	Self    string `json:"self,omitempty"`
@@ -182,7 +164,6 @@ type Comment struct {
 	Updated string `json:"updated,omitempty"`
 }
 
-// Worklog is a worklog entry.
 type Worklog struct {
 	ID               string `json:"id,omitempty"`
 	Author           *User  `json:"author,omitempty"`
@@ -193,7 +174,6 @@ type Worklog struct {
 	Created          string `json:"created,omitempty"`
 }
 
-// Attachment is issue attachment metadata.
 type Attachment struct {
 	ID        flexString `json:"id,omitempty"`
 	Filename  string     `json:"filename,omitempty"`
@@ -205,7 +185,6 @@ type Attachment struct {
 	Thumbnail string     `json:"thumbnail,omitempty"`
 }
 
-// IssueType is an issue type.
 type IssueType struct {
 	ID          string `json:"id,omitempty"`
 	Name        string `json:"name,omitempty"`
@@ -213,7 +192,6 @@ type IssueType struct {
 	Subtask     bool   `json:"subtask,omitempty"`
 }
 
-// Field is a system or custom field definition.
 type Field struct {
 	ID          string   `json:"id"`
 	Key         string   `json:"key,omitempty"`
@@ -224,7 +202,6 @@ type Field struct {
 	ClauseNames []string `json:"clauseNames,omitempty"`
 }
 
-// LinkType is an issue link type with its directional labels.
 type LinkType struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
@@ -232,7 +209,6 @@ type LinkType struct {
 	Outward string `json:"outward"`
 }
 
-// Board is an Agile board.
 type Board struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
@@ -240,7 +216,6 @@ type Board struct {
 	Self string `json:"self,omitempty"`
 }
 
-// Sprint is an Agile sprint.
 type Sprint struct {
 	ID            int    `json:"id"`
 	Name          string `json:"name"`
@@ -252,7 +227,6 @@ type Sprint struct {
 	OriginBoardID int    `json:"originBoardId,omitempty"`
 }
 
-// ServerInfo is the response of GET /serverInfo.
 type ServerInfo struct {
 	BaseURL        string `json:"baseUrl"`
 	Version        string `json:"version"`
@@ -262,14 +236,12 @@ type ServerInfo struct {
 	ServerTime     string `json:"serverTime"`
 }
 
-// Watchers is the response of GET issue watchers.
 type Watchers struct {
 	WatchCount int    `json:"watchCount"`
 	IsWatching bool   `json:"isWatching"`
 	Watchers   []User `json:"watchers"`
 }
 
-// Votes is the response of GET issue votes.
 type Votes struct {
 	Votes    int    `json:"votes"`
 	HasVoted bool   `json:"hasVoted"`

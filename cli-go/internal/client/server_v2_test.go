@@ -66,7 +66,6 @@ func TestServerFilterFavouriteUsesV1Resource(t *testing.T) {
 	if _, err := c.UnfavouriteFilter("10"); err != nil {
 		t.Fatal(err)
 	}
-	// REST v2 ignores "favourite" on update, so it goes to the 1.0 resource.
 	if _, err := c.UpdateFilter("10", map[string]any{"name": "New", "favourite": false}); err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +111,7 @@ func TestServerDashboardSearchPagesAndFiltersLocally(t *testing.T) {
 		}
 		queries = append(queries, r.URL.RawQuery)
 		start := atoiOrZero(r.URL.Query().Get("startAt"))
-		end := min(start+2, len(all)) // the server caps maxResults at 2
+		end := min(start+2, len(all))
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"startAt": start, "maxResults": 2, "total": len(all), "dashboards": all[start:end],
 		})
@@ -170,7 +169,7 @@ func TestServerUserListUsesUserList(t *testing.T) {
 		t.Fatalf("user list query = %q", q)
 	}
 
-	old, _ := recorder(t, nil) // a Data Center release without user/list
+	old, _ := recorder(t, nil)
 	if _, err := serverClient(t, old.URL).ListAllUsers(25); err == nil || !strings.Contains(err.Error(), "jira user search") {
 		t.Fatalf("ListAllUsers on an older release: err = %v; want a pointer to user search", err)
 	}

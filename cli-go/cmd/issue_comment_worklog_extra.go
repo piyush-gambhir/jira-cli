@@ -12,7 +12,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// commentTable renders a single comment (id/author/created/body).
 func commentTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"ID", "AUTHOR", "CREATED", "BODY"},
@@ -23,7 +22,6 @@ func commentTable() *output.TableDef {
 	}
 }
 
-// worklogTable renders a single worklog (id/author/time/started).
 func worklogTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"ID", "AUTHOR", "TIME", "STARTED", "COMMENT"},

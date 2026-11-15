@@ -8,8 +8,6 @@ import (
 	"testing"
 )
 
-// Both servers listen on 127.0.0.1, so the off-site one differs only by port:
-// Go's own redirect rule and cookie scoping both ignore the port.
 func TestRedirectSendsCredentialsOnlyToTheSiteOrigin(t *testing.T) {
 	var offAuth, offCookie string
 	off := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

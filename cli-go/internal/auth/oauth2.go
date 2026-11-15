@@ -20,18 +20,12 @@ import (
 )
 
 const (
-	authorizeEndpoint = "https://auth.atlassian.com/authorize"
-	tokenEndpoint     = "https://auth.atlassian.com/oauth/token"
-	// DefaultScopes requested at login when the user doesn't specify their own
-	// (the "write" preset: read + write issues/projects/users, plus offline_access).
-	DefaultScopes = "read:jira-user read:jira-work write:jira-work offline_access"
-	// DefaultCallbackPort is the loopback port for the OAuth redirect. The user
-	// must register http://localhost:<port>/callback as the app's Callback URL.
+	authorizeEndpoint   = "https://auth.atlassian.com/authorize"
+	tokenEndpoint       = "https://auth.atlassian.com/oauth/token"
+	DefaultScopes       = "read:jira-user read:jira-work write:jira-work offline_access"
 	DefaultCallbackPort = 8765
 )
 
-// oauth2Auth implements Authenticator for the OAuth 2.0 (3LO) flow. It refreshes
-// the access token on demand and persists the rotated refresh token.
 type oauth2Auth struct {
 	mu          sync.Mutex
 	p           config.Profile
@@ -57,7 +51,6 @@ func (o *oauth2Auth) Apply(req *http.Request) error {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 
-	// Refresh if the access token is missing or within 60s of expiry.
 	if o.p.AccessToken == "" || time.Now().Unix() >= o.p.TokenExpiry-60 {
 		if err := o.refreshLocked(); err != nil {
 			return err
@@ -67,7 +60,6 @@ func (o *oauth2Auth) Apply(req *http.Request) error {
 	return nil
 }
 
-// refreshLocked exchanges the refresh token for a new access token. Caller holds o.mu.
 func (o *oauth2Auth) refreshLocked() error {
 	if o.p.RefreshToken == "" {
 		return fmt.Errorf("OAuth access token expired and no refresh token available — run 'jira auth login --type oauth2'")
@@ -82,7 +74,7 @@ func (o *oauth2Auth) refreshLocked() error {
 		return fmt.Errorf("refreshing OAuth token: %w", err)
 	}
 	o.p.AccessToken = tok.AccessToken
-	if tok.RefreshToken != "" { // refresh tokens rotate — persist the new one
+	if tok.RefreshToken != "" {
 		o.p.RefreshToken = tok.RefreshToken
 	}
 	o.p.TokenExpiry = time.Now().Unix() + int64(tok.ExpiresIn)
@@ -94,7 +86,6 @@ func (o *oauth2Auth) refreshLocked() error {
 	return nil
 }
 
-// tokenResponse is the shape returned by the Atlassian token endpoint.
 type tokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
@@ -105,7 +96,6 @@ type tokenResponse struct {
 	ErrorDesc    string `json:"error_description"`
 }
 
-// tokenRequest POSTs a JSON body to the token endpoint and parses the response.
 func tokenRequest(client *http.Client, body map[string]string) (*tokenResponse, error) {
 	payload, _ := json.Marshal(body)
 	req, _ := http.NewRequest(http.MethodPost, tokenEndpoint, strings.NewReader(string(payload)))
@@ -132,7 +122,6 @@ func tokenRequest(client *http.Client, body map[string]string) (*tokenResponse, 
 	return &tr, nil
 }
 
-// OAuthResult is returned by OAuthLogin: the tokens plus the resolved scopes.
 type OAuthResult struct {
 	AccessToken  string
 	RefreshToken string
@@ -140,10 +129,6 @@ type OAuthResult struct {
 	Scope        string
 }
 
-// OAuthLogin runs the interactive 3LO authorization-code flow: it starts a
-// loopback HTTP server, opens the browser to the consent screen, captures the
-// authorization code, and exchanges it for tokens. The app's registered
-// Callback URL must be http://localhost:<port>/callback.
 func OAuthLogin(clientID, clientSecret, scopes string, port int, insecure bool) (*OAuthResult, error) {
 	if clientID == "" || clientSecret == "" {
 		return nil, fmt.Errorf("oauth2 login requires --client-id and --client-secret (register an app at developer.atlassian.com)")
@@ -161,7 +146,6 @@ func OAuthLogin(clientID, clientSecret, scopes string, port int, insecure bool) 
 		return nil, err
 	}
 
-	// Channels to receive the result from the callback handler.
 	type cbResult struct {
 		code string
 		err  error
@@ -220,7 +204,6 @@ func OAuthLogin(clientID, clientSecret, scopes string, port int, insecure bool) 
 	fmt.Println("  " + authURL)
 	_ = openBrowser(authURL)
 
-	// Wait for the callback (with a generous timeout).
 	var code string
 	select {
 	case res := <-resultCh:
@@ -258,7 +241,6 @@ func randomState() (string, error) {
 	return base64.RawURLEncoding.EncodeToString(b), nil
 }
 
-// openBrowser opens url in the default browser, best-effort.
 func openBrowser(url string) error {
 	switch runtime.GOOS {
 	case "darwin":

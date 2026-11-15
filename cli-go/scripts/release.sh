@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# Build release binaries for one or more platforms.
-#
-# Usage:
-#   ./scripts/release.sh                       # build for the host platform into dist/
-#   PLATFORMS="darwin/arm64 linux/amd64" ./scripts/release.sh   # cross-compile matrix
-#
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."

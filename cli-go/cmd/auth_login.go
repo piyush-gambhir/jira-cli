@@ -103,7 +103,7 @@ Examples:
 				if clientSecret, err = needSecret(clientSecret, "OAuth client secret: "); err != nil {
 					return err
 				}
-				if scopes == "" { // --scopes (raw) wins; otherwise resolve from preset/picker
+				if scopes == "" {
 					if scopes, err = resolveLoginScopes(scopePreset, extraScopes); err != nil {
 						return err
 					}
@@ -118,7 +118,6 @@ Examples:
 				if err != nil {
 					return err
 				}
-				// Resolve which site this token can access.
 				resources, err := auth.AccessibleResources(res.AccessToken, insecureFlag)
 				if err != nil {
 					return err
@@ -143,7 +142,6 @@ Examples:
 				profile.Site = strings.TrimRight(chosen.URL, "/")
 			}
 
-			// Test the connection.
 			info("Testing connection ...")
 			me, err := testProfile(profile, profileName)
 			if err != nil {
@@ -176,9 +174,6 @@ Examples:
 	return cmd
 }
 
-// resolveLoginScopes determines the OAuth scope string from a preset, defaulting
-// without a prompt for non-interactive builds and showing the interactive picker
-// otherwise. Extra granular scopes are appended.
 func resolveLoginScopes(preset string, extra []string) (string, error) {
 	if preset == "" {
 		switch {
@@ -205,7 +200,6 @@ func resolveLoginScopes(preset string, extra []string) (string, error) {
 	return auth.ResolveScopes(preset, extra)
 }
 
-// promptScopePreset shows the scope presets and reads the user's choice.
 func promptScopePreset() (string, error) {
 	fmt.Fprintln(stderr(), "Select the access to grant (OAuth scopes to request):")
 	for i, name := range auth.ScopePresetOrder {
@@ -238,7 +232,6 @@ func promptScopePreset() (string, error) {
 	return "", fmt.Errorf("invalid choice %q", choice)
 }
 
-// normalizeAuthType maps friendly aliases to the stored auth_type value.
 func normalizeAuthType(t string) string {
 	switch strings.ToLower(strings.TrimSpace(t)) {
 	case "", "api_token", "apitoken", "token", "api":
@@ -255,7 +248,6 @@ func normalizeAuthType(t string) string {
 	return ""
 }
 
-// need returns the flag value if set, else prompts for it; errors if still empty.
 func need(flagVal, label string) (string, error) {
 	if flagVal != "" {
 		return flagVal, nil
@@ -284,7 +276,6 @@ func needSecret(flagVal, label string) (string, error) {
 	return v, nil
 }
 
-// testProfile builds an authenticator + client for the profile and calls myself.
 func testProfile(profile config.Profile, name string) (*client.User, error) {
 	persist := func(updated config.Profile) error { return config.PersistProfile(name, updated) }
 	authr, err := auth.New(profile, name, persist)

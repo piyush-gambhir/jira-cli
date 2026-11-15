@@ -15,10 +15,9 @@ import { staticClient } from 'fumadocs-core/search/client/orama-static';
 import { useI18n } from 'fumadocs-ui/contexts/i18n';
 
 export default function DefaultSearchDialog(props: SharedProps) {
-  const { locale } = useI18n(); // (optional) for i18n
+  const { locale } = useI18n();
   const { search, setSearch, query } = useDocsSearch({
     client: staticClient({
-      // Fumadocs defaults to /api/search, which misses Next's basePath.
       from: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ''}/api/search`,
       locale,
     }),

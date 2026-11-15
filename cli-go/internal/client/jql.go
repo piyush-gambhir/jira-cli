@@ -5,8 +5,6 @@ import (
 	"net/url"
 )
 
-// JQLFieldRef is a field that can be used in JQL, as returned by the
-// autocomplete data endpoint (value is the JQL clause name).
 type JQLFieldRef struct {
 	Value       string   `json:"value"`
 	DisplayName string   `json:"displayName"`
@@ -14,7 +12,6 @@ type JQLFieldRef struct {
 	Types       []string `json:"types,omitempty"`
 }
 
-// JQLFunctionRef is a JQL function reference from the autocomplete data.
 type JQLFunctionRef struct {
 	Value       string   `json:"value"`
 	DisplayName string   `json:"displayName"`
@@ -22,29 +19,23 @@ type JQLFunctionRef struct {
 	Types       []string `json:"types,omitempty"`
 }
 
-// JQLAutocompleteData is the response of GET /jql/autocompletedata: the fields,
-// functions and reserved words usable when composing JQL.
 type JQLAutocompleteData struct {
 	VisibleFieldNames    []JQLFieldRef    `json:"visibleFieldNames"`
 	VisibleFunctionNames []JQLFunctionRef `json:"visibleFunctionNames"`
 	JQLReservedWords     []string         `json:"jqlReservedWords"`
 }
 
-// JQLSuggestion is a single suggested value for a field (autocomplete).
 type JQLSuggestion struct {
 	Value       string `json:"value"`
 	DisplayName string `json:"displayName"`
 }
 
-// JQLParsedError describes a problem with a parsed query (empty when valid).
 type JQLParsedError struct {
 	Query     string          `json:"query"`
 	Structure json.RawMessage `json:"structure,omitempty"`
 	Errors    []string        `json:"errors,omitempty"`
 }
 
-// JQLAutocompleteData returns the fields, functions and reserved words that can
-// be used to build JQL queries on this site.
 func (c *Client) JQLAutocompleteData() (*JQLAutocompleteData, error) {
 	var out JQLAutocompleteData
 	if err := c.GetJSON(c.api("jql/autocompletedata"), nil, &out); err != nil {
@@ -53,8 +44,6 @@ func (c *Client) JQLAutocompleteData() (*JQLAutocompleteData, error) {
 	return &out, nil
 }
 
-// JQLSuggestions returns autocomplete suggestions for a field. fieldValue is an
-// optional value prefix; predicateName is an optional predicate (e.g. "by").
 func (c *Client) JQLSuggestions(fieldName, fieldValue, predicateName string) ([]JQLSuggestion, error) {
 	q := url.Values{}
 	if fieldName != "" {
@@ -75,9 +64,6 @@ func (c *Client) JQLSuggestions(fieldName, fieldValue, predicateName string) ([]
 	return out.Results, nil
 }
 
-// JQLParse parses (and optionally validates) one or more JQL queries. validation
-// is one of "strict", "warn" or "none" (empty uses the server default). Each
-// returned entry carries the parsed structure and any per-query errors.
 func (c *Client) JQLParse(queries []string, validation string) ([]JQLParsedError, error) {
 	if c.IsServer() {
 		return nil, errCloudOnly("jql parse", "on Server/Data Center run the query with `jira issue search` to validate it")

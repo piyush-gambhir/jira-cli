@@ -21,13 +21,9 @@ import (
 
 const repoSlug = "piyush-gambhir/jira-cli"
 
-// groupDispatcherKey marks command groups whose only job is to dispatch to a
-// sub-command (or print help). PersistentPreRunE uses it to skip client setup
-// for them — set by enforceGroupNoArgs, never on a command with its own RunE.
 const groupDispatcherKey = "jira.groupDispatcher"
 
 var (
-	// Global flags
 	outputFormat   string
 	profileFlag    string
 	siteFlag       string
@@ -42,29 +38,18 @@ var (
 	noInputFlag    bool
 	quietFlag      bool
 
-	// Shared state set during PersistentPreRunE
 	cfg               *config.Config
 	activeProfileName string
 	jiraClient        *client.Client
 	outFormat         output.Format
 
-	// OutputFormat is the format resolved in PersistentPreRunE; ErrorFormat
-	// uses it to format top-level errors.
 	OutputFormat string
 
-	// updateResult receives the background release check's latest version;
-	// nil when no check was started for this command.
-	updateResult  chan string
-	updateChecker *update.Checker
-	// updateNoticeWait is how long PersistentPostRunE waits for a background
-	// check that this run started and that has not answered yet.
+	updateResult     chan string
+	updateChecker    *update.Checker
 	updateNoticeWait = updateNoticeGrace
 )
 
-// updateNoticeGrace bounds the wait for this run's own release check. The check
-// is recorded before GitHub is asked, so an answer lost to a fast command would
-// hide the notice for a day; waiting up to a second (at most once a day, only
-// in an interactive terminal) keeps it. A cached answer never waits.
 const updateNoticeGrace = time.Second
 
 var rootCmd = &cobra.Command{
@@ -92,8 +77,6 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// JIRA_NO_INPUT is a safety setting for agent runners, so it is sticky: an
-		// explicit --no-input=false cannot undo it. --quiet=false still wins over JIRA_QUIET.
 		if v, ok := os.LookupEnv("JIRA_NO_INPUT"); ok && truthy(v) {
 			noInputFlag = true
 		}
@@ -108,7 +91,6 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 			startBackgroundUpdateCheck()
 		}
 
-		// Parse output format early (also used by main.go error handling).
 		var err error
 		outFormat, err = output.ParseFormat(outputFormat)
 		if err != nil {
@@ -116,19 +98,12 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		}
 		OutputFormat = outputFormat
 
-		// Commands that never need an authenticated client. They are matched by
-		// their top-level command (so `completion bash` and Cobra's hidden
-		// __complete are covered), never by leaf name: `project update` needs one.
 		if isClientlessCommand(cmd) {
 			return nil
 		}
 		if cmd.Parent() != nil && cmd.Parent().Name() == "auth" {
 			return loadConfigOnly()
 		}
-		// Pure dispatcher groups (issue, project, ...) only show help or reject an
-		// unknown sub-command, so they need no client. Commands that have their own
-		// run function still get one even if they also have sub-commands — e.g.
-		// `jira status`, which reports the live connection.
 		if cmd.Annotations[groupDispatcherKey] == "true" {
 			return nil
 		}
@@ -166,8 +141,6 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		if updateResult == nil {
 			return nil
 		}
-		// A cached answer is already waiting; a check this run started gets
-		// updateNoticeWait to answer before the command exits without a notice.
 		var latest string
 		select {
 		case latest = <-updateResult:
@@ -239,15 +212,12 @@ func checkReadOnly(cmd *cobra.Command, profile config.Profile) error {
 	if effective && cmd.Annotations != nil && cmd.Annotations["mutates"] == "true" {
 		return fmt.Errorf("command '%s' is blocked in read-only mode; remove read_only from the profile or disable the read-only environment setting to permit writes", cmd.CommandPath())
 	}
-	// Commands that only read Jira but write local files are blocked too.
 	if effective && cmd.Annotations != nil && cmd.Annotations["writes-local"] == "true" {
 		return fmt.Errorf("command '%s' writes local files and is blocked in read-only mode", cmd.CommandPath())
 	}
 	return nil
 }
 
-// isClientlessCommand reports whether cmd belongs to a top-level command that
-// needs no Jira client: update, version, completion, help, or __complete*.
 func isClientlessCommand(cmd *cobra.Command) bool {
 	top := cmd
 	for top.HasParent() && top.Parent().HasParent() {
@@ -261,11 +231,6 @@ func isClientlessCommand(cmd *cobra.Command) bool {
 	}
 }
 
-// updateNotifierEnabled reports whether this run may check GitHub for a newer
-// release in the background. Scripts, CI, and agents are never disturbed: the
-// check is skipped (no network, no output) unless stderr is a terminal, and
-// also under CI, JIRA_NO_UPDATE_NOTIFIER, NO_UPDATE_NOTIFIER, --quiet or
-// JIRA_QUIET, for dev builds, and for update/version/completion/help.
 func updateNotifierEnabled(cmd *cobra.Command) bool {
 	if isClientlessCommand(cmd) {
 		return false
@@ -276,10 +241,6 @@ func updateNotifierEnabled(cmd *cobra.Command) bool {
 		stderrIsTerminal()
 }
 
-// startBackgroundUpdateCheck answers from a fresh cache right away (a small
-// local read, so even a fast command can show the notice) and otherwise asks
-// GitHub in a goroutine that PersistentPostRunE waits for at most
-// updateNoticeWait.
 func startBackgroundUpdateCheck() {
 	ch := make(chan string, 1)
 	checker := newUpdateChecker(3 * time.Second)
@@ -299,14 +260,10 @@ func truthy(v string) bool {
 	return strings.EqualFold(v, "true") || v == "1"
 }
 
-// RootCmd returns the root command for use in main.go.
 func RootCmd() *cobra.Command { return rootCmd }
 
-// Execute runs the root command and reports a failure on stderr in the
-// selected output format (a structured object for -o json), exiting 1.
 func Execute() {
 	if runtime.GOOS == "windows" {
-		// A Windows update leaves the replaced binary at jira.exe.old.
 		if exe, err := executablePath(); err == nil {
 			update.RemoveStaleOld(exe)
 		}
@@ -322,10 +279,6 @@ func Execute() {
 	}
 }
 
-// ErrorFormat picks the output format for a top-level error. PersistentPreRunE
-// resolves OutputFormat (including the config default), but Cobra rejects bad
-// arguments and unknown flags before that hook runs, so fall back to the
-// -o/--output value in args.
 func ErrorFormat(args []string) output.Format {
 	name := OutputFormat
 	if name == "" {
@@ -338,17 +291,12 @@ func ErrorFormat(args []string) output.Format {
 	return format
 }
 
-// outputFlagFromArgs returns the -o/--output value in args (-o json, -ojson,
-// -o=json, --output json, --output=json). It walks args with the flag
-// definitions of the command they select, so a value glued to another short
-// flag (-shttps://x) is skipped whole instead of being read as a cluster of
-// one-letter flags. Parsing of an argument stops at an unknown flag.
 func outputFlagFromArgs(args []string) string {
 	cmd, _, err := rootCmd.Find(args)
 	if err != nil || cmd == nil {
 		cmd = rootCmd
 	}
-	cmd.InheritedFlags() // merges the persistent flags into cmd.Flags()
+	cmd.InheritedFlags()
 	flags := cmd.Flags()
 
 	format := ""
@@ -376,7 +324,7 @@ func outputFlagFromArgs(args []string) string {
 				if f == nil {
 					break
 				}
-				if f.NoOptDefVal != "" { // a boolean: the cluster continues
+				if f.NoOptDefVal != "" {
 					continue
 				}
 				value := strings.TrimPrefix(a[j+1:], "=")
@@ -424,7 +372,6 @@ func init() {
 	rootCmd.AddCommand(newSprintCmd())
 	rootCmd.AddCommand(newEpicCmd())
 
-	// Expanded API coverage (added groups)
 	rootCmd.AddCommand(newComponentCmd())
 	rootCmd.AddCommand(newReleaseCmd())
 	rootCmd.AddCommand(newFilterCmd())
@@ -440,17 +387,9 @@ func init() {
 	rootCmd.AddCommand(newBacklogCmd())
 	rootCmd.AddCommand(newServerInfoCmd())
 
-	// Make command groups reject unknown sub-commands (e.g. `jira issue bogus`)
-	// with a non-zero exit instead of silently printing help and exiting 0.
 	enforceGroupNoArgs(rootCmd)
 }
 
-// enforceGroupNoArgs walks the command tree and, for every command that groups
-// sub-commands but has no run function of its own, installs a RunE that returns
-// an "unknown command" error (exit 1) when given an unrecognized sub-command,
-// and otherwise prints help. Cobra short-circuits a non-runnable parent to help
-// (exit 0) before arg validation runs, so a typo like `jira issue bogus` would
-// otherwise look like success — bad for scripts and agents.
 func enforceGroupNoArgs(c *cobra.Command) {
 	if c.HasSubCommands() && c.Run == nil && c.RunE == nil {
 		if c.Annotations == nil {

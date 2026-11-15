@@ -2,17 +2,12 @@ package client
 
 import "net/url"
 
-// Group is a Jira user group (name plus the immutable groupId).
 type Group struct {
 	Name    string `json:"name,omitempty"`
 	GroupID string `json:"groupId,omitempty"`
-	HTML    string `json:"html,omitempty"` // present in groups picker results
+	HTML    string `json:"html,omitempty"`
 }
 
-// ListGroups returns groups and the total number of groups. Cloud uses the
-// bulk endpoint (PageBean of {name,groupId}). Server/DC has no group/bulk, so
-// it uses the group picker with an empty query, which Jira caps at its
-// jira.ajax.autocomplete.limit setting (20 by default).
 func (c *Client) ListGroups(limit int) ([]Group, int, error) {
 	q := url.Values{}
 	if limit > 0 {
@@ -38,7 +33,6 @@ func (c *Client) ListGroups(limit int) ([]Group, int, error) {
 	return out.Values, out.Total, nil
 }
 
-// FindGroups searches for groups whose name matches query (groups picker).
 func (c *Client) FindGroups(query string) ([]Group, error) {
 	q := url.Values{}
 	if query != "" {
@@ -53,8 +47,6 @@ func (c *Client) FindGroups(query string) ([]Group, error) {
 	return out.Groups, nil
 }
 
-// GroupMembers returns the members of a group. Identify the group by name or, if
-// groupID is set, by id. includeInactive also returns deactivated users.
 func (c *Client) GroupMembers(name, groupID string, limit int, includeInactive bool) ([]User, error) {
 	if groupID != "" && c.IsServer() {
 		return nil, errCloudOnly("--group-id", "Server/Data Center groups have no ids, so pass the group name")
@@ -80,22 +72,17 @@ func (c *Client) GroupMembers(name, groupID string, limit int, includeInactive b
 	return out.Values, nil
 }
 
-// AddGroupUser adds the user (accountId, or username on Server/DC) to the
-// named group.
 func (c *Client) AddGroupUser(name, accountID string) error {
 	q := url.Values{"groupname": {name}}
 	return c.PostJSON(c.api("group/user"), q, c.UserRef(accountID), nil)
 }
 
-// RemoveGroupUser removes the user (accountId, or username on Server/DC) from
-// the named group.
 func (c *Client) RemoveGroupUser(name, accountID string) error {
 	q := c.userQuery(accountID)
 	q.Set("groupname", name)
 	return c.Delete(c.api("group/user"), q)
 }
 
-// CreateGroup creates a group with the given name and returns it.
 func (c *Client) CreateGroup(name string) (*Group, error) {
 	var out Group
 	if err := c.PostJSON(c.api("group"), nil, map[string]any{"name": name}, &out); err != nil {
@@ -104,8 +91,6 @@ func (c *Client) CreateGroup(name string) (*Group, error) {
 	return &out, nil
 }
 
-// DeleteGroup deletes the named group. swapGroup, if set, receives any
-// restrictions/permissions that referenced the deleted group.
 func (c *Client) DeleteGroup(name, swapGroup string) error {
 	q := url.Values{"groupname": {name}}
 	if swapGroup != "" {

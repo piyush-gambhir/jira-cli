@@ -114,7 +114,7 @@ Examples:
 					return err
 				}
 				if jiraClient.IsServer() {
-					body["lead"] = acct // Server/DC takes the lead's username
+					body["lead"] = acct
 				} else {
 					body["leadAccountId"] = acct
 				}
@@ -166,7 +166,7 @@ func newProjectUpdateCmd() *cobra.Command {
 					return err
 				}
 				if jiraClient.IsServer() {
-					body["lead"] = acct // Server/DC takes the lead's username
+					body["lead"] = acct
 				} else {
 					body["leadAccountId"] = acct
 				}
@@ -229,8 +229,6 @@ func newProjectDeleteCmd() *cobra.Command {
 	return cmd
 }
 
-// checkEnableUndo refuses --enable-undo on Server/Data Center (REST v2), which
-// ignores it and deletes the project permanently.
 func checkEnableUndo(apiVersion string, enableUndo bool) error {
 	if enableUndo && apiVersion == "2" {
 		return fmt.Errorf("--enable-undo is Cloud only: Jira Server/Data Center ignores it and deletes the project permanently")

@@ -6,11 +6,8 @@ import (
 	"strings"
 )
 
-// EnvLookupFunc is a function that looks up an environment variable.
 type EnvLookupFunc func(string) (string, bool)
 
-// FlagValues holds connection/auth values passed via CLI flags, with a "set"
-// bool for each so an explicitly-empty flag can be distinguished from an unset one.
 type FlagValues struct {
 	Site     string
 	Email    string
@@ -25,14 +22,6 @@ type FlagValues struct {
 	InsecureSet bool
 }
 
-// ResolveAuth resolves a connection profile with priority: flags > env > config.
-//
-// Environment variables (all optional):
-//
-//	JIRA_SITE, JIRA_EMAIL, JIRA_TOKEN, JIRA_USER, JIRA_PASSWORD,
-//	JIRA_AUTH_TYPE, JIRA_CLOUD_ID, JIRA_API_VERSION, JIRA_INSECURE, JIRA_READ_ONLY,
-//	JIRA_OAUTH_CLIENT_ID, JIRA_OAUTH_CLIENT_SECRET, JIRA_OAUTH_ACCESS_TOKEN,
-//	JIRA_OAUTH_REFRESH_TOKEN, JIRA_SCOPES
 func ResolveAuth(flags FlagValues, envLookup EnvLookupFunc, cfg *Config, profileName string) (Profile, error) {
 	var base Profile
 
@@ -48,7 +37,6 @@ func ResolveAuth(flags FlagValues, envLookup EnvLookupFunc, cfg *Config, profile
 		base = p
 	}
 
-	// Layer env vars over the config profile.
 	if envLookup != nil {
 		setStr := func(key string, dst *string) {
 			if v, ok := envLookup(key); ok && v != "" {
@@ -79,7 +67,6 @@ func ResolveAuth(flags FlagValues, envLookup EnvLookupFunc, cfg *Config, profile
 		setBool("JIRA_READ_ONLY", &base.ReadOnly)
 	}
 
-	// Layer flags (highest priority).
 	if flags.SiteSet && flags.Site != "" {
 		base.Site = flags.Site
 	}

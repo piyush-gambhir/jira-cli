@@ -2,7 +2,6 @@ package client
 
 import "net/url"
 
-// ListComments returns an issue's comments (most recent first, up to limit).
 func (c *Client) ListComments(key string, limit int) ([]Comment, error) {
 	var out struct {
 		Comments []Comment `json:"comments"`
@@ -17,8 +16,6 @@ func (c *Client) ListComments(key string, limit int) ([]Comment, error) {
 	return out.Comments, nil
 }
 
-// AddComment adds a comment. body is the comment body (an ADF document on Cloud
-// v3, or a plain string on v2); visibility is optional.
 func (c *Client) AddComment(key string, body any, visibility map[string]any) (*Comment, error) {
 	payload := map[string]any{"body": body}
 	if len(visibility) > 0 {
@@ -31,7 +28,6 @@ func (c *Client) AddComment(key string, body any, visibility map[string]any) (*C
 	return &out, nil
 }
 
-// ListWorklogs returns an issue's worklog entries (up to limit).
 func (c *Client) ListWorklogs(key string, limit int) ([]Worklog, error) {
 	var out struct {
 		Worklogs []Worklog `json:"worklogs"`
@@ -46,8 +42,6 @@ func (c *Client) ListWorklogs(key string, limit int) ([]Worklog, error) {
 	return out.Worklogs, nil
 }
 
-// AddWorklog logs work on an issue. body carries timeSpent/timeSpentSeconds,
-// started, and optional comment (ADF). adjustEstimate/newEstimate are optional.
 func (c *Client) AddWorklog(key string, body map[string]any, adjustEstimate, newEstimate string) (*Worklog, error) {
 	q := url.Values{}
 	if adjustEstimate != "" {

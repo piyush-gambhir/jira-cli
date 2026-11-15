@@ -11,7 +11,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// statusCategoryName renders a status' workflow category for table cells.
 func statusCategoryName(s client.Status) string {
 	if s.StatusCategory == nil {
 		return "-"
@@ -44,8 +43,6 @@ func newStatusListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			// The /status endpoint returns instance-wide statuses (no project
-			// field), so --project is accepted but only emits a note when set.
 			if statusProject != "" {
 				info("Note: --project does not filter the instance status list; showing all statuses.")
 			}
@@ -71,7 +68,6 @@ func newStatusGetCmd() *cobra.Command {
 	}
 }
 
-// serverInfoResult is the rendered view of GET /serverInfo.
 type serverInfoResult struct {
 	BaseURL        string `json:"baseUrl"`
 	Version        string `json:"version"`
@@ -117,7 +113,6 @@ func newServerInfoCmd() *cobra.Command {
 	}
 }
 
-// authCurrentResult is the rendered view of the active profile.
 type authCurrentResult struct {
 	Name     string `json:"name"`
 	Site     string `json:"site"`

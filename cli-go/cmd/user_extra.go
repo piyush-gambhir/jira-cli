@@ -9,7 +9,6 @@ import (
 	"github.com/piyush-gambhir/jira-cli/cli-go/internal/output"
 )
 
-// userGroupTable renders the {name,groupId} groups a user belongs to.
 func userGroupTable() *output.TableDef {
 	return &output.TableDef{
 		Headers: []string{"NAME", "GROUP ID"},
