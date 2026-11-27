@@ -128,7 +128,7 @@ Claude Code skill: https://github.com/piyush-gambhir/jira-cli/blob/main/jira/SKI
 		}
 
 		persist := func(updated config.Profile) error {
-			return config.PersistProfile(activeProfileName, updated)
+			return config.PersistTokens(activeProfileName, updated)
 		}
 		authr, err := auth.New(profile, activeProfileName, persist)
 		if err != nil {

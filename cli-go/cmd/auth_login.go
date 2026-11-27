@@ -277,7 +277,7 @@ func needSecret(flagVal, label string) (string, error) {
 }
 
 func testProfile(profile config.Profile, name string) (*client.User, error) {
-	persist := func(updated config.Profile) error { return config.PersistProfile(name, updated) }
+	persist := func(updated config.Profile) error { return config.PersistTokens(name, updated) }
 	authr, err := auth.New(profile, name, persist)
 	if err != nil {
 		return nil, err

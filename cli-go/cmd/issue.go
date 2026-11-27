@@ -84,7 +84,7 @@ func issueListTable() *output.TableDef {
 				namedName(f.IssueType),
 				statusName(f.Status),
 				namedName(f.Priority),
-				userName(f.Assignee),
+				assigneeName(f.Assignee),
 				truncate(f.Summary, 60),
 			}
 		},
@@ -105,9 +105,16 @@ func statusName(s *client.Status) string {
 	return dash(s.Name)
 }
 
-func userName(u *client.User) string {
+func assigneeName(u *client.User) string {
 	if u == nil {
 		return "Unassigned"
+	}
+	return userName(u)
+}
+
+func userName(u *client.User) string {
+	if u == nil {
+		return "-"
 	}
 	if u.DisplayName != "" {
 		return u.DisplayName

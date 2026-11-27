@@ -184,7 +184,10 @@ func newIssueChangelogCmd() *cobra.Command {
 			}
 			var rows []issueMetaChangeRow
 			for _, e := range entries {
-				author := userName(e.Author)
+				author := ""
+				if e.Author != nil {
+					author = userName(e.Author)
+				}
 				for _, it := range e.Items {
 					rows = append(rows, issueMetaChangeRow{
 						Created: e.Created,

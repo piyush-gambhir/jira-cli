@@ -138,9 +138,16 @@ func Update(mutator func(*Config) error) error {
 	return Save(cfg)
 }
 
-func PersistProfile(name string, profile Profile) error {
+func PersistTokens(name string, updated Profile) error {
 	return Update(func(cfg *Config) error {
-		SetProfile(cfg, name, profile)
+		p, ok := cfg.Profiles[name]
+		if !ok || p.EffectiveAuthType() != updated.EffectiveAuthType() || p.ClientID != updated.ClientID || p.CloudID != updated.CloudID {
+			return nil
+		}
+		p.AccessToken = updated.AccessToken
+		p.RefreshToken = updated.RefreshToken
+		p.TokenExpiry = updated.TokenExpiry
+		cfg.Profiles[name] = p
 		return nil
 	})
 }

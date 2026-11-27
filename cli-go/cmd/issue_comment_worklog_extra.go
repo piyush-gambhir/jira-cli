@@ -180,7 +180,7 @@ func newIssueWorklogDeleteCmd() *cobra.Command {
   auto    (default) reduce the estimate by the deleted worklog's time
   leave   leave the estimate unchanged
   new     set the estimate to --new-estimate
-  manual  decrease the estimate by --increase-by`,
+  manual  increase the estimate by --increase-by`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			key, id := args[0], args[1]
@@ -213,7 +213,7 @@ func newIssueWorklogDeleteCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&adjust, "adjust", "", "Estimate adjustment: auto, leave, new, manual")
 	cmd.Flags().StringVar(&newEstimate, "new-estimate", "", "New remaining estimate (with --adjust new)")
-	cmd.Flags().StringVar(&increaseBy, "increase-by", "", "Amount to decrease the estimate by (with --adjust manual)")
+	cmd.Flags().StringVar(&increaseBy, "increase-by", "", "Amount to increase the estimate by (with --adjust manual)")
 	cmd.Flags().BoolVar(&yes, "yes", false, "Skip the confirmation prompt")
 	return cmd
 }

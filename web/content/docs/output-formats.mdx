@@ -26,7 +26,8 @@ jira issue search "project = ABC" -o json | jq '.[].key'
 
 - **Users are accountIds on Cloud, usernames on Server/DC.** Commands accept email /
   display name / `@me` / `id:<accountId>` (`id:<username>` on Server/DC) and resolve
-  to that identifier via user search before use.
+  to that identifier via user search before use. A reference that matches several users
+  fails (listing them) unless exactly one has that exact email, display name, or id.
 - **Rich text is ADF on Cloud.** Descriptions, comments, and worklog comments are sent
   as Atlassian Document Format. `--markdown` interprets input as lightweight markdown
   (headings, lists, bold/italic/code/links). On Server/DC (API v2) the text is sent as

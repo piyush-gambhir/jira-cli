@@ -45,7 +45,7 @@ func printIssueDetail(i *client.Issue) {
 	fmt.Printf("  Type:     %s\n", namedName(f.IssueType))
 	fmt.Printf("  Status:   %s\n", statusName(f.Status))
 	fmt.Printf("  Priority: %s\n", namedName(f.Priority))
-	fmt.Printf("  Assignee: %s\n", userName(f.Assignee))
+	fmt.Printf("  Assignee: %s\n", assigneeName(f.Assignee))
 	fmt.Printf("  Reporter: %s\n", userName(f.Reporter))
 	if f.Resolution != nil {
 		fmt.Printf("  Resolution: %s\n", namedName(f.Resolution))
