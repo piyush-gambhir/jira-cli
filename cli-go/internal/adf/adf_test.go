@@ -52,6 +52,15 @@ func TestFromMarkdown_Marks(t *testing.T) {
 	}
 }
 
+func TestFromMarkdown_IntrawordUnderscoresStayLiteral(t *testing.T) {
+	js := toJSON(t, FromMarkdown("set my_var_name=1 in /srv/app__data__dir and _em_ or __init__"))
+	for _, want := range []string{`"text":"set my_var_name=1 in /srv/app__data__dir and "`, `"marks":[{"type":"em"}],"text":"em"`, `"marks":[{"type":"strong"}],"text":"init"`} {
+		if !strings.Contains(js, want) {
+			t.Fatalf("missing %s in %s", want, js)
+		}
+	}
+}
+
 func TestFromMarkdown_Blocks(t *testing.T) {
 	md := "# Title\n\n- one\n- two\n\n```go\nx := 1\n```\n\n> quote"
 	js := toJSON(t, FromMarkdown(md))

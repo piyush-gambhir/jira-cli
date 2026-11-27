@@ -3,6 +3,8 @@ package adf
 import (
 	"regexp"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 )
 
 type Mark struct {
@@ -229,7 +231,7 @@ func parseInline(s string) []Node {
 			}
 		case strings.HasPrefix(s[i:], "**") || strings.HasPrefix(s[i:], "__"):
 			delim := s[i : i+2]
-			if end := strings.Index(s[i+2:], delim); end >= 0 {
+			if end := emphasisEnd(s, i, delim); end >= 0 {
 				flush()
 				if inner := s[i+2 : i+2+end]; inner != "" {
 					nodes = append(nodes, text(inner, Mark{Type: "strong"}))
@@ -238,8 +240,7 @@ func parseInline(s string) []Node {
 				continue
 			}
 		case s[i] == '*' || s[i] == '_':
-			delim := s[i]
-			if end := strings.IndexByte(s[i+1:], delim); end >= 0 {
+			if end := emphasisEnd(s, i, s[i:i+1]); end >= 0 {
 				flush()
 				if inner := s[i+1 : i+1+end]; inner != "" {
 					nodes = append(nodes, text(inner, Mark{Type: "em"}))
@@ -256,4 +257,37 @@ func parseInline(s string) []Node {
 		nodes = []Node{}
 	}
 	return nodes
+}
+
+func emphasisEnd(s string, i int, delim string) int {
+	underscore := delim[0] == '_'
+	if underscore && wordRuneBefore(s, i) {
+		return -1
+	}
+	from := i + len(delim)
+	for off := 0; ; {
+		end := strings.Index(s[from+off:], delim)
+		if end < 0 {
+			return -1
+		}
+		end += off
+		if !underscore || !wordRuneAt(s, from+end+len(delim)) {
+			return end
+		}
+		off = end + 1
+	}
+}
+
+func isWordRune(r rune) bool {
+	return r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)
+}
+
+func wordRuneBefore(s string, i int) bool {
+	r, size := utf8.DecodeLastRuneInString(s[:i])
+	return size > 0 && isWordRune(r)
+}
+
+func wordRuneAt(s string, i int) bool {
+	r, size := utf8.DecodeRuneInString(s[i:])
+	return size > 0 && isWordRune(r)
 }

@@ -43,7 +43,7 @@ func (c *Client) SearchFilters(name string, limit int) ([]Filter, error) {
 	}
 	q := url.Values{}
 	if name != "" {
-		q.Set("name", name)
+		q.Set("filterName", name)
 	}
 	if limit > 0 {
 		q.Set("maxResults", itoa(limit))

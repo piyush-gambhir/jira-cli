@@ -90,14 +90,38 @@ func (c *Client) ResolveUser(ref string) (string, error) {
 	if strings.HasPrefix(ref, "id:") {
 		return strings.TrimPrefix(ref, "id:"), nil
 	}
-	users, err := c.SearchUsers(ref, 2)
+	users, err := c.SearchUsers(ref, 50)
 	if err != nil {
 		return "", err
 	}
 	if len(users) == 0 {
 		return "", fmt.Errorf("no user found matching %q", ref)
 	}
-	return c.UserID(users[0]), nil
+	if len(users) == 1 {
+		return c.UserID(users[0]), nil
+	}
+	var exact []User
+	for _, u := range users {
+		if strings.EqualFold(u.EmailAddress, ref) || strings.EqualFold(u.DisplayName, ref) || strings.EqualFold(c.UserID(u), ref) {
+			exact = append(exact, u)
+		}
+	}
+	if len(exact) == 1 {
+		return c.UserID(exact[0]), nil
+	}
+	shown := users
+	if len(shown) > 10 {
+		shown = shown[:10]
+	}
+	names := make([]string, len(shown))
+	for i, u := range shown {
+		names[i] = fmt.Sprintf("%s (id:%s)", u.DisplayName, c.UserID(u))
+	}
+	list := strings.Join(names, ", ")
+	if len(users) > len(shown) {
+		list += fmt.Sprintf(", and %d more", len(users)-len(shown))
+	}
+	return "", fmt.Errorf("%q matches more than one user (%s); use a full email, exact name, or id:<id>", ref, list)
 }
 
 func (c *Client) ListProjects(query string, limit int) ([]Project, error) {

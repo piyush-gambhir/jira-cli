@@ -469,7 +469,7 @@ jira project delete ABC --enable-undo --yes
 
 ### user, find and inspect users
 
-Group alias: `users`. Jira Cloud identifies users by accountId (GDPR); Server/DC by username. Commands that take a user reference accept email / display name / `@me` (or `me`) / `id:<accountId>` (`id:<username>` on Server/DC).
+Group alias: `users`. Jira Cloud identifies users by accountId (GDPR); Server/DC by username. Commands that take a user reference accept email / display name / `@me` (or `me`) / `id:<accountId>` (`id:<username>` on Server/DC). A reference that matches several users fails (listing them) unless exactly one has that exact email, display name, or id.
 
 ```
 jira user search <query> [-n <limit>]                   # search by name or email

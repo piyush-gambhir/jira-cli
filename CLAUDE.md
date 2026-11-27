@@ -152,7 +152,8 @@ jira epic get ABC-10 ; jira epic issues ABC-10
 
 - **Users are accountIds on Cloud, usernames on Server/DC.** Commands accept email / display name /
   `@me` / `id:<accountId>` (`id:<username>` on Server/DC) and resolve to that identifier via user
-  search before use.
+  search before use. A reference that matches several users fails (listing them) unless exactly one
+  has that exact email, display name, or id.
 - **Rich text is ADF on Cloud.** Descriptions/comments/worklog comments are sent as Atlassian Document
   Format (API v3). `--markdown` interprets the text as lightweight markdown (headings, lists,
   bold/italic/code/links). On API v2 (Server/DC) the text is sent as-is, Jira renders it as wiki

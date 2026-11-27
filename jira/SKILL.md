@@ -69,7 +69,8 @@ jira status -o json     # site reachability + auth check + serverInfo
   `table`. Informational lines go to **stderr**, data to **stdout**, so `jira ... -o json | jq` is safe.
 - **Users are accountIds on Cloud, usernames on Server/DC.** Pass an email, display name, `@me`, or
   `id:<accountId>` (`id:<username>` on Server/DC) to `--assignee` / `--to` / `--user`; the CLI resolves
-  it. To look one up: `jira user search "<name>" -o json`.
+  it. A reference that matches several users fails (listing them) unless exactly one has that exact
+  email, display name, or id. To look one up: `jira user search "<name>" -o json`.
 - **Rich text is ADF on Cloud.** `--description` / `--body` / `--comment` are sent as Atlassian Document
   Format. Add `--markdown` to interpret the text as lightweight markdown (headings, lists,
   bold/italic/code/links). On Server/DC (API v2) the text is sent as Jira wiki markup and `--markdown`

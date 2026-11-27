@@ -292,15 +292,15 @@ func newReleaseCountCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			unresolved := 0
-			if u, err := jiraClient.VersionUnresolvedIssues(args[0]); err == nil {
-				unresolved = u.IssuesUnresolvedCount
+			unresolved, err := jiraClient.VersionUnresolvedIssues(args[0])
+			if err != nil {
+				return err
 			}
 			out := releaseCounts{
 				FixIssues:    related.IssuesFixedCount,
 				AffectsIssue: related.IssuesAffectedCount,
 				CustomFields: related.IssueCountWithCustomFieldsShowingVersion,
-				Unresolved:   unresolved,
+				Unresolved:   unresolved.IssuesUnresolvedCount,
 			}
 			return render(out, releaseCountTable())
 		},

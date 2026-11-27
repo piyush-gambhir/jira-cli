@@ -61,7 +61,7 @@ func TestServerUsersUseUsernames(t *testing.T) {
 	if err != nil || id != "jane" {
 		t.Fatalf("ResolveUser = %q, %v; want the username jane", id, err)
 	}
-	if got := (*reqs)[0].query; got != "maxResults=2&username=jane%40example.com" {
+	if got := (*reqs)[0].query; got != "maxResults=50&username=jane%40example.com" {
 		t.Fatalf("user search query = %q; want username=", got)
 	}
 	if me, err := c.ResolveUser("@me"); err != nil || me != "me" {
@@ -114,11 +114,48 @@ func TestCloudUsersUseAccountIDs(t *testing.T) {
 	if err := c.AssignIssue("ABC-1", id); err != nil {
 		t.Fatal(err)
 	}
-	if q := (*reqs)[0].query; q != "maxResults=2&query=jane" {
+	if q := (*reqs)[0].query; q != "maxResults=50&query=jane" {
 		t.Fatalf("user search query = %q; want query=", q)
 	}
 	if b := (*reqs)[1].body; b != `{"accountId":"5b10ac"}` {
 		t.Fatalf("assign body = %s; want accountId", b)
+	}
+}
+
+func TestResolveUserRejectsAmbiguousMatches(t *testing.T) {
+	ts, _ := recorder(t, map[string]string{
+		"GET /rest/api/3/user/search": `[{"accountId":"a1","displayName":"John Smith"},{"accountId":"a2","displayName":"John Doe"}]`,
+	})
+	c := testClient(t, ts.URL)
+	if id, err := c.ResolveUser("john"); err == nil || !strings.Contains(err.Error(), "John Smith (id:a1)") || !strings.Contains(err.Error(), "John Doe (id:a2)") {
+		t.Fatalf("ResolveUser(john) = %q, %v; want an ambiguity error listing both users", id, err)
+	}
+	if id, err := c.ResolveUser("john doe"); err != nil || id != "a2" {
+		t.Fatalf("ResolveUser(john doe) = %q, %v; want the exact display-name match a2", id, err)
+	}
+}
+
+func TestResolveUserFindsExactMatchBeyondFirstTwo(t *testing.T) {
+	ts, _ := recorder(t, map[string]string{
+		"GET /rest/api/3/user/search": `[{"accountId":"a1","displayName":"Ann Lee"},{"accountId":"a2","displayName":"Ann Leeds"},{"accountId":"a3","displayName":"Ann"}]`,
+	})
+	c := testClient(t, ts.URL)
+	if id, err := c.ResolveUser("ann"); err != nil || id != "a3" {
+		t.Fatalf("ResolveUser(ann) = %q, %v; want the exact display-name match a3", id, err)
+	}
+}
+
+func TestCloudFilterSearchSendsFilterName(t *testing.T) {
+	ts, reqs := recorder(t, map[string]string{
+		"GET /rest/api/3/filter/search": `{"values":[]}`,
+	})
+	c := testClient(t, ts.URL)
+	if _, err := c.SearchFilters("release", 20); err != nil {
+		t.Fatal(err)
+	}
+	want := "expand=jql%2Cowner%2Cfavourite%2CviewUrl%2Cdescription&filterName=release&maxResults=20"
+	if q := (*reqs)[0].query; q != want {
+		t.Fatalf("filter search query = %q; want %q", q, want)
 	}
 }
 
